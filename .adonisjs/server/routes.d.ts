@@ -1,6 +1,6 @@
 import '@adonisjs/core/types/http'
 
-type ParamValue = string | number | bigint | boolean
+type ParamValue = string | number | integer | boolean
 
 export type ScannedRoutes = {
   ALL: {
