@@ -1,0 +1,25 @@
+# Development Dockerfile for AdonisJS application
+
+FROM node:24-alpine AS development
+
+# Install pnpm and common development tools
+RUN corepack enable && \
+    corepack prepare pnpm@latest --activate && \
+    apk add --no-cache git
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install all dependencies (including dev dependencies)
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 3333
+
+# Start development server with hot reload
+CMD ["pnpm", "dev"]

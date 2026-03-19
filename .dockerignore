@@ -1,0 +1,54 @@
+# Dependencies
+node_modules
+pnpm-lock.yaml
+
+# Build output
+build
+.adonisjs
+
+# Git
+.git
+.gitignore
+.github
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Development files
+.vscode
+.devcontainer
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Tests
+tests
+coverage
+.nyc_output
+
+# Documentation
+README.md
+CHANGELOG.md
+docs
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Temporary files
+tmp
+temp
+*.tmp
+.DS_Store
+
+# Database
+*.sqlite
+*.sqlite3
