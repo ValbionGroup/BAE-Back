@@ -14,7 +14,7 @@ export default class extends BaseSchema {
       table.integer('category_id')
         .unsigned()
         .references('id')
-        .inTable('category')
+        .inTable('categories')
         .onDelete('SET NULL')
 
       table.timestamp('created_at')

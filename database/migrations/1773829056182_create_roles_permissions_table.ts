@@ -11,12 +11,13 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('roles')
         .onDelete('CASCADE')
-      table.integer('permission_id')
+      table.string('permission_id')
         .unsigned()
         .notNullable()
-        .references('id')
+        .references('permission')
         .inTable('permissions')
         .onDelete('CASCADE')
+        .onUpdate('CASCADE')
 
       table.timestamp('created_at').notNullable()
 

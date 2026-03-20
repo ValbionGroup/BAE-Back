@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -48,16 +46,21 @@ services:
       SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
     ports:
       - "${PORT:-3333}:3333"
+    user: root
     volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.adonisjs
+      - .:/app:z
+      - node_modules_dev:/app/node_modules
+      - adonisjs_dev:/app/.adonisjs
     networks:
       - bae-dev-network
-    command: pnpm dev
 
 volumes:
   postgres_dev_data:
+    driver: local
+  # Named volumes persist between restarts without conflicting with bind mount
+  node_modules_dev:
+    driver: local
+  adonisjs_dev:
     driver: local
 
 networks:
