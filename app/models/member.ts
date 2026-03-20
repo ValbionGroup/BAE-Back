@@ -7,6 +7,7 @@ import Event from "#models/event";
 import Job from "#models/job";
 import MemberEventAssignedJob from "#models/member_event_assigned_job";
 import Restock from "#models/restock";
+import Role from "#models/role";
 
 export default class Member extends MemberSchema {
   @belongsTo(() => User)
@@ -34,4 +35,7 @@ export default class Member extends MemberSchema {
 
   @hasMany(() => Restock)
   declare restocks: HasMany<typeof Restock>
+
+  @belongsTo(() => Role)
+  declare role: BelongsTo<typeof Role>
 }
