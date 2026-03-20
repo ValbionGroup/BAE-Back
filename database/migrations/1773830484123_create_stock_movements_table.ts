@@ -7,13 +7,15 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
 
-      table.integer('good_id')
+      table
+        .integer('good_id')
         .unsigned()
         .notNullable()
         .references('id')
         .inTable('goods')
         .onDelete('CASCADE')
-      table.integer('stock_batch_id')
+      table
+        .integer('stock_batch_id')
         .unsigned()
         .notNullable()
         .references('id')

@@ -1,4 +1,3 @@
 import { ProductSchema } from '#database/schema'
 
-export default class Product extends ProductSchema {
-}
+export default class Product extends ProductSchema {}

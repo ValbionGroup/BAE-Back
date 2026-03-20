@@ -18,11 +18,13 @@ This guide explains how to use Docker and the dev container for the BAE Backend 
 ### Development with Docker Compose
 
 1. Start the development environment:
+
    ```bash
    docker-compose -f docker-compose.dev.yml up -d
    ```
 
 2. View logs:
+
    ```bash
    docker-compose -f docker-compose.dev.yml logs -f api-dev
    ```
@@ -35,11 +37,13 @@ This guide explains how to use Docker and the dev container for the BAE Backend 
 ### Production with Docker Compose
 
 1. Build and start the production environment:
+
    ```bash
    docker-compose up -d --build
    ```
 
 2. View logs:
+
    ```bash
    docker-compose logs -f api
    ```
@@ -57,6 +61,7 @@ This guide explains how to use Docker and the dev container for the BAE Backend 
 4. VS Code will build and start the dev container automatically
 
 The dev container provides:
+
 - Full development environment with all dependencies
 - PostgreSQL database
 - Hot reload for code changes
@@ -101,14 +106,18 @@ docker-compose exec api node ace --help
 ### GitHub Actions Workflows
 
 #### CI Workflow (`.github/workflows/ci.yml`)
+
 Runs on every push and pull request:
+
 - Linting with ESLint
 - Type checking with TypeScript
 - Unit and integration tests
 - Build verification
 
 #### Docker Build Workflow (`.github/workflows/docker-build.yml`)
+
 Builds and pushes Docker images:
+
 - Triggered on push to `main` or `develop` branches
 - Creates multi-platform images (amd64, arm64)
 - Pushes to GitHub Container Registry (ghcr.io)
@@ -117,6 +126,7 @@ Builds and pushes Docker images:
 ### Image Tags
 
 The CI/CD pipeline creates the following tags:
+
 - `latest` - Latest build from main branch
 - `main` - Latest build from main branch
 - `develop` - Latest build from develop branch
@@ -127,6 +137,7 @@ The CI/CD pipeline creates the following tags:
 ### Using Published Images
 
 Pull and run the latest image:
+
 ```bash
 docker pull ghcr.io/[your-username]/bae-back:latest
 docker run -d -p 3333:3333 ghcr.io/[your-username]/bae-back:latest
@@ -135,6 +146,7 @@ docker run -d -p 3333:3333 ghcr.io/[your-username]/bae-back:latest
 ## Environment Variables
 
 Required environment variables (see `.env.example`):
+
 - `NODE_ENV` - Environment (development, production, test)
 - `PORT` - API port (default: 3333)
 - `HOST` - API host (default: localhost)
@@ -149,12 +161,14 @@ Required environment variables (see `.env.example`):
 ## Health Checks
 
 The Docker image includes health checks:
+
 - Interval: 30 seconds
 - Timeout: 3 seconds
 - Start period: 40 seconds
 - Retries: 3
 
 Check container health:
+
 ```bash
 docker inspect --format='{{.State.Health.Status}}' bae-api
 ```
@@ -162,6 +176,7 @@ docker inspect --format='{{.State.Health.Status}}' bae-api
 ## Database Migrations
 
 Run migrations in the container:
+
 ```bash
 # Development
 docker-compose -f docker-compose.dev.yml exec api-dev pnpm ace migration:run
@@ -173,20 +188,24 @@ docker-compose exec api node ace migration:run
 ## Troubleshooting
 
 ### Container won't start
+
 - Check logs: `docker-compose logs api`
 - Verify environment variables in `.env`
 - Ensure PostgreSQL is healthy: `docker-compose ps`
 
 ### Database connection issues
+
 - Ensure DB_HOST is set to `postgres` (service name)
 - Check PostgreSQL is running: `docker-compose ps postgres`
 - Verify credentials match between services
 
 ### Port already in use
+
 - Change PORT in `.env` file
 - Or stop the service using the port
 
 ### Hot reload not working in dev container
+
 - Ensure volumes are mounted correctly in `docker-compose.dev.yml`
 - Rebuild the container: `docker-compose -f docker-compose.dev.yml up -d --build`
 

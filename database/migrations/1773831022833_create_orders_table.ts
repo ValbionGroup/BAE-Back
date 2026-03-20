@@ -7,19 +7,22 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
 
-      table.integer('member_id')
+      table
+        .integer('member_id')
         .unsigned()
         .references('id')
         .inTable('members')
         .onDelete('SET NULL')
         .onUpdate('CASCADE')
-      table.integer('event_id')
+      table
+        .integer('event_id')
         .unsigned()
         .references('id')
         .inTable('events')
         .onDelete('CASCADE')
         .onUpdate('CASCADE')
-      table.integer('transaction_id')
+      table
+        .integer('transaction_id')
         .unsigned()
         .references('id')
         .inTable('transactions')

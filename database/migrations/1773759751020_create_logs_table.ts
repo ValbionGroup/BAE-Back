@@ -13,11 +13,7 @@ export default class extends BaseSchema {
       table.string('url').notNullable()
       table.string('ip').notNullable()
 
-      table.integer('user_id')
-        .unsigned()
-        .references('id')
-        .inTable('users')
-        .onDelete('SET NULL')
+      table.integer('user_id').unsigned().references('id').inTable('users').onDelete('SET NULL')
 
       // Store additional metadata as JSON
       table.json('meta').nullable()

@@ -11,7 +11,8 @@ export default class extends BaseSchema {
       table.enum('unit', ['pcs', 'kg', 'liter']).notNullable()
       table.string('brand').notNullable()
 
-      table.integer('category_id')
+      table
+        .integer('category_id')
         .unsigned()
         .references('id')
         .inTable('categories')

@@ -1,4 +1,3 @@
 import { StockMovementSchema } from '#database/schema'
 
-export default class StockMovement extends StockMovementSchema {
-}
+export default class StockMovement extends StockMovementSchema {}

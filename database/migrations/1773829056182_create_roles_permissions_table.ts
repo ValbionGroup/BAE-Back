@@ -5,13 +5,15 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.integer('role_id')
+      table
+        .integer('role_id')
         .unsigned()
         .notNullable()
         .references('id')
         .inTable('roles')
         .onDelete('CASCADE')
-      table.string('permission_id')
+      table
+        .string('permission_id')
         .unsigned()
         .notNullable()
         .references('permission')

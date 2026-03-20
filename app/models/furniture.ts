@@ -1,4 +1,3 @@
 import { FurnitureSchema } from '#database/schema'
 
-export default class Furniture extends FurnitureSchema {
-}
+export default class Furniture extends FurnitureSchema {}

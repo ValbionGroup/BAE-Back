@@ -5,8 +5,18 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.integer('pre_order_id').unsigned().references('id').inTable('pre_orders').onDelete('CASCADE')
-      table.integer('product_id').unsigned().references('id').inTable('products').onDelete('CASCADE')
+      table
+        .integer('pre_order_id')
+        .unsigned()
+        .references('id')
+        .inTable('pre_orders')
+        .onDelete('CASCADE')
+      table
+        .integer('product_id')
+        .unsigned()
+        .references('id')
+        .inTable('products')
+        .onDelete('CASCADE')
       table.integer('quantity').unsigned().notNullable()
       table.integer('received_quantity').unsigned().notNullable().defaultTo(0)
 

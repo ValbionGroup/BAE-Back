@@ -1,4 +1,3 @@
 import { EventSchema } from '#database/schema'
 
-export default class Event extends EventSchema {
-}
+export default class Event extends EventSchema {}

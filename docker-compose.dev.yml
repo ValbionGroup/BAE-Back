@@ -9,11 +9,11 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_DATABASE:-adonis}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - '${DB_PORT:-5432}:5432'
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,7 +45,7 @@ services:
       DB_DATABASE: ${DB_DATABASE:-adonis}
       SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
     ports:
-      - "${PORT:-3333}:3333"
+      - '${PORT:-3333}:3333'
     user: root
     volumes:
       - .:/app:z

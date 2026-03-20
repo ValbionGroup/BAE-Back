@@ -11,12 +11,9 @@ export default class extends BaseSchema {
       table.string('label').notNullable()
       table.decimal('quantity', 10, 2).unsigned().notNullable()
 
-      table.integer('good_id')
-        .unsigned()
-        .references('id')
-        .inTable('goods')
-        .onDelete('CASCADE')
-      table.integer('restock_id')
+      table.integer('good_id').unsigned().references('id').inTable('goods').onDelete('CASCADE')
+      table
+        .integer('restock_id')
         .unsigned()
         .references('id')
         .inTable('restocks')

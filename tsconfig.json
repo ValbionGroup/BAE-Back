@@ -5,6 +5,6 @@
     "jsx": "react",
     "outDir": "./build",
     "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "NodeNext"
   }
 }
