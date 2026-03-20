@@ -1,9 +1,11 @@
 import { GoodSchema } from '#database/schema'
-import { belongsTo, manyToMany } from '@adonisjs/lucid/orm'
+import {belongsTo, hasMany, manyToMany} from '@adonisjs/lucid/orm'
 import Category from '#models/category'
-import type { BelongsTo, ManyToMany } from '@adonisjs/lucid/types/relations'
+import type {BelongsTo, HasMany, ManyToMany} from '@adonisjs/lucid/types/relations'
 import Supplier from '#models/supplier'
 import Product from '#models/product'
+import StockMovement from "#models/stock_movement";
+import StockBatch from "#models/stock_batch";
 
 export default class Good extends GoodSchema {
   @belongsTo(() => Category)
@@ -22,4 +24,10 @@ export default class Good extends GoodSchema {
     pivotTimestamps: true,
   })
   declare products: ManyToMany<typeof Product>
+
+  @hasMany(() => StockMovement)
+  declare stockMovement: HasMany<typeof StockMovement>
+
+  @hasMany(() => StockBatch)
+  declare stockBatch: HasMany<typeof StockBatch>
 }
