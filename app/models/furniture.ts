@@ -6,6 +6,8 @@ import type { ManyToMany } from '@adonisjs/lucid/types/relations'
 export default class Furniture extends FurnitureSchema {
   @manyToMany(() => Product, {
     pivotTable: 'product_furnitures',
+    pivotColumns: ['quantity'],
+    pivotTimestamps: true,
   })
   declare products: ManyToMany<typeof Product>
 }

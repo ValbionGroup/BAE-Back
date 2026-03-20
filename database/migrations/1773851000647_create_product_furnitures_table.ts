@@ -18,7 +18,12 @@ export default class extends BaseSchema {
         .inTable('furnitures')
         .onDelete('CASCADE')
 
+      table.integer('quantity').unsigned().notNullable()
+
       table.primary(['product_id', 'furniture_id'])
+
+      table.timestamp('created_at').notNullable()
+      table.timestamp('updated_at').nullable()
     })
   }
 
