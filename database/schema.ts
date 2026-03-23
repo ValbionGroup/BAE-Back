@@ -159,6 +159,19 @@ export class FurnitureSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class GoodSupplierSchema extends BaseModel {
+  static $columns = ['createdAt', 'goodId', 'supplierId', 'updatedAt'] as const
+  $columns = GoodSupplierSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column()
+  declare goodId: number
+  @column()
+  declare supplierId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class GoodSchema extends BaseModel {
   static $columns = ['brand', 'categoryId', 'createdAt', 'id', 'name', 'unit', 'updatedAt'] as const
   $columns = GoodSchema.$columns
