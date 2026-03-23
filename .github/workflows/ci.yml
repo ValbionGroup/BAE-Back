@@ -120,7 +120,7 @@ jobs:
         run: pnpm typecheck
 
   test:
-    needs: [lint, prettier, typecheck]
+    needs: [lint, typecheck]
     runs-on: ubuntu-latest
     services:
       postgres:
