@@ -175,6 +175,8 @@ jobs:
           DB_PASSWORD: postgres
           DB_DATABASE: adonis_test
           SESSION_DRIVER: cookie
+          JWT_PRIVATE_KEY: test-jwt-private-key-for-ci-only-not-secure
+          JWT_PUBLIC_KEY: test-jwt
         run: pnpm test
 
   build:
