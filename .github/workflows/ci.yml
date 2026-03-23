@@ -120,7 +120,7 @@ jobs:
         run: pnpm typecheck
 
   test:
-    needs: setup
+    needs: [lint, prettier, typecheck]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -175,7 +175,7 @@ jobs:
         run: pnpm test
 
   build:
-    needs: [lint, prettier, typecheck, test]
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
