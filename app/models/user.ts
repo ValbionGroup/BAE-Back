@@ -4,9 +4,11 @@ import { compose } from '@adonisjs/core/helpers'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import { type AccessToken, DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import Log from '#models/log'
-import { hasMany, manyToMany } from '@adonisjs/lucid/orm'
-import type { HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import { hasMany, manyToMany, hasOne } from '@adonisjs/lucid/orm'
+import type { HasMany, HasOne, ManyToMany } from '@adonisjs/lucid/types/relations'
 import FastPass from '#models/fast_pass'
+import Member from '#models/member'
+import PreOrder from '#models/pre_order'
 
 export default class User extends compose(UserSchema, withAuthFinder(hash)) {
   static accessTokens = DbAccessTokensProvider.forModel(User)
@@ -19,4 +21,10 @@ export default class User extends compose(UserSchema, withAuthFinder(hash)) {
     pivotTable: 'subscriptions',
   })
   declare fastPasses: ManyToMany<typeof FastPass>
+
+  @hasOne(() => Member)
+  declare member: HasOne<typeof Member>
+
+  @hasMany(() => PreOrder)
+  declare preOrders: HasMany<typeof PreOrder>
 }
