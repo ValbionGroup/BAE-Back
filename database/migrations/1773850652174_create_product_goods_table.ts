@@ -13,7 +13,12 @@ export default class extends BaseSchema {
         .onDelete('CASCADE')
       table.integer('good_id').unsigned().references('id').inTable('goods').onDelete('CASCADE')
 
+      table.integer('quantity').unsigned().notNullable()
+
       table.primary(['product_id', 'good_id'])
+
+      table.timestamp('created_at').notNullable()
+      table.timestamp('updated_at').nullable()
     })
   }
 
