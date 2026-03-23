@@ -46,6 +46,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_DATABASE: ${DB_DATABASE:-adonis}
       SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
     ports:
       - '${PORT:-3333}:3333'
     networks:

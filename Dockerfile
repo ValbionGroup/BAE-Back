@@ -49,6 +49,10 @@ WORKDIR /app
 COPY --from=build --chown=nodejs:nodejs /app/build ./
 COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
 
+# Copy entrypoint script
+COPY --chown=nodejs:nodejs entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
 # Switch to non-root user
 USER nodejs
 
@@ -59,6 +63,7 @@ EXPOSE 3333
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3333', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the application
-ENTRYPOINT ["dumb-init", "--"]
+# Run migrations then start the application
+# We can remove migration if we use multiple containers
+ENTRYPOINT ["dumb-init", "--", "/app/entrypoint.sh"]
 CMD ["node", "bin/server.js"]
