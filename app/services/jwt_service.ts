@@ -26,10 +26,7 @@ export default class JwtService {
   /**
    * Sign a JWT with the configured RSA private key.
    */
-  async sign(
-    payload: JWTPayload,
-    options: { expiresIn?: string | number } = {}
-  ): Promise<string> {
+  async sign(payload: JWTPayload, options: { expiresIn?: string | number } = {}): Promise<string> {
     const privateKey = await importPKCS8(jwtConfig.privateKey, this.#algorithm)
 
     const builder = new SignJWT(payload).setProtectedHeader({ alg: this.#algorithm }).setIssuedAt()
@@ -57,7 +54,10 @@ export default class JwtService {
    * Generate a short-lived token for a rolling QR code.
    * Defaults to 60 seconds so the QR becomes invalid quickly if captured.
    */
-  async generateQrToken(data: Omit<QrTokenPayload, keyof JWTPayload>, ttlSeconds = 60): Promise<string> {
+  async generateQrToken(
+    data: Omit<QrTokenPayload, keyof JWTPayload>,
+    ttlSeconds = 60
+  ): Promise<string> {
     return this.sign(data, { expiresIn: ttlSeconds })
   }
 
