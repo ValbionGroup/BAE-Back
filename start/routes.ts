@@ -13,8 +13,4 @@ router.get('/', () => {
   return { hello: 'world' }
 })
 
-router
-  .group(() => {
-
-  })
-  .prefix('/v1')
+router.group(() => {}).prefix('/v1')

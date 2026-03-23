@@ -1,11 +1,11 @@
 import { ProductSchema } from '#database/schema'
-import {manyToMany} from "@adonisjs/lucid/orm";
-import type {ManyToMany} from "@adonisjs/lucid/types/relations";
-import Furniture from "#models/furniture";
-import Good from "#models/good";
-import Order from "#models/order";
-import Event from "#models/event";
-import PreOrder from "#models/pre_order";
+import { manyToMany } from '@adonisjs/lucid/orm'
+import type { ManyToMany } from '@adonisjs/lucid/types/relations'
+import Furniture from '#models/furniture'
+import Good from '#models/good'
+import Order from '#models/order'
+import Event from '#models/event'
+import PreOrder from '#models/pre_order'
 
 export default class Product extends ProductSchema {
   @manyToMany(() => PreOrder, {
@@ -31,7 +31,7 @@ export default class Product extends ProductSchema {
   @manyToMany(() => Furniture, {
     pivotTable: 'product_furnitures',
     pivotColumns: ['quantity'],
-    pivotTimestamps: true
+    pivotTimestamps: true,
   })
   declare furnitures: ManyToMany<typeof Furniture>
 

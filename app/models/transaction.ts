@@ -1,8 +1,8 @@
 import { TransactionSchema } from '#database/schema'
-import {hasMany} from "@adonisjs/lucid/orm";
-import Order from "#models/order";
-import type {HasMany} from "@adonisjs/lucid/types/relations";
-import PreOrder from "#models/pre_order";
+import { hasMany } from '@adonisjs/lucid/orm'
+import Order from '#models/order'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
+import PreOrder from '#models/pre_order'
 
 export default class Transaction extends TransactionSchema {
   @hasMany(() => Order)

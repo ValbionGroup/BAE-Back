@@ -1,8 +1,8 @@
 import { RoleSchema } from '#database/schema'
-import {hasMany, manyToMany} from "@adonisjs/lucid/orm";
-import type {HasMany, ManyToMany} from "@adonisjs/lucid/types/relations";
-import Permission from "#models/permission";
-import Member from "#models/member";
+import { hasMany, manyToMany } from '@adonisjs/lucid/orm'
+import type { HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import Permission from '#models/permission'
+import Member from '#models/member'
 
 export default class Role extends RoleSchema {
   @manyToMany(() => Permission, {

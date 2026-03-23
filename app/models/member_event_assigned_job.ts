@@ -1,9 +1,9 @@
 import { MemberEventAssignedJobSchema } from '#database/schema'
-import {belongsTo} from "@adonisjs/lucid/orm";
-import Job from "#models/job";
-import type {BelongsTo} from "@adonisjs/lucid/types/relations";
-import Event from "#models/event";
-import Member from "#models/member";
+import { belongsTo } from '@adonisjs/lucid/orm'
+import Job from '#models/job'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import Event from '#models/event'
+import Member from '#models/member'
 
 export default class MemberEventAssignedJob extends MemberEventAssignedJobSchema {
   @belongsTo(() => Job)

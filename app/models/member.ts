@@ -1,13 +1,13 @@
 import { MemberSchema } from '#database/schema'
-import {belongsTo, hasMany, manyToMany} from "@adonisjs/lucid/orm";
-import User from "#models/user";
-import type {BelongsTo, HasMany, ManyToMany} from "@adonisjs/lucid/types/relations";
-import Order from "#models/order";
-import Event from "#models/event";
-import Job from "#models/job";
-import MemberEventAssignedJob from "#models/member_event_assigned_job";
-import Restock from "#models/restock";
-import Role from "#models/role";
+import { belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
+import User from '#models/user'
+import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import Order from '#models/order'
+import Event from '#models/event'
+import Job from '#models/job'
+import MemberEventAssignedJob from '#models/member_event_assigned_job'
+import Restock from '#models/restock'
+import Role from '#models/role'
 
 export default class Member extends MemberSchema {
   @belongsTo(() => User)
