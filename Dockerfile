@@ -50,8 +50,8 @@ COPY --from=build --chown=nodejs:nodejs /app/build ./
 COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
 
 # Copy entrypoint script
-COPY --chown=nodejs:nodejs entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+COPY --chown=nodejs:nodejs docker-entrypoint.js ./
+RUN chmod +x ./docker-entrypoint.js
 
 # Switch to non-root user
 USER nodejs
@@ -65,5 +65,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 
 # Run migrations then start the application
 # We can remove migration if we use multiple containers
-ENTRYPOINT ["dumb-init", "--", "/app/entrypoint.sh"]
-CMD ["node", "bin/server.js"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "docker-entrypoint.js"]
