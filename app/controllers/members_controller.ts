@@ -12,7 +12,7 @@ export default class MembersController {
   /**
    * Display form to create a new record
    */
-  async create({ }: HttpContext) {
+  async create({}: HttpContext) {
     return Member.create({
       firstName: 'John',
       lastName: 'Doe',
