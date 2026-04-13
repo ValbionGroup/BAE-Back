@@ -10,7 +10,7 @@ import Restock from '#models/restock'
 import Role from '#models/role'
 
 export default class Member extends MemberSchema {
-  @belongsTo(() => User)
+  @belongsTo(() => User, { foreignKey: 'id' })
   declare user: BelongsTo<typeof User>
 
   @hasMany(() => Order)
