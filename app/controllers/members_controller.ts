@@ -5,7 +5,7 @@ export default class MembersController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
+  async index({ }: HttpContext) {
     return Member.query().preload('user').preload('role')
     // return Member.all()
   }
@@ -13,7 +13,7 @@ export default class MembersController {
   /**
    * Display form to create a new record
    */
-  async create({}: HttpContext) {
+  async create({ }: HttpContext) {
     return Member.create({
       firstName: 'John',
       lastName: 'Doe',
@@ -23,7 +23,7 @@ export default class MembersController {
   /**
    * Handle form submission for the create action
    */
-  async store({ request }: HttpContext) {}
+  // async store({ request }: HttpContext) {}
 
   /**
    * Show individual record
@@ -36,7 +36,7 @@ export default class MembersController {
   /**
    * Edit individual record
    */
-  async edit({ params }: HttpContext) {}
+  // async edit({ params }: HttpContext) { }
 
   /**
    * Handle form submission for the edit action

@@ -8,7 +8,6 @@
 */
 
 import router from '@adonisjs/core/services/router'
-import MembersController from '#controllers/members_controller'
 
 router.get('/', () => {
   return { hello: 'world' }
@@ -17,5 +16,5 @@ router.get('/', () => {
 router.group(() => { }).prefix('/v1')
 
 router.group(() => {
-  router.resource('members', MembersController).apiOnly()
+  router.resource('members', () => import('#controllers/members_controller')).apiOnly()
 }).prefix('/v1')
