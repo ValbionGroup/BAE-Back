@@ -13,8 +13,10 @@ router.get('/', () => {
   return { hello: 'world' }
 })
 
-router.group(() => { }).prefix('/v1')
+router.group(() => {}).prefix('/v1')
 
-router.group(() => {
-  router.resource('members', () => import('#controllers/members_controller')).apiOnly()
-}).prefix('/v1')
+router
+  .group(() => {
+    router.resource('members', () => import('#controllers/members_controller')).apiOnly()
+  })
+  .prefix('/v1')

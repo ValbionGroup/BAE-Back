@@ -4,8 +4,7 @@ import Member from '#models/member'
 export default class MembersController {
   /**
    * Display a list of resource
-   */
-  async index({ }: HttpContext) {
+  async index({}: HttpContext) {
     return Member.query().preload('user').preload('role')
     // return Member.all()
   }
