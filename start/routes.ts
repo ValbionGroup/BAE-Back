@@ -19,7 +19,8 @@ router
   .group(() => {
     ;(router.resource('members', () => import('#controllers/members_controller')).apiOnly(),
       router.resource('categories', () => import('#controllers/categories_controller')).apiOnly(),
-      router.resource('furnitures', () => import('#controllers/furnitures_controller')).apiOnly())
+      router.resource('furnitures', () => import('#controllers/furnitures_controller')).apiOnly(),
+      router.resource('products', () => import('#controllers/products_controller')).apiOnly())
   })
   .prefix('/v1')
 
