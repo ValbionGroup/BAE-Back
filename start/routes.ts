@@ -20,7 +20,8 @@ router
     ;(router.resource('members', () => import('#controllers/members_controller')).apiOnly(),
       router.resource('categories', () => import('#controllers/categories_controller')).apiOnly(),
       router.resource('furnitures', () => import('#controllers/furnitures_controller')).apiOnly(),
-      router.resource('products', () => import('#controllers/products_controller')).apiOnly())
+      router.resource('products', () => import('#controllers/products_controller')).apiOnly(),
+      router.resource('goods', () => import('#controllers/goods_controller')).apiOnly())
   })
   .prefix('/v1')
 
