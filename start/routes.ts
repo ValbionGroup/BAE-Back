@@ -17,6 +17,11 @@ router.group(() => {}).prefix('/v1')
 
 router
   .group(() => {
-    router.resource('members', () => import('#controllers/members_controller')).apiOnly()
+    router.resource('members', () => import('#controllers/members_controller')).apiOnly(),
+    router.resource('categories', () => import('#controllers/categories_controller')).apiOnly()
   })
   .prefix('/v1')
+
+router.get('/test', async () => {
+  return { message: 'ok' }
+})
