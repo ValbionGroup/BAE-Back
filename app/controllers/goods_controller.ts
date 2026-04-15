@@ -14,12 +14,12 @@ export default class GoodsController {
    * Handle form submission for the create action
    */
   async store({ request }: HttpContext) {
-    const { name, unit, brand, category_id } = request.all()
+    const { name, unit, brand, categoryId } = request.all()
     const good = new Good()
     good.name = name
     good.unit = unit
     good.brand = brand
-    good.categoryId = category_id
+    good.categoryId = categoryId
     await good.save()
     return good
   }
@@ -36,11 +36,11 @@ export default class GoodsController {
    */
   async update({ params, request }: HttpContext) {
     const good = await Good.query().preload('products').preload('category').where('id', params.id).firstOrFail() // We get our good by id
-    const { name, unit, brand, category_id } = request.all()
+    const { name, unit, brand, categoryId } = request.all()
     good.name = name
     good.unit = unit
     good.brand = brand
-    good.categoryId = category_id
+    good.categoryId = categoryId
     await good.save()
     return good
   }
