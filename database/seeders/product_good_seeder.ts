@@ -5,8 +5,8 @@ import { BaseSeeder } from '@adonisjs/lucid/seeders'
 export default class extends BaseSeeder {
   async run() {
     // Write your database queries inside the run method
-    const products = await Product.all()
     const goods = await Good.all()
+    const products = await Product.all()
 
     if (goods.length < 2) {
       throw new Error('Not enough goods in database')
