@@ -8,6 +8,8 @@ import SupplierSeeder from './supplier_seeder.js'
 import GoodSupplierSeeder from './good_supplier_seeder.js'
 import MemberSeeder from './member_seeder.ts'
 import RestockSeeder from './restock_seeder.ts'
+import StockBatchSeeder from './stock_batch_seeder.ts'
+import StockMovementSeeder from './stock_movement_seeder.ts'
 
 export default class extends BaseSeeder {
   private async runSeeder(Seeder: typeof BaseSeeder) {
@@ -31,5 +33,9 @@ export default class extends BaseSeeder {
     await this.runSeeder(ProductGoodSeeder)
     await this.runSeeder(ProductFurnitureSeeder)
     await this.runSeeder(GoodSupplierSeeder)
+    await this.runSeeder(StockBatchSeeder)
+
+    // 5. Seeders dépendants des seeders précédents
+    await this.runSeeder(StockMovementSeeder)
   }
 }

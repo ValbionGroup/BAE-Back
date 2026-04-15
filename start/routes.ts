@@ -23,7 +23,9 @@ router
       router.resource('products', () => import('#controllers/products_controller')).apiOnly(),
       router.resource('goods', () => import('#controllers/goods_controller')).apiOnly(),
       router.resource('suppliers', () => import('#controllers/suppliers_controller')).apiOnly(),
-      router.resource('restocks', () => import('#controllers/restocks_controller')).apiOnly())
+      router.resource('restocks', () => import('#controllers/restocks_controller')).apiOnly(),
+      router.resource('stock-batches', () => import('#controllers/stock_batches_controller')).apiOnly(),
+      router.resource('stock-movements', () => import('#controllers/stock_movements_controller')).apiOnly())
   })
   .prefix('/v1')
 
