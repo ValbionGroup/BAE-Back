@@ -5,20 +5,21 @@ export default class GoodsController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
+  async index({ }: HttpContext) {
     //return Good.query().preload('products').preload('category').preload('suppliers')
-    return Good.query().preload('products')
+    return Good.query().preload('products').preload('category')
   }
 
   /**
    * Handle form submission for the create action
    */
   async store({ request }: HttpContext) {
-    const { name, unit, brand } = request.all()
+    const { name, unit, brand, category_id } = request.all()
     const good = new Good()
     good.name = name
     good.unit = unit
     good.brand = brand
+    good.categoryId = category_id
     await good.save()
     return good
   }
@@ -27,18 +28,19 @@ export default class GoodsController {
    * Show individual record
    */
   async show({ params }: HttpContext) {
-    return await Good.query().preload('products').where('id', params.id).firstOrFail()
+    return await Good.query().preload('products').preload('category').where('id', params.id).firstOrFail()
   }
 
   /**
    * Handle form submission for the edit action
    */
   async update({ params, request }: HttpContext) {
-    const good = await Good.query().preload('products').where('id', params.id).firstOrFail() // We get our good by id
-    const { name, unit, brand } = request.all()
+    const good = await Good.query().preload('products').preload('category').where('id', params.id).firstOrFail() // We get our good by id
+    const { name, unit, brand, category_id } = request.all()
     good.name = name
     good.unit = unit
     good.brand = brand
+    good.categoryId = category_id
     await good.save()
     return good
   }
@@ -47,7 +49,7 @@ export default class GoodsController {
    * Delete record
    */
   async destroy({ params }: HttpContext) {
-    const good = await Good.query().preload('products').where('id', params.id).firstOrFail()
+    const good = await Good.query().preload('products').preload('category').where('id', params.id).firstOrFail()
     await good.delete()
   }
 }
