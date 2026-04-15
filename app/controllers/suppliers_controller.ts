@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Supplier from '#models/supplier'
-import { configProvider } from '@adonisjs/core'
 
 export default class SuppliersController {
   /**
