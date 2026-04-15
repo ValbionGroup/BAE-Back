@@ -10,6 +10,8 @@ import Restock from '#models/restock'
 import Role from '#models/role'
 
 export default class Member extends MemberSchema {
+  public static selfAssignPrimaryKey = true
+
   @belongsTo(() => User, { foreignKey: 'id' })
   declare user: BelongsTo<typeof User>
 

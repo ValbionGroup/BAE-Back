@@ -22,7 +22,7 @@ export default class User extends compose(UserSchema, withAuthFinder(hash)) {
   })
   declare fastPasses: ManyToMany<typeof FastPass>
 
-  @hasOne(() => Member)
+  @hasOne(() => Member, { foreignKey: 'id', localKey: 'id' })
   declare member: HasOne<typeof Member>
 
   @hasMany(() => PreOrder)
