@@ -27,7 +27,8 @@ router
       router.resource('stock-batches', () => import('#controllers/stock_batches_controller')).apiOnly(),
       router.resource('stock-movements', () => import('#controllers/stock_movements_controller')).apiOnly(),
       router.resource('logs', () => import('#controllers/logs_controller')).apiOnly(),
-      router.resource('roles', () => import('#controllers/roles_controller')).apiOnly())
+      router.resource('roles', () => import('#controllers/roles_controller')).apiOnly(),
+      router.resource('permissions', () => import('#controllers/permissions_controller')).apiOnly())
   })
   .prefix('/v1')
 

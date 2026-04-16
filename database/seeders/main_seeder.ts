@@ -12,6 +12,7 @@ import StockBatchSeeder from './stock_batch_seeder.ts'
 import StockMovementSeeder from './stock_movement_seeder.ts'
 import LogSeeder from './log_seeder.ts'
 import RoleSeeder from './role_seeder.ts'
+import PermissionSeeder from './permission_seeder.ts'
 
 export default class extends BaseSeeder {
   private async runSeeder(Seeder: typeof BaseSeeder) {
@@ -21,6 +22,7 @@ export default class extends BaseSeeder {
   public async run() {
     // 1. Seeders seuls
     await this.runSeeder(RoleSeeder)
+    await this.runSeeder(PermissionSeeder)
 
     // 2. Seeders dépendants
     await this.runSeeder(MemberSeeder)
