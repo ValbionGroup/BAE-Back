@@ -15,6 +15,7 @@ import RoleSeeder from './role_seeder.ts'
 import PermissionSeeder from './permission_seeder.ts'
 //import RolePermissionSeeder from './role_permission_seeder.ts'
 import FastPassSeeder from './fast_pass_seeder.ts'
+import SubscriptionSeeder from './subscription_seeder.ts'
 
 export default class extends BaseSeeder {
   private async runSeeder(Seeder: typeof BaseSeeder) {
@@ -40,6 +41,7 @@ export default class extends BaseSeeder {
     await this.runSeeder(FastPassSeeder)
 
     // 4. Seeders dépendants des seeders précédents
+    await this.runSeeder(SubscriptionSeeder)
     await this.runSeeder(ProductGoodSeeder)
     await this.runSeeder(ProductFurnitureSeeder)
     await this.runSeeder(GoodSupplierSeeder)

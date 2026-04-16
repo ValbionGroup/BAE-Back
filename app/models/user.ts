@@ -19,6 +19,10 @@ export default class User extends compose(UserSchema, withAuthFinder(hash)) {
 
   @manyToMany(() => FastPass, {
     pivotTable: 'subscriptions',
+    pivotForeignKey: 'user_id',
+    pivotRelatedForeignKey: 'fast_pass_id',
+    pivotColumns: ['subscribed_at'],
+    pivotTimestamps: true,
   })
   declare fastPasses: ManyToMany<typeof FastPass>
 
