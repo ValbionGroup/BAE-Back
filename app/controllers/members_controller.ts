@@ -6,7 +6,7 @@ export default class MembersController {
    * Display a list of resource
    */
   async index({}: HttpContext) {
-    const members = await Member.query()
+    const members = await Member.query().preload('role')
     return members
   }
 
@@ -26,7 +26,10 @@ export default class MembersController {
    * Show individual record
    */
   async show({ params }: HttpContext) {
-    const member = await Member.find(params.id)
+    const member = await Member.query().preload('role').where('id', params.id).first()
+    if (!member) {
+      throw new Error('Member not found')
+    }
     return member
   }
 
@@ -34,7 +37,7 @@ export default class MembersController {
    * Handle form submission for the edit action
    */
   async update({ params, request }: HttpContext) {
-    const member = await Member.find(params.id)
+    const member = await Member.query().preload('role').where('id', params.id).first()
     if (!member) {
       throw new Error('Member not found')
     }
@@ -49,7 +52,7 @@ export default class MembersController {
    * Delete record
    */
   async destroy({ params }: HttpContext) {
-    const member = await Member.find(params.id)
+    const member = await Member.query().preload('role').where('id', params.id).first()
     if (!member) {
       throw new Error('Member not found')
     }
