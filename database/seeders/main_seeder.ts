@@ -13,6 +13,7 @@ import StockMovementSeeder from './stock_movement_seeder.ts'
 import LogSeeder from './log_seeder.ts'
 import RoleSeeder from './role_seeder.ts'
 import PermissionSeeder from './permission_seeder.ts'
+//import RolePermissionSeeder from './role_permission_seeder.ts'
 
 export default class extends BaseSeeder {
   private async runSeeder(Seeder: typeof BaseSeeder) {
@@ -29,6 +30,7 @@ export default class extends BaseSeeder {
     await this.runSeeder(GoodSeeder)
     await this.runSeeder(FurnitureSeeder)
     await this.runSeeder(SupplierSeeder)
+    // await this.runSeeder(RolePermissionSeeder)
 
     // 3. Seeders dépendants des seeders précédents
     await this.runSeeder(ProductSeeder)
