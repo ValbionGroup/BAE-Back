@@ -28,7 +28,8 @@ router
       router.resource('stock-movements', () => import('#controllers/stock_movements_controller')).apiOnly(),
       router.resource('logs', () => import('#controllers/logs_controller')).apiOnly(),
       router.resource('roles', () => import('#controllers/roles_controller')).apiOnly(),
-      router.resource('permissions', () => import('#controllers/permissions_controller')).apiOnly())
+      router.resource('permissions', () => import('#controllers/permissions_controller')).apiOnly(),
+      router.resource('fast-passes', () => import('#controllers/fast_passes_controller')).apiOnly())
   })
   .prefix('/v1')
 
