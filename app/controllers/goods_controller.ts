@@ -5,7 +5,7 @@ export default class GoodsController {
   /**
    * Display a list of resource
    */
-  async index({ }: HttpContext) {
+  async index({}: HttpContext) {
     return Good.query().preload('products').preload('category').preload('suppliers')
   }
 
@@ -27,14 +27,24 @@ export default class GoodsController {
    * Show individual record
    */
   async show({ params }: HttpContext) {
-    return await Good.query().preload('products').preload('category').preload('suppliers').where('id', params.id).firstOrFail()
+    return await Good.query()
+      .preload('products')
+      .preload('category')
+      .preload('suppliers')
+      .where('id', params.id)
+      .firstOrFail()
   }
 
   /**
    * Handle form submission for the edit action
    */
   async update({ params, request }: HttpContext) {
-    const good = await Good.query().preload('products').preload('category').preload('suppliers').where('id', params.id).firstOrFail() // We get our good by id
+    const good = await Good.query()
+      .preload('products')
+      .preload('category')
+      .preload('suppliers')
+      .where('id', params.id)
+      .firstOrFail() // We get our good by id
     const { name, unit, brand, categoryId } = request.all()
     good.name = name
     good.unit = unit
@@ -48,7 +58,12 @@ export default class GoodsController {
    * Delete record
    */
   async destroy({ params }: HttpContext) {
-    const good = await Good.query().preload('products').preload('category').preload('suppliers').where('id', params.id).firstOrFail()
+    const good = await Good.query()
+      .preload('products')
+      .preload('category')
+      .preload('suppliers')
+      .where('id', params.id)
+      .firstOrFail()
     await good.delete()
   }
 }

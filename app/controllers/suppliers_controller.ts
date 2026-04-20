@@ -24,14 +24,22 @@ export default class SuppliersController {
    * Show individual record
    */
   async show({ params }: HttpContext) {
-    return await Supplier.query().preload('goods').preload('restocks').where('id', params.id).firstOrFail()
+    return await Supplier.query()
+      .preload('goods')
+      .preload('restocks')
+      .where('id', params.id)
+      .firstOrFail()
   }
 
   /**
    * Handle form submission for the edit action
    */
   async update({ params, request }: HttpContext) {
-    const supplier = await Supplier.query().preload('goods').preload('restocks').where('id', params.id).firstOrFail() // We get our supplier by id
+    const supplier = await Supplier.query()
+      .preload('goods')
+      .preload('restocks')
+      .where('id', params.id)
+      .firstOrFail() // We get our supplier by id
     const { name } = request.all() // We transfer the new data from the request to constants
     supplier.name = name // Assigning the data
     await supplier.save() // We save the supplier to the database
@@ -42,7 +50,11 @@ export default class SuppliersController {
    * Delete record
    */
   async destroy({ params }: HttpContext) {
-    const supplier = await Supplier.query().preload('goods').preload('restocks').where('id', params.id).firstOrFail() // Get the supplier by id
+    const supplier = await Supplier.query()
+      .preload('goods')
+      .preload('restocks')
+      .where('id', params.id)
+      .firstOrFail() // Get the supplier by id
     await supplier.delete()
   }
 }

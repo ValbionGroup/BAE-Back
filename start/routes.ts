@@ -24,8 +24,12 @@ router
       router.resource('goods', () => import('#controllers/goods_controller')).apiOnly(),
       router.resource('suppliers', () => import('#controllers/suppliers_controller')).apiOnly(),
       router.resource('restocks', () => import('#controllers/restocks_controller')).apiOnly(),
-      router.resource('stock-batches', () => import('#controllers/stock_batches_controller')).apiOnly(),
-      router.resource('stock-movements', () => import('#controllers/stock_movements_controller')).apiOnly(),
+      router
+        .resource('stock-batches', () => import('#controllers/stock_batches_controller'))
+        .apiOnly(),
+      router
+        .resource('stock-movements', () => import('#controllers/stock_movements_controller'))
+        .apiOnly(),
       router.resource('logs', () => import('#controllers/logs_controller')).apiOnly(),
       router.resource('roles', () => import('#controllers/roles_controller')).apiOnly(),
       router.resource('permissions', () => import('#controllers/permissions_controller')).apiOnly())

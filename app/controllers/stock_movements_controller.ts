@@ -41,7 +41,11 @@ export default class StockMovementsController {
    * Handle form submission for the edit action
    */
   async update({ params, request }: HttpContext) {
-    const stockMovement = await StockMovement.query().where('id', params.id).preload('good').preload('stockBatch').firstOrFail()
+    const stockMovement = await StockMovement.query()
+      .where('id', params.id)
+      .preload('good')
+      .preload('stockBatch')
+      .firstOrFail()
     const { quantity, movementType, goodId, stockBatchId } = request.all()
 
     stockMovement.quantity = quantity
@@ -57,7 +61,11 @@ export default class StockMovementsController {
    * Delete record
    */
   async destroy({ params }: HttpContext) {
-    const stockMovement = await StockMovement.query().where('id', params.id).preload('good').preload('stockBatch').firstOrFail()
+    const stockMovement = await StockMovement.query()
+      .where('id', params.id)
+      .preload('good')
+      .preload('stockBatch')
+      .firstOrFail()
     await stockMovement.delete()
   }
 }

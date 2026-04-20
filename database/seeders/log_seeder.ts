@@ -12,13 +12,10 @@ export default class extends BaseSeeder {
 
     const pickUserId = () => users[Math.floor(Math.random() * users.length)].id
 
-    await LogFactory
-      .merge(
-        Array.from({ length: 50 }, () => ({
-          userId: pickUserId(),
-        }))
-      )
-      .createMany(50)
-    
+    await LogFactory.merge(
+      Array.from({ length: 50 }, () => ({
+        userId: pickUserId(),
+      }))
+    ).createMany(50)
   }
 }

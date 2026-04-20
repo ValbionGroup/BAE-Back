@@ -26,10 +26,10 @@ export default class extends BaseSeeder {
         .slice(0, randomGoodsCount)
 
       const pivotData: Record<number, { quantity: number }> = {}
-      
+
       for (const good of selectedGoods) {
         pivotData[good.id] = {
-          quantity: Math.floor(Math.random() * 10) + 1 // quantité entre 1 et 10
+          quantity: Math.floor(Math.random() * 10) + 1, // quantité entre 1 et 10
         }
       }
 

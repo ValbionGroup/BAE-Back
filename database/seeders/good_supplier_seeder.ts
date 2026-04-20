@@ -20,17 +20,17 @@ export default class extends BaseSeeder {
 
     // Pour chaque supplier, attacher plusieurs goods avec des prices
     for (const supplier of suppliers) {
-      // Sélectionner 2-3 goods aléatoires pour chaque supplier 
+      // Sélectionner 2-3 goods aléatoires pour chaque supplier
       const randomGoodsCount = Math.floor(Math.random() * 2) + 2 // 2 ou 3 goods
       const selectedGoods = goods
         .sort(() => 0.5 - Math.random()) // Mélanger
         .slice(0, randomGoodsCount)
 
       const pivotData: Record<number, { price: number }> = {}
-      
+
       for (const good of selectedGoods) {
         pivotData[good.id] = {
-          price: Math.floor(Math.random() * 1000) + 10 // prix entre 10 et 1000
+          price: Math.floor(Math.random() * 1000) + 10, // prix entre 10 et 1000
         }
       }
 
