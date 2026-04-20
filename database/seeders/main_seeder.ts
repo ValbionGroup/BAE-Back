@@ -13,7 +13,11 @@ import StockMovementSeeder from './stock_movement_seeder.ts'
 import LogSeeder from './log_seeder.ts'
 import RoleSeeder from './role_seeder.ts'
 import PermissionSeeder from './permission_seeder.ts'
-//import RolePermissionSeeder from './role_permission_seeder.ts'
+import RolePermissionSeeder from './role_permission_seeder.ts'
+import EventSeeder from './event_seeder.ts'
+import JobSeeder from './job_seeder.ts'
+import TransactionSeeder from './transaction_seeder.ts'
+import FastPassSeeder from './fast_pass_seeder.ts'
 
 export default class extends BaseSeeder {
   private async runSeeder(Seeder: typeof BaseSeeder) {
@@ -21,16 +25,20 @@ export default class extends BaseSeeder {
   }
 
   public async run() {
-    // 1. Seeders seuls
+    // 1. Seeders seuls (no dependencies)
     await this.runSeeder(RoleSeeder)
     await this.runSeeder(PermissionSeeder)
+    await this.runSeeder(JobSeeder)
+    await this.runSeeder(TransactionSeeder)
 
-    // 2. Seeders dépendants
+    // 2. Seeders dépendants (depends on step 1)
+    await this.runSeeder(RolePermissionSeeder)
     await this.runSeeder(MemberSeeder)
     await this.runSeeder(GoodSeeder)
     await this.runSeeder(FurnitureSeeder)
     await this.runSeeder(SupplierSeeder)
-    // await this.runSeeder(RolePermissionSeeder)
+    await this.runSeeder(EventSeeder)
+    await this.runSeeder(FastPassSeeder)
 
     // 3. Seeders dépendants des seeders précédents
     await this.runSeeder(ProductSeeder)
