@@ -1,5 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
-import { MembersFactory } from '#database/factories/members_factory'
+import { MemberFactory } from '#database/factories/members_factory'
 import Role from '#models/role'
 
 export default class MemberSeeder extends BaseSeeder {
@@ -12,7 +12,7 @@ export default class MemberSeeder extends BaseSeeder {
 
     const pickRoleId = () => roles[Math.floor(Math.random() * roles.length)].id
 
-    await MembersFactory.with('user')
+    await MemberFactory.with('user')
       .merge(
         Array.from({ length: 10 }, () => ({
           roleId: pickRoleId(),

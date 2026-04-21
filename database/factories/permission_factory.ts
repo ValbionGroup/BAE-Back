@@ -22,14 +22,16 @@ const permissions = [
   'restock:delete',
 ]
 
+let permissionIndex = 0
+
 export const PermissionFactory = factory
-  .define(Permission, async ({ index }) => {
-    if (index >= permissions.length) {
+  .define(Permission, async () => {
+    if (permissionIndex >= permissions.length) {
       throw new Error('Plus de permissions disponibles (unicité garantie)')
     }
 
     return {
-      permission: permissions[index],
+      permission: permissions[permissionIndex++],
     }
   })
   .build()
