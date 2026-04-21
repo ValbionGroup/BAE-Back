@@ -17,28 +17,28 @@ export default class extends BaseSeeder {
       throw new Error('StockMovementSeeder: no stock batches found. Run StockBatchSeeder first.')
     }
 
-    console.log(`Seeding stock movements with ${goods.length} goods and ${stockBatches.length} stock batches...`)
+    console.log(
+      `Seeding stock movements with ${goods.length} goods and ${stockBatches.length} stock batches...`
+    )
 
     const pickId = (rows: Array<{ id: number }>) => rows[Math.floor(Math.random() * rows.length)].id
 
-    await StockMovementFactory
-      .merge(
-        Array.from({ length: 20 }, () => {
-          const goodId = pickId(goods)
+    await StockMovementFactory.merge(
+      Array.from({ length: 20 }, () => {
+        const goodId = pickId(goods)
 
-          let stockBatchId = pickId(stockBatches)
-          if (stockBatches.length > 1) {
-            while (stockBatchId === goodId) {
-              stockBatchId = pickId(stockBatches)
-            }
+        let stockBatchId = pickId(stockBatches)
+        if (stockBatches.length > 1) {
+          while (stockBatchId === goodId) {
+            stockBatchId = pickId(stockBatches)
           }
+        }
 
-          return {
-            goodId,
-            stockBatchId,
-          }
-        })
-      )
-      .createMany(20)
+        return {
+          goodId,
+          stockBatchId,
+        }
+      })
+    ).createMany(20)
   }
 }

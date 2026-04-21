@@ -9,13 +9,11 @@ export default class extends BaseSeeder {
     const suppliers = await SupplierFactory.createMany(5)
     const members = await MembersFactory.createMany(5)
 
-    await RestockFactory
-      .merge(
-        Array.from({ length: 10 }, (_, index) => ({
-          supplierId: suppliers[index % suppliers.length].id,
-          memberId: members[index % members.length].id,
-        }))
-      )
-      .createMany(10)
+    await RestockFactory.merge(
+      Array.from({ length: 10 }, (_, index) => ({
+        supplierId: suppliers[index % suppliers.length].id,
+        memberId: members[index % members.length].id,
+      }))
+    ).createMany(10)
   }
 }

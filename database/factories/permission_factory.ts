@@ -22,19 +22,14 @@ const permissions = [
   'restock:delete',
 ]
 
-// copie modifiable
-let availablePermissions = [...permissions]
-
 export const PermissionFactory = factory
-  .define(Permission, async () => {
-    if (availablePermissions.length === 0) {
+  .define(Permission, async ({ index }) => {
+    if (index >= permissions.length) {
       throw new Error('Plus de permissions disponibles (unicité garantie)')
     }
 
-    const value = availablePermissions.shift()!
-
     return {
-      permission: value,
+      permission: permissions[index],
     }
   })
   .build()

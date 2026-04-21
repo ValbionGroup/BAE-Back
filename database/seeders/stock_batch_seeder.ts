@@ -16,13 +16,11 @@ export default class extends BaseSeeder {
       throw new Error('StockBatchSeeder: no restocks found. Run RestockSeeder first.')
     }
 
-    await StockBatchFactory
-      .merge(
-        Array.from({ length: 10 }, (_, index) => ({
-          goodId: goods[index % goods.length].id,
-          restockId: restocks[index % restocks.length].id,
-        }))
-      )
-      .createMany(10)
+    await StockBatchFactory.merge(
+      Array.from({ length: 10 }, (_, index) => ({
+        goodId: goods[index % goods.length].id,
+        restockId: restocks[index % restocks.length].id,
+      }))
+    ).createMany(10)
   }
 }

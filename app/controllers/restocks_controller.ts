@@ -6,7 +6,10 @@ export default class RestocksController {
    * Display a list of resource
    */
   async index({}: HttpContext) {
-    const restocks = await Restock.query().preload('member').preload('supplier').preload('stockBatches')
+    const restocks = await Restock.query()
+      .preload('member')
+      .preload('supplier')
+      .preload('stockBatches')
     return restocks
   }
 
@@ -27,7 +30,12 @@ export default class RestocksController {
    * Show individual record
    */
   async show({ params }: HttpContext) {
-    const restock = await Restock.query().preload('member').preload('supplier').preload('stockBatches').where('id', params.id).firstOrFail()
+    const restock = await Restock.query()
+      .preload('member')
+      .preload('supplier')
+      .preload('stockBatches')
+      .where('id', params.id)
+      .firstOrFail()
     return restock
   }
 
@@ -35,7 +43,12 @@ export default class RestocksController {
    * Handle form submission for the edit action
    */
   async update({ params, request }: HttpContext) {
-    const restock = await Restock.query().preload('member').preload('supplier').preload('stockBatches').where('id', params.id).firstOrFail()
+    const restock = await Restock.query()
+      .preload('member')
+      .preload('supplier')
+      .preload('stockBatches')
+      .where('id', params.id)
+      .firstOrFail()
     const { memberId, supplierId, totalPrice } = request.all()
     restock.memberId = memberId
     restock.supplierId = supplierId
@@ -48,7 +61,12 @@ export default class RestocksController {
    * Delete record
    */
   async destroy({ params }: HttpContext) {
-    const restock = await Restock.query().preload('member').preload('supplier').preload('stockBatches').where('id', params.id).firstOrFail()
+    const restock = await Restock.query()
+      .preload('member')
+      .preload('supplier')
+      .preload('stockBatches')
+      .where('id', params.id)
+      .firstOrFail()
     await restock.delete()
   }
 }

@@ -29,7 +29,11 @@ export default class StockBatchesController {
    * Show individual record
    */
   async show({ params }: HttpContext) {
-    const stockBatch = await StockBatch.query().where('id', params.id).preload('good').preload('restock').firstOrFail()
+    const stockBatch = await StockBatch.query()
+      .where('id', params.id)
+      .preload('good')
+      .preload('restock')
+      .firstOrFail()
     return stockBatch
   }
 
@@ -37,15 +41,21 @@ export default class StockBatchesController {
    * Handle form submission for the edit action
    */
   async update({ params, request }: HttpContext) {
-    const stockBatch = await StockBatch.query().where('id', params.id).preload('good').preload('restock').firstOrFail()
+    const stockBatch = await StockBatch.query()
+      .where('id', params.id)
+      .preload('good')
+      .preload('restock')
+      .firstOrFail()
     const { expirationDate, label, quantity, restockId, goodId } = request.all()
-    await stockBatch.merge({
-      expirationDate,
-      label,
-      quantity,
-      restockId,
-      goodId,
-    }).save()
+    await stockBatch
+      .merge({
+        expirationDate,
+        label,
+        quantity,
+        restockId,
+        goodId,
+      })
+      .save()
     return stockBatch
   }
 
@@ -53,7 +63,11 @@ export default class StockBatchesController {
    * Delete record
    */
   async destroy({ params }: HttpContext) {
-    const stockBatch = await StockBatch.query().where('id', params.id).preload('good').preload('restock').firstOrFail()
+    const stockBatch = await StockBatch.query()
+      .where('id', params.id)
+      .preload('good')
+      .preload('restock')
+      .firstOrFail()
     await stockBatch.delete()
   }
 }

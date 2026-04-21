@@ -12,8 +12,7 @@ export default class MemberSeeder extends BaseSeeder {
 
     const pickRoleId = () => roles[Math.floor(Math.random() * roles.length)].id
 
-    await MembersFactory
-      .with('user')
+    await MembersFactory.with('user')
       .merge(
         Array.from({ length: 10 }, () => ({
           roleId: pickRoleId(),

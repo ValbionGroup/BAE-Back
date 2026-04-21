@@ -27,14 +27,22 @@ export default class ProductsController {
    * Show individual record
    */
   async show({ params }: HttpContext) {
-    return await Product.query().preload('furnitures').preload('goods').where('id', params.id).firstOrFail()
+    return await Product.query()
+      .preload('furnitures')
+      .preload('goods')
+      .where('id', params.id)
+      .firstOrFail()
   }
 
   /**
    * Handle form submission for the edit action
    */
   async update({ params, request }: HttpContext) {
-    const product = await Product.query().preload('furnitures').preload('goods').where('id', params.id).firstOrFail() // We get our product by id
+    const product = await Product.query()
+      .preload('furnitures')
+      .preload('goods')
+      .where('id', params.id)
+      .firstOrFail() // We get our product by id
     const { name, isVegetarian, description, recipe } = request.all() // We transfer the new data from the request to constants
     product.name = name // Assigning the data
     product.isVegetarian = isVegetarian // Assigning the data
@@ -48,7 +56,11 @@ export default class ProductsController {
    * Delete record
    */
   async destroy({ params }: HttpContext) {
-    const product = await Product.query().preload('furnitures').preload('goods').where('id', params.id).firstOrFail() // Get the product by id
+    const product = await Product.query()
+      .preload('furnitures')
+      .preload('goods')
+      .where('id', params.id)
+      .firstOrFail() // Get the product by id
     await product.delete()
   }
 }
