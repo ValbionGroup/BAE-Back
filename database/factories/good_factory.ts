@@ -1,6 +1,6 @@
 import factory from '@adonisjs/lucid/factories'
 import Good from '#models/good'
-import { CategoryFactory } from './category_factory.ts'
+import { CategoryFactory } from './category_factory.js'
 
 export const GoodFactory = factory
   .define(Good, async ({ faker }) => {
