@@ -23,7 +23,7 @@ export default class RolesController {
    * Show individual record
    */
   async show({ params }: HttpContext) {
-    const role = await Role.find(params.id)
+    const role = await Role.findOrFail(params.id)
     return role
   }
 
