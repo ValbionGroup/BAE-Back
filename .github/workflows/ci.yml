@@ -39,7 +39,9 @@ jobs:
 
       - name: Install dependencies
         if: steps.yarn-cache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm approve-builds --yes
+          pnpm install --frozen-lockfile
 
   lint:
     needs: setup
