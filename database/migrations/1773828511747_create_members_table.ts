@@ -5,7 +5,13 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.integer('id').references('id').inTable('users').onDelete('CASCADE').primary()
+      table
+        .integer('id')
+        .primary()
+        .notNullable()
+        .references('id')
+        .inTable('users')
+        .onDelete('CASCADE')
 
       table.string('first_name').notNullable()
       table.string('last_name').notNullable()

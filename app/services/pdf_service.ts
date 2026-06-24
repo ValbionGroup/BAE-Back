@@ -4,10 +4,17 @@
 
 import puppeteer, { type Browser } from 'puppeteer'
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+
+import app from '@adonisjs/core/services/app'
 
 export default class PdfService {
   private browser: Browser | null = null
+
+  private readonly footerTemplate = `
+    <div style="width:100%; font-size:8pt; color:#6b7280; font-family:-apple-system,'Segoe UI','Helvetica Neue',Arial,sans-serif; border-top:1px solid #14283f; padding: 4px 20mm 0;display:flex; justify-content:space-between;">
+      <span>BAE - ENSEIRB MATMECA</span>
+      <span>Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
+    </div>`
 
   /**
    * Initialize Puppeteer browser instance
@@ -65,25 +72,27 @@ export default class PdfService {
 
     try {
       // Read template file
-      const fullPath = join(process.cwd(), 'resources/views/pdfs', templatePath)
-      const templateContent = await readFile(fullPath, 'utf-8')
+      const templateContent = await readFile(
+        app.makePath('resources/views/pdfs', templatePath),
+        'utf-8'
+      )
 
       // Compile template with data
       const compiledHtml = this.compileTemplate(templateContent, data)
 
       // Set content and generate PDF
       await page.setContent(compiledHtml, {
-        waitUntil: 'networkidle0',
+        waitUntil: 'load',
       })
 
       // Default options
       const pdfOptions = {
         format: options.format || 'A4',
         landscape: options.landscape || false,
-        margin: options.margin || { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
-        displayHeaderFooter: options.displayHeaderFooter || false,
-        headerTemplate: options.headerTemplate || '',
-        footerTemplate: options.footerTemplate || '',
+        margin: options.margin || { top: '0', right: '0', bottom: '16mm', left: '0' },
+        displayHeaderFooter: options.displayHeaderFooter ?? true,
+        headerTemplate: options.headerTemplate || '<span></span>',
+        footerTemplate: options.footerTemplate || this.footerTemplate,
         printBackground: true,
       }
 
@@ -111,13 +120,16 @@ export default class PdfService {
 
     try {
       await page.setContent(html, {
-        waitUntil: 'networkidle0',
+        waitUntil: 'load',
       })
 
       const pdfOptions = {
         format: options.format || 'A4',
         landscape: options.landscape || false,
-        margin: options.margin || { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
+        margin: options.margin || { top: '0', right: '0', bottom: '16mm', left: '0' },
+        displayHeaderFooter: true,
+        headerTemplate: '<span></span>',
+        footerTemplate: this.footerTemplate,
         printBackground: true,
       }
 

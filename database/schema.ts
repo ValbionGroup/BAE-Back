@@ -160,12 +160,14 @@ export class FurnitureSchema extends BaseModel {
 }
 
 export class GoodSupplierSchema extends BaseModel {
-  static $columns = ['createdAt', 'goodId', 'supplierId', 'updatedAt'] as const
+  static $columns = ['createdAt', 'goodId', 'price', 'supplierId', 'updatedAt'] as const
   $columns = GoodSupplierSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
   @column()
   declare goodId: number
+  @column()
+  declare price: string
   @column()
   declare supplierId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -390,21 +392,33 @@ export class PreOrderSchema extends BaseModel {
 }
 
 export class ProductFurnitureSchema extends BaseModel {
-  static $columns = ['furnitureId', 'productId'] as const
+  static $columns = ['createdAt', 'furnitureId', 'productId', 'quantity', 'updatedAt'] as const
   $columns = ProductFurnitureSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
   @column()
   declare furnitureId: number
   @column({ isPrimary: true })
   declare productId: number
+  @column()
+  declare quantity: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
 }
 
 export class ProductGoodSchema extends BaseModel {
-  static $columns = ['goodId', 'productId'] as const
+  static $columns = ['createdAt', 'goodId', 'productId', 'quantity', 'updatedAt'] as const
   $columns = ProductGoodSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
   @column()
   declare goodId: number
   @column({ isPrimary: true })
   declare productId: number
+  @column()
+  declare quantity: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
 }
 
 export class ProductSchema extends BaseModel {
@@ -580,8 +594,10 @@ export class TransactionSchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = ['createdAt', 'email', 'id', 'password', 'updatedAt'] as const
+  static $columns = ['casId', 'createdAt', 'email', 'id', 'password', 'updatedAt'] as const
   $columns = UserSchema.$columns
+  @column()
+  declare casId: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
