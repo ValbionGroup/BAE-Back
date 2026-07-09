@@ -1,5 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { BaseSerializer } from '@adonisjs/core/transformers'
+import { BaseModel } from '@adonisjs/lucid/orm'
 import { type SimplePaginatorMetaKeys } from '@adonisjs/lucid/types/querybuilder'
 
 /**
@@ -37,10 +38,35 @@ class ApiSerializer extends BaseSerializer<{
  * Single instance of ApiSerializer used across the application
  */
 const serializer = new ApiSerializer()
-const serialize = serializer.serialize.bind(serializer) as ApiSerializer['serialize'] & {
-  withoutWrapping: ApiSerializer['serializeWithoutWrapping']
+
+/**
+ * Normalizes a value into plain data before serialization.
+ *
+ * BaseSerializer.serialize cannot handle Lucid models directly (it would iterate
+ * their internal `$attributes`) and only wraps plain objects — arrays fall through
+ * unwrapped. We resolve models to their serialized form and recurse into arrays so
+ * that collections reach the wrapping branch below.
+ */
+function toPlain(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(toPlain)
+  }
+  if (value instanceof BaseModel) {
+    return value.serialize()
+  }
+  return value
 }
-serialize.withoutWrapping = serializer.serializeWithoutWrapping.bind(serializer)
+
+const serialize = Object.assign(
+  (data: unknown) => {
+    const normalized = toPlain(data)
+    if (Array.isArray(normalized)) {
+      return Promise.resolve({ [serializer.wrap]: normalized })
+    }
+    return serializer.serialize(normalized as Record<string, any>)
+  },
+  { withoutWrapping: serializer.serializeWithoutWrapping.bind(serializer) }
+)
 
 /**
  * Adds the serialize method to all HttpContext instances.

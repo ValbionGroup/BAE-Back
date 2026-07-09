@@ -5,38 +5,38 @@ export default class MembersController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
+  async index({ serialize }: HttpContext) {
     const members = await Member.query().preload('role')
-    return members
+    return serialize(members)
   }
 
   /**
    * Handle form submission for the create action
    */
-  async store({ request }: HttpContext) {
+  async store({ request, serialize }: HttpContext) {
     const { firstName, lastName } = request.all()
     const member = new Member()
     member.firstName = firstName
     member.lastName = lastName
     await member.save()
-    return member
+    return serialize(member)
   }
 
   /**
    * Show individual record
    */
-  async show({ params }: HttpContext) {
+  async show({ params, serialize }: HttpContext) {
     const member = await Member.query().preload('role').where('id', params.id).first()
     if (!member) {
       throw new Error('Member not found')
     }
-    return member
+    return serialize(member)
   }
 
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, request }: HttpContext) {
+  async update({ params, request, serialize }: HttpContext) {
     const member = await Member.query().preload('role').where('id', params.id).first()
     if (!member) {
       throw new Error('Member not found')
@@ -45,7 +45,7 @@ export default class MembersController {
     member.firstName = firstName
     member.lastName = lastName
     await member.save()
-    return member
+    return serialize(member)
   }
 
   /**

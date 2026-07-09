@@ -5,14 +5,14 @@ export default class FastPassesController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
-    return FastPass.query()
+  async index({ serialize }: HttpContext) {
+    return serialize(await FastPass.query())
   }
 
   /**
    * Handle form submission for the create action
    */
-  async store({ request }: HttpContext) {
+  async store({ request, serialize }: HttpContext) {
     const { price, duration, description, label } = request.all()
     const fastPass = new FastPass()
     fastPass.price = price
@@ -20,20 +20,20 @@ export default class FastPassesController {
     fastPass.description = description
     fastPass.label = label
     await fastPass.save()
-    return fastPass
+    return serialize(fastPass)
   }
 
   /**
    * Show individual record
    */
-  async show({ params }: HttpContext) {
-    return FastPass.query().where('id', params.id).firstOrFail()
+  async show({ params, serialize }: HttpContext) {
+    return serialize(await FastPass.query().where('id', params.id).firstOrFail())
   }
 
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, request }: HttpContext) {
+  async update({ params, request, serialize }: HttpContext) {
     const fastPass = await FastPass.query().where('id', params.id).firstOrFail() // We get our fast pass by id
     const { price, duration, description, label } = request.all() // We transfer the new data from the request to constants
     fastPass.price = price // Assigning the data
@@ -41,7 +41,7 @@ export default class FastPassesController {
     fastPass.description = description
     fastPass.label = label
     await fastPass.save() // We save the fast pass to the database
-    return fastPass
+    return serialize(fastPass)
   }
 
   /**

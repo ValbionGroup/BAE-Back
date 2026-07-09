@@ -6,6 +6,7 @@
 export const controllers = {
   AccessToken: () => import('#controllers/access_token_controller'),
   Categories: () => import('#controllers/categories_controller'),
+  Events: () => import('#controllers/events_controller'),
   FastPasses: () => import('#controllers/fast_passes_controller'),
   Furnitures: () => import('#controllers/furnitures_controller'),
   Goods: () => import('#controllers/goods_controller'),
@@ -19,5 +20,6 @@ export const controllers = {
   Roles: () => import('#controllers/roles_controller'),
   StockBatches: () => import('#controllers/stock_batches_controller'),
   StockMovements: () => import('#controllers/stock_movements_controller'),
+  Stocks: () => import('#controllers/stocks_controller'),
   Suppliers: () => import('#controllers/suppliers_controller'),
 }

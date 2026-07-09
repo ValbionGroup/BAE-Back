@@ -5,32 +5,32 @@ export default class RolesController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
+  async index({ serialize }: HttpContext) {
     const roles = await Role.query()
-    return roles
+    return serialize(roles)
   }
 
   /**
    * Handle form submission for the create action
    */
-  async store({ request }: HttpContext) {
+  async store({ request, serialize }: HttpContext) {
     const { name } = request.all()
     const role = await Role.create({ name })
-    return role
+    return serialize(role)
   }
 
   /**
    * Show individual record
    */
-  async show({ params }: HttpContext) {
+  async show({ params, serialize }: HttpContext) {
     const role = await Role.findOrFail(params.id)
-    return role
+    return serialize(role)
   }
 
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, request }: HttpContext) {
+  async update({ params, request, serialize }: HttpContext) {
     const { name } = request.body()
     const role = await Role.find(params.id)
     if (!role) {
@@ -38,7 +38,7 @@ export default class RolesController {
     }
     role.name = name
     await role.save()
-    return role
+    return serialize(role)
   }
 
   /**

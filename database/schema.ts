@@ -8,18 +8,7 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 export class AuthAccessTokenSchema extends BaseModel {
-  static $columns = [
-    'abilities',
-    'createdAt',
-    'expiresAt',
-    'hash',
-    'id',
-    'lastUsedAt',
-    'name',
-    'tokenableId',
-    'type',
-    'updatedAt',
-  ] as const
+  static $columns = ['abilities', 'createdAt', 'expiresAt', 'hash', 'id', 'lastUsedAt', 'name', 'tokenableId', 'type', 'updatedAt'] as const
   $columns = AuthAccessTokenSchema.$columns
   @column()
   declare abilities: string
@@ -89,15 +78,7 @@ export class EventProductSchema extends BaseModel {
 }
 
 export class EventSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'date',
-    'description',
-    'id',
-    'name',
-    'status',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'date', 'description', 'duration', 'id', 'name', 'status', 'updatedAt'] as const
   $columns = EventSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -105,6 +86,8 @@ export class EventSchema extends BaseModel {
   declare date: DateTime
   @column()
   declare description: string | null
+  @column()
+  declare duration: number | null
   @column({ isPrimary: true })
   declare id: number
   @column()
@@ -116,15 +99,7 @@ export class EventSchema extends BaseModel {
 }
 
 export class FastPassSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'description',
-    'duration',
-    'id',
-    'label',
-    'price',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'description', 'duration', 'id', 'label', 'price', 'updatedAt'] as const
   $columns = FastPassSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -194,7 +169,7 @@ export class GoodSchema extends BaseModel {
 }
 
 export class JobSchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'id', 'name', 'updatedAt'] as const
+  static $columns = ['createdAt', 'description', 'id', 'name', 'type', 'updatedAt'] as const
   $columns = JobSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -204,22 +179,14 @@ export class JobSchema extends BaseModel {
   declare id: number
   @column()
   declare name: string
+  @column()
+  declare type: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
 
 export class LogSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'id',
-    'ip',
-    'level',
-    'message',
-    'meta',
-    'method',
-    'url',
-    'userId',
-  ] as const
+  static $columns = ['createdAt', 'id', 'ip', 'level', 'message', 'meta', 'method', 'url', 'userId'] as const
   $columns = LogSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -287,7 +254,7 @@ export class MemberResponseSchema extends BaseModel {
 }
 
 export class MemberSchema extends BaseModel {
-  static $columns = ['createdAt', 'firstName', 'id', 'lastName', 'roleId', 'updatedAt'] as const
+  static $columns = ['createdAt', 'firstName', 'id', 'lastName', 'points', 'roleId', 'updatedAt'] as const
   $columns = MemberSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -297,6 +264,8 @@ export class MemberSchema extends BaseModel {
   declare id: number
   @column()
   declare lastName: string
+  @column()
+  declare points: number
   @column()
   declare roleId: number | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -315,15 +284,7 @@ export class OrderProductSchema extends BaseModel {
 }
 
 export class OrderSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'eventId',
-    'id',
-    'memberId',
-    'status',
-    'transactionId',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'eventId', 'id', 'memberId', 'status', 'transactionId', 'updatedAt'] as const
   $columns = OrderSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -353,14 +314,7 @@ export class PermissionSchema extends BaseModel {
 }
 
 export class PreOrderItemSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'preOrderId',
-    'productId',
-    'quantity',
-    'receivedQuantity',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'preOrderId', 'productId', 'quantity', 'receivedQuantity', 'updatedAt'] as const
   $columns = PreOrderItemSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -407,30 +361,26 @@ export class ProductFurnitureSchema extends BaseModel {
 }
 
 export class ProductGoodSchema extends BaseModel {
-  static $columns = ['createdAt', 'goodId', 'productId', 'quantity', 'updatedAt'] as const
+  static $columns = ['createdAt', 'goodId', 'instruction', 'productId', 'quantity', 'rank', 'updatedAt'] as const
   $columns = ProductGoodSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
   declare goodId: number
+  @column()
+  declare instruction: string | null
   @column({ isPrimary: true })
   declare productId: number
   @column()
   declare quantity: number
+  @column()
+  declare rank: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
 
 export class ProductSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'description',
-    'id',
-    'isVegetarian',
-    'name',
-    'recipe',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'description', 'id', 'isVegetarian', 'name', 'recipe', 'updatedAt'] as const
   $columns = ProductSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -449,14 +399,7 @@ export class ProductSchema extends BaseModel {
 }
 
 export class RestockSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'id',
-    'memberId',
-    'supplierId',
-    'totalPrice',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'id', 'memberId', 'supplierId', 'totalPrice', 'updatedAt'] as const
   $columns = RestockSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -497,16 +440,7 @@ export class RolesPermissionSchema extends BaseModel {
 }
 
 export class StockBatchSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'expirationDate',
-    'goodId',
-    'id',
-    'label',
-    'quantity',
-    'restockId',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'expirationDate', 'goodId', 'id', 'label', 'quantity', 'restockId', 'updatedAt'] as const
   $columns = StockBatchSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -527,14 +461,7 @@ export class StockBatchSchema extends BaseModel {
 }
 
 export class StockMovementSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'goodId',
-    'id',
-    'movementType',
-    'quantity',
-    'stockBatchId',
-  ] as const
+  static $columns = ['createdAt', 'goodId', 'id', 'movementType', 'quantity', 'stockBatchId'] as const
   $columns = StockMovementSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
