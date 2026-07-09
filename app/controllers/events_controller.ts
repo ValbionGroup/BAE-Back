@@ -66,7 +66,9 @@ export default class EventsController {
 
   async roster({ params, serialize }: HttpContext) {
     await Event.findOrFail(params.id)
-    const members = await Member.query().preload('responses', (q) => q.where('events.id', params.id))
+    const members = await Member.query().preload('responses', (q) =>
+      q.where('events.id', params.id)
+    )
     const roster = members.map((m) => {
       const response = m.responses[0]
       const status = response ? (response.$extras.pivot_is_available ? 1 : 0) : -1

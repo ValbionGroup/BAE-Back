@@ -31,12 +31,12 @@ async show({ params, serialize }: HttpContext) {
 `serialize()` (défini dans `providers/api_provider.ts`) normalise l'entrée avant
 d'envelopper :
 
-| Entrée | Résultat |
-|---|---|
-| modèle Lucid | `{ data: {…} }` (via `model.serialize()`) |
-| tableau (de modèles ou d'objets) | `{ data: [...] }` |
-| objet simple / sortie de transformer | `{ data: {…} }` |
-| paginator Lucid | `{ data: [...], metadata: {…} }` |
+| Entrée                               | Résultat                                  |
+| ------------------------------------ | ----------------------------------------- |
+| modèle Lucid                         | `{ data: {…} }` (via `model.serialize()`) |
+| tableau (de modèles ou d'objets)     | `{ data: [...] }`                         |
+| objet simple / sortie de transformer | `{ data: {…} }`                           |
+| paginator Lucid                      | `{ data: [...], metadata: {…} }`          |
 
 ### Exceptions
 
