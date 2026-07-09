@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Product from '#models/product'
-import Good from '#models/good'
+import type Good from '#models/good'
 import db from '@adonisjs/lucid/services/db'
 import { loadBatchesWithRemaining } from '#services/stock_service'
 
