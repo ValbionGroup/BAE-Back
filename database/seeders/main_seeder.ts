@@ -45,7 +45,6 @@ export default class extends BaseSeeder {
     await this.runSeeder(ProductSeeder)
     await this.runSeeder(RestockSeeder)
     await this.runSeeder(LogSeeder)
-    await this.runSeeder(FastPassSeeder)
 
     // 4. Seeders dépendants des seeders précédents
     await this.runSeeder(SubscriptionSeeder)
