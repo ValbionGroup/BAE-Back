@@ -5,15 +5,15 @@ export default class LogsController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
+  async index({ serialize }: HttpContext) {
     const logs = await Log.query().preload('user')
-    return logs
+    return serialize(logs)
   }
 
   /**
    * Handle form submission for the create action
    */
-  async store({ request }: HttpContext) {
+  async store({ request, serialize }: HttpContext) {
     const { level, message, method, url, ip, meta, userId } = request.all()
     const log = await Log.create({
       level,
@@ -24,21 +24,21 @@ export default class LogsController {
       meta,
       userId,
     })
-    return log
+    return serialize(log)
   }
 
   /**
    * Show individual record
    */
-  async show({ params }: HttpContext) {
+  async show({ params, serialize }: HttpContext) {
     const log = await Log.query().where('id', params.id).preload('user').firstOrFail()
-    return log
+    return serialize(log)
   }
 
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, request }: HttpContext) {
+  async update({ params, request, serialize }: HttpContext) {
     const log = await Log.query().where('id', params.id).firstOrFail()
     const { level, message, method, url, ip, meta, userId } = request.all()
     log.level = level
@@ -49,7 +49,7 @@ export default class LogsController {
     log.meta = meta
     log.userId = userId
     await log.save()
-    return log
+    return serialize(log)
   }
 
   /**

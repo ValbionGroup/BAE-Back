@@ -37,7 +37,7 @@ export default class Product extends ProductSchema {
 
   @manyToMany(() => Good, {
     pivotTable: 'product_goods',
-    pivotColumns: ['quantity'],
+    pivotColumns: ['quantity', 'rank', 'instruction'],
     pivotTimestamps: true,
   })
   declare goods: ManyToMany<typeof Good>

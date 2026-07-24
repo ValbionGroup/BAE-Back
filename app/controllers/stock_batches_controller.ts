@@ -5,15 +5,15 @@ export default class StockBatchesController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
+  async index({ serialize }: HttpContext) {
     const stockBatches = await StockBatch.query().preload('good').preload('restock')
-    return stockBatches
+    return serialize(stockBatches)
   }
 
   /**
    * Handle form submission for the create action
    */
-  async store({ request }: HttpContext) {
+  async store({ request, serialize }: HttpContext) {
     const { expirationDate, label, quantity, restockId, goodId } = request.all()
     const stockBatch = await StockBatch.create({
       expirationDate,
@@ -22,25 +22,25 @@ export default class StockBatchesController {
       restockId,
       goodId,
     })
-    return stockBatch
+    return serialize(stockBatch)
   }
 
   /**
    * Show individual record
    */
-  async show({ params }: HttpContext) {
+  async show({ params, serialize }: HttpContext) {
     const stockBatch = await StockBatch.query()
       .where('id', params.id)
       .preload('good')
       .preload('restock')
       .firstOrFail()
-    return stockBatch
+    return serialize(stockBatch)
   }
 
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, request }: HttpContext) {
+  async update({ params, request, serialize }: HttpContext) {
     const stockBatch = await StockBatch.query()
       .where('id', params.id)
       .preload('good')
@@ -56,7 +56,7 @@ export default class StockBatchesController {
         goodId,
       })
       .save()
-    return stockBatch
+    return serialize(stockBatch)
   }
 
   /**

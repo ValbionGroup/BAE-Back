@@ -5,15 +5,15 @@ export default class StockMovementsController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
+  async index({ serialize }: HttpContext) {
     const stockMovements = await StockMovement.query().preload('good').preload('stockBatch')
-    return stockMovements
+    return serialize(stockMovements)
   }
 
   /**
    * Handle form submission for the create action
    */
-  async store({ request }: HttpContext) {
+  async store({ request, serialize }: HttpContext) {
     const { quantity, movementType, goodId, stockBatchId } = request.all()
     const stockMovement = await StockMovement.create({
       quantity,
@@ -21,26 +21,26 @@ export default class StockMovementsController {
       goodId,
       stockBatchId,
     })
-    return stockMovement
+    return serialize(stockMovement)
   }
 
   /**
    * Show individual record
    */
-  async show({ params }: HttpContext) {
+  async show({ params, serialize }: HttpContext) {
     const stockMovement = await StockMovement.query()
       .where('id', params.id)
       .preload('good')
       .preload('stockBatch')
       .firstOrFail()
 
-    return stockMovement
+    return serialize(stockMovement)
   }
 
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, request }: HttpContext) {
+  async update({ params, request, serialize }: HttpContext) {
     const stockMovement = await StockMovement.query()
       .where('id', params.id)
       .preload('good')
@@ -54,7 +54,7 @@ export default class StockMovementsController {
     stockMovement.stockBatchId = stockBatchId
 
     await stockMovement.save()
-    return stockMovement
+    return serialize(stockMovement)
   }
 
   /**

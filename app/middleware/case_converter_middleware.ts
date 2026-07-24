@@ -1,5 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+import { DateTime } from 'luxon'
+import { BaseModel } from '@adonisjs/lucid/orm'
 
 function toSnakeCase(str: string): string {
   return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
@@ -12,6 +14,14 @@ function toCamelCase(str: string): string {
 function convertKeys(obj: unknown, converter: (key: string) => string): unknown {
   if (Array.isArray(obj)) {
     return obj.map((item) => convertKeys(item, converter))
+  }
+
+  if (obj instanceof BaseModel) {
+    return convertKeys(obj.serialize(), converter)
+  }
+
+  if (DateTime.isDateTime(obj)) {
+    return obj.toISO()
   }
 
   if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {

@@ -10,6 +10,7 @@ tmp/*
 .env.local
 .env.production.local
 .env.development.local
+*.pem
 
 # Frontend assets compiled code
 public/assets

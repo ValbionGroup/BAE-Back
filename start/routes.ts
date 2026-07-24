@@ -8,12 +8,13 @@
 */
 
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
+
+import '#start/routes/auth'
 
 router.get('/', () => {
   return { hello: 'world' }
 })
-
-router.group(() => {}).prefix('/v1')
 
 router
   .group(() => {
@@ -33,8 +34,33 @@ router
     router.resource('logs', () => import('#controllers/logs_controller')).apiOnly()
     router.resource('roles', () => import('#controllers/roles_controller')).apiOnly()
     router.resource('permissions', () => import('#controllers/permissions_controller')).apiOnly()
+
+    router.resource('events', () => import('#controllers/events_controller')).apiOnly()
+    router.get('events/:id/response', [
+      () => import('#controllers/events_controller'),
+      'getResponse',
+    ])
+    router.post('events/:id/response', [
+      () => import('#controllers/events_controller'),
+      'setResponse',
+    ])
+    router.get('events/:id/roster', [() => import('#controllers/events_controller'), 'roster'])
+
+    router.get('products/summary', [() => import('#controllers/products_controller'), 'summary'])
+    router.get('products/:id/ingredients', [
+      () => import('#controllers/products_controller'),
+      'ingredients',
+    ])
+
+    router.get('stocks', [() => import('#controllers/stocks_controller'), 'index'])
+    router.get('stocks/:id/batches', [() => import('#controllers/stocks_controller'), 'batches'])
+    router.post('stocks/:id/batches/:batchId/discard', [
+      () => import('#controllers/stocks_controller'),
+      'discard',
+    ])
   })
   .prefix('/v1')
+  .use(middleware.auth())
 
 router.get('/test', async () => {
   return { message: 'ok' }
