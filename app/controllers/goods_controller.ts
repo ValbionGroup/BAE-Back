@@ -5,14 +5,16 @@ export default class GoodsController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
-    return Good.query().preload('products').preload('category').preload('suppliers')
+  async index({ serialize }: HttpContext) {
+    return serialize(
+      await Good.query().preload('products').preload('category').preload('suppliers')
+    )
   }
 
   /**
    * Handle form submission for the create action
    */
-  async store({ request }: HttpContext) {
+  async store({ request, serialize }: HttpContext) {
     const { name, unit, brand, categoryId } = request.all()
     const good = new Good()
     good.name = name
@@ -20,25 +22,27 @@ export default class GoodsController {
     good.brand = brand
     good.categoryId = categoryId
     await good.save()
-    return good
+    return serialize(good)
   }
 
   /**
    * Show individual record
    */
-  async show({ params }: HttpContext) {
-    return await Good.query()
-      .preload('products')
-      .preload('category')
-      .preload('suppliers')
-      .where('id', params.id)
-      .firstOrFail()
+  async show({ params, serialize }: HttpContext) {
+    return serialize(
+      await Good.query()
+        .preload('products')
+        .preload('category')
+        .preload('suppliers')
+        .where('id', params.id)
+        .firstOrFail()
+    )
   }
 
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, request }: HttpContext) {
+  async update({ params, request, serialize }: HttpContext) {
     const good = await Good.query()
       .preload('products')
       .preload('category')
@@ -51,7 +55,7 @@ export default class GoodsController {
     good.brand = brand
     good.categoryId = categoryId
     await good.save()
-    return good
+    return serialize(good)
   }
 
   /**

@@ -93,6 +93,7 @@ export class EventSchema extends BaseModel {
     'createdAt',
     'date',
     'description',
+    'duration',
     'id',
     'name',
     'status',
@@ -105,6 +106,8 @@ export class EventSchema extends BaseModel {
   declare date: DateTime
   @column()
   declare description: string | null
+  @column()
+  declare duration: number | null
   @column({ isPrimary: true })
   declare id: number
   @column()
@@ -194,7 +197,7 @@ export class GoodSchema extends BaseModel {
 }
 
 export class JobSchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'id', 'name', 'updatedAt'] as const
+  static $columns = ['createdAt', 'description', 'id', 'name', 'type', 'updatedAt'] as const
   $columns = JobSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -204,6 +207,8 @@ export class JobSchema extends BaseModel {
   declare id: number
   @column()
   declare name: string
+  @column()
+  declare type: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -287,7 +292,15 @@ export class MemberResponseSchema extends BaseModel {
 }
 
 export class MemberSchema extends BaseModel {
-  static $columns = ['createdAt', 'firstName', 'id', 'lastName', 'roleId', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'firstName',
+    'id',
+    'lastName',
+    'points',
+    'roleId',
+    'updatedAt',
+  ] as const
   $columns = MemberSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -297,6 +310,8 @@ export class MemberSchema extends BaseModel {
   declare id: number
   @column()
   declare lastName: string
+  @column()
+  declare points: number
   @column()
   declare roleId: number | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -407,16 +422,28 @@ export class ProductFurnitureSchema extends BaseModel {
 }
 
 export class ProductGoodSchema extends BaseModel {
-  static $columns = ['createdAt', 'goodId', 'productId', 'quantity', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'goodId',
+    'instruction',
+    'productId',
+    'quantity',
+    'rank',
+    'updatedAt',
+  ] as const
   $columns = ProductGoodSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
   declare goodId: number
+  @column()
+  declare instruction: string | null
   @column({ isPrimary: true })
   declare productId: number
   @column()
   declare quantity: number
+  @column()
+  declare rank: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

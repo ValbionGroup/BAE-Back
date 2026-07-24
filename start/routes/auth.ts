@@ -7,14 +7,15 @@ router
     router.post('signup', [controllers.NewAccount, 'store'])
     router.post('login', [controllers.AccessToken, 'store'])
     router.post('logout', [controllers.AccessToken, 'destroy']).use(middleware.auth())
+    router.delete('logout-all', [controllers.AccessToken, 'destroyAll']).use(middleware.auth())
   })
-  .prefix('auth')
+  .prefix('v1/auth')
   .as('auth')
 
 router
   .group(() => {
     router.get('/profile', [controllers.Profile, 'show'])
   })
-  .prefix('account')
+  .prefix('v1/account')
   .as('profile')
   .use(middleware.auth())

@@ -5,36 +5,38 @@ export default class SuppliersController {
   /**
    * Display a list of resource
    */
-  async index({}: HttpContext) {
-    return Supplier.query().preload('goods').preload('restocks')
+  async index({ serialize }: HttpContext) {
+    return serialize(await Supplier.query().preload('goods').preload('restocks'))
   }
 
   /**
    * Handle form submission for the create action
    */
-  async store({ request }: HttpContext) {
+  async store({ request, serialize }: HttpContext) {
     const { name } = request.all()
     const supplier = new Supplier()
     supplier.name = name
     await supplier.save()
-    return supplier
+    return serialize(supplier)
   }
 
   /**
    * Show individual record
    */
-  async show({ params }: HttpContext) {
-    return await Supplier.query()
-      .preload('goods')
-      .preload('restocks')
-      .where('id', params.id)
-      .firstOrFail()
+  async show({ params, serialize }: HttpContext) {
+    return serialize(
+      await Supplier.query()
+        .preload('goods')
+        .preload('restocks')
+        .where('id', params.id)
+        .firstOrFail()
+    )
   }
 
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, request }: HttpContext) {
+  async update({ params, request, serialize }: HttpContext) {
     const supplier = await Supplier.query()
       .preload('goods')
       .preload('restocks')
@@ -43,7 +45,7 @@ export default class SuppliersController {
     const { name } = request.all() // We transfer the new data from the request to constants
     supplier.name = name // Assigning the data
     await supplier.save() // We save the supplier to the database
-    return supplier
+    return serialize(supplier)
   }
 
   /**
