@@ -23,24 +23,27 @@ const appVersion = (() => {
   }
 })()
 
-router.get('/', async () => {
+router.get('/', async ({ response }) => {
   const report = await healthChecks.run()
 
-  return {
+  const problems = report.checks
+    .filter((check) => check.status !== 'ok')
+    .map((check) => ({
+      name: check.name,
+      message: check.message,
+      status: check.status,
+    }))
+
+  const body = {
     infos: "BUREAU DES ALTERNANTS DE L'ENSEIRB-MATMECA API - (c) Valbion Group",
     version: appVersion,
     uptime: process.uptime(),
     health: report.isHealthy,
     status: report.status,
-    problems:
-      report.checks
-        .filter((check) => check.status !== 'ok')
-        .map((check) => ({
-          name: check.name,
-          message: check.message,
-          status: check.status,
-        })) || null,
+    problems: problems.length ? problems : null,
   }
+
+  return report.isHealthy ? response.ok(body) : response.serviceUnavailable(body)
 })
 
 router
