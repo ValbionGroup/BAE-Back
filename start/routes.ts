@@ -8,12 +8,39 @@
 */
 
 import router from '@adonisjs/core/services/router'
+import app from '@adonisjs/core/services/app'
 import { middleware } from '#start/kernel'
-
+import { healthChecks } from '#start/health'
+import { readFileSync } from 'node:fs'
 import '#start/routes/auth'
 
-router.get('/', () => {
-  return { hello: 'world' }
+const appVersion = (() => {
+  try {
+    const pkg = JSON.parse(readFileSync(app.makePath('package.json'), 'utf-8'))
+    return pkg.version as string
+  } catch {
+    return null
+  }
+})()
+
+router.get('/', async () => {
+  const report = await healthChecks.run()
+
+  return {
+    infos: "BUREAU DES ALTERNANTS DE L'ENSEIRB-MATMECA API - (c) Valbion Group",
+    version: appVersion,
+    uptime: process.uptime(),
+    health: report.isHealthy,
+    status: report.status,
+    problems:
+      report.checks
+        .filter((check) => check.status !== 'ok')
+        .map((check) => ({
+          name: check.name,
+          message: check.message,
+          status: check.status,
+        })) || null,
+  }
 })
 
 router
