@@ -15,9 +15,12 @@ import { readFileSync } from 'node:fs'
 import '#start/routes/auth'
 
 const appVersion = (() => {
+  const fromEnv = process.env.APP_VERSION
+  if (fromEnv) return fromEnv
+
   try {
     const pkg = JSON.parse(readFileSync(app.makePath('package.json'), 'utf-8'))
-    return pkg.version as string
+    return typeof pkg.version === 'string' ? pkg.version : null
   } catch {
     return null
   }
