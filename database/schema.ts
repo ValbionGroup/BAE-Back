@@ -528,7 +528,7 @@ export class UserSchema extends BaseModel {
   static $columns = ['casId', 'createdAt', 'email', 'id', 'password', 'updatedAt'] as const
   $columns = UserSchema.$columns
   @column()
-  declare casId: string
+  declare casId: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
