@@ -1,13 +1,33 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Good from '#models/good'
+import { bestSupplierPrice, supplierPrices } from '#services/pricing_service'
 
 export default class GoodsController {
   /**
-   * Display a list of resource
+   * Display a list of resource.
+   *
+   * `suppliers` carries the `good_suppliers.price` pivot value, coerced to a
+   * number (the column is `decimal(10,2)`, which `pg` returns as a string) and
+   * sorted cheapest first. This is what feeds the multi-retailer shopping list:
+   * the frontend renders one column per supplier and highlights `bestSupplier`.
    */
   async index({ serialize }: HttpContext) {
+    const goods = await Good.query()
+      .preload('products')
+      .preload('category')
+      .preload('suppliers')
+      .orderBy('name')
+
     return serialize(
-      await Good.query().preload('products').preload('category').preload('suppliers')
+      goods.map((good) => {
+        const best = bestSupplierPrice(good)
+        return {
+          ...good.serialize(),
+          suppliers: supplierPrices(good),
+          bestSupplier: best,
+          bestPrice: best?.price ?? null,
+        }
+      })
     )
   }
 

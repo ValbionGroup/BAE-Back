@@ -127,6 +127,126 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['destroy']>>>
     }
   }
+  'roles.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/roles'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['index']>>>
+    }
+  }
+  'roles.store': {
+    methods: ["POST"]
+    pattern: '/v1/roles'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['store']>>>
+    }
+  }
+  'roles.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/roles/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['show']>>>
+    }
+  }
+  'roles.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/roles/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>>
+    }
+  }
+  'roles.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/roles/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
+    }
+  }
+  'permissions.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/permissions'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['index']>>>
+    }
+  }
+  'permissions.store': {
+    methods: ["POST"]
+    pattern: '/v1/permissions'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['store']>>>
+    }
+  }
+  'permissions.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/permissions/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['show']>>>
+    }
+  }
+  'permissions.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/permissions/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['update']>>>
+    }
+  }
+  'permissions.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/permissions/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['destroy']>>>
+    }
+  }
   'categories.index': {
     methods: ["GET","HEAD"]
     pattern: '/v1/categories'
@@ -187,64 +307,28 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/categories_controller').default['destroy']>>>
     }
   }
-  'furnitures.index': {
+  'products.summary': {
     methods: ["GET","HEAD"]
-    pattern: '/v1/furnitures'
+    pattern: '/v1/products/summary'
     types: {
       body: {}
       paramsTuple: []
       params: {}
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['index']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['index']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/products_controller').default['summary']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/products_controller').default['summary']>>>
     }
   }
-  'furnitures.store': {
-    methods: ["POST"]
-    pattern: '/v1/furnitures'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['store']>>>
-    }
-  }
-  'furnitures.show': {
+  'products.ingredients': {
     methods: ["GET","HEAD"]
-    pattern: '/v1/furnitures/:id'
+    pattern: '/v1/products/:id/ingredients'
     types: {
       body: {}
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['show']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['show']>>>
-    }
-  }
-  'furnitures.update': {
-    methods: ["PUT","PATCH"]
-    pattern: '/v1/furnitures/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['update']>>>
-    }
-  }
-  'furnitures.destroy': {
-    methods: ["DELETE"]
-    pattern: '/v1/furnitures/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['destroy']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['destroy']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/products_controller').default['ingredients']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/products_controller').default['ingredients']>>>
     }
   }
   'products.index': {
@@ -367,6 +451,66 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/goods_controller').default['destroy']>>>
     }
   }
+  'furnitures.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/furnitures'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['index']>>>
+    }
+  }
+  'furnitures.store': {
+    methods: ["POST"]
+    pattern: '/v1/furnitures'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['store']>>>
+    }
+  }
+  'furnitures.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/furnitures/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['show']>>>
+    }
+  }
+  'furnitures.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/furnitures/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['update']>>>
+    }
+  }
+  'furnitures.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/furnitures/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['destroy']>>>
+    }
+  }
   'suppliers.index': {
     methods: ["GET","HEAD"]
     pattern: '/v1/suppliers'
@@ -427,64 +571,40 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/suppliers_controller').default['destroy']>>>
     }
   }
-  'restocks.index': {
+  'stocks.index': {
     methods: ["GET","HEAD"]
-    pattern: '/v1/restocks'
+    pattern: '/v1/stocks'
     types: {
       body: {}
       paramsTuple: []
       params: {}
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['index']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['index']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['index']>>>
     }
   }
-  'restocks.store': {
+  'stocks.batches': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/stocks/:id/batches'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['batches']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['batches']>>>
+    }
+  }
+  'stocks.discard': {
     methods: ["POST"]
-    pattern: '/v1/restocks'
+    pattern: '/v1/stocks/:id/batches/:batchId/discard'
     types: {
       body: {}
-      paramsTuple: []
-      params: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { id: ParamValue; batchId: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['store']>>>
-    }
-  }
-  'restocks.show': {
-    methods: ["GET","HEAD"]
-    pattern: '/v1/restocks/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['show']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['show']>>>
-    }
-  }
-  'restocks.update': {
-    methods: ["PUT","PATCH"]
-    pattern: '/v1/restocks/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['update']>>>
-    }
-  }
-  'restocks.destroy': {
-    methods: ["DELETE"]
-    pattern: '/v1/restocks/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['destroy']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['destroy']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['discard']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['discard']>>>
     }
   }
   'stock_batches.index': {
@@ -607,184 +727,64 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stock_movements_controller').default['destroy']>>>
     }
   }
-  'logs.index': {
+  'restocks.index': {
     methods: ["GET","HEAD"]
-    pattern: '/v1/logs'
+    pattern: '/v1/restocks'
     types: {
       body: {}
       paramsTuple: []
       params: {}
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['index']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['index']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['index']>>>
     }
   }
-  'logs.store': {
+  'restocks.store': {
     methods: ["POST"]
-    pattern: '/v1/logs'
+    pattern: '/v1/restocks'
     types: {
       body: {}
       paramsTuple: []
       params: {}
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['store']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['store']>>>
     }
   }
-  'logs.show': {
+  'restocks.show': {
     methods: ["GET","HEAD"]
-    pattern: '/v1/logs/:id'
+    pattern: '/v1/restocks/:id'
     types: {
       body: {}
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['show']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['show']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['show']>>>
     }
   }
-  'logs.update': {
+  'restocks.update': {
     methods: ["PUT","PATCH"]
-    pattern: '/v1/logs/:id'
+    pattern: '/v1/restocks/:id'
     types: {
       body: {}
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['update']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['update']>>>
     }
   }
-  'logs.destroy': {
+  'restocks.destroy': {
     methods: ["DELETE"]
-    pattern: '/v1/logs/:id'
+    pattern: '/v1/restocks/:id'
     types: {
       body: {}
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['destroy']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['destroy']>>>
-    }
-  }
-  'roles.index': {
-    methods: ["GET","HEAD"]
-    pattern: '/v1/roles'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['index']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['index']>>>
-    }
-  }
-  'roles.store': {
-    methods: ["POST"]
-    pattern: '/v1/roles'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['store']>>>
-    }
-  }
-  'roles.show': {
-    methods: ["GET","HEAD"]
-    pattern: '/v1/roles/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['show']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['show']>>>
-    }
-  }
-  'roles.update': {
-    methods: ["PUT","PATCH"]
-    pattern: '/v1/roles/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>>
-    }
-  }
-  'roles.destroy': {
-    methods: ["DELETE"]
-    pattern: '/v1/roles/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
-    }
-  }
-  'permissions.index': {
-    methods: ["GET","HEAD"]
-    pattern: '/v1/permissions'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['index']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['index']>>>
-    }
-  }
-  'permissions.store': {
-    methods: ["POST"]
-    pattern: '/v1/permissions'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['store']>>>
-    }
-  }
-  'permissions.show': {
-    methods: ["GET","HEAD"]
-    pattern: '/v1/permissions/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['show']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['show']>>>
-    }
-  }
-  'permissions.update': {
-    methods: ["PUT","PATCH"]
-    pattern: '/v1/permissions/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['update']>>>
-    }
-  }
-  'permissions.destroy': {
-    methods: ["DELETE"]
-    pattern: '/v1/permissions/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['destroy']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['destroy']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['destroy']>>>
     }
   }
   'events.index': {
@@ -883,64 +883,376 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['roster']>>>
     }
   }
-  'products.summary': {
+  'jobs.index': {
     methods: ["GET","HEAD"]
-    pattern: '/v1/products/summary'
+    pattern: '/v1/jobs'
     types: {
       body: {}
       paramsTuple: []
       params: {}
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/products_controller').default['summary']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/products_controller').default['summary']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['index']>>>
     }
   }
-  'products.ingredients': {
-    methods: ["GET","HEAD"]
-    pattern: '/v1/products/:id/ingredients'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/products_controller').default['ingredients']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/products_controller').default['ingredients']>>>
-    }
-  }
-  'stocks.index': {
-    methods: ["GET","HEAD"]
-    pattern: '/v1/stocks'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['index']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['index']>>>
-    }
-  }
-  'stocks.batches': {
-    methods: ["GET","HEAD"]
-    pattern: '/v1/stocks/:id/batches'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['batches']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['batches']>>>
-    }
-  }
-  'stocks.discard': {
+  'jobs.store': {
     methods: ["POST"]
-    pattern: '/v1/stocks/:id/batches/:batchId/discard'
+    pattern: '/v1/jobs'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').jobValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').jobValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'jobs.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/jobs/:id'
     types: {
       body: {}
-      paramsTuple: [ParamValue, ParamValue]
-      params: { id: ParamValue; batchId: ParamValue }
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['discard']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stocks_controller').default['discard']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['show']>>>
+    }
+  }
+  'jobs.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/jobs/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').jobValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').jobValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'jobs.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/jobs/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/jobs_controller').default['destroy']>>>
+    }
+  }
+  'event_jobs.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/event-jobs'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_jobs_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_jobs_controller').default['index']>>>
+    }
+  }
+  'event_jobs.store': {
+    methods: ["POST"]
+    pattern: '/v1/event-jobs'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').eventJobValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').eventJobValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_jobs_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_jobs_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'event_jobs.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/event-jobs'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').eventJobCountValidator)>|InferInput<(typeof import('#validators/coordination').eventJobKeyValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').eventJobCountValidator)>|InferInput<(typeof import('#validators/coordination').eventJobKeyValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_jobs_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_jobs_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'event_jobs.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/event-jobs'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').eventJobKeyValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').eventJobKeyValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_jobs_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_jobs_controller').default['destroy']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'assignments.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/assignments'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['index']>>>
+    }
+  }
+  'assignments.store': {
+    methods: ["POST"]
+    pattern: '/v1/assignments'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').assignmentValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').assignmentValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'assignments.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/assignments'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').assignmentValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').assignmentValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['destroy']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'responses.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/responses'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/responses_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/responses_controller').default['index']>>>
+    }
+  }
+  'preferences.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/preferences'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['index']>>>
+    }
+  }
+  'fast_passes.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/fast-passes'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['index']>>>
+    }
+  }
+  'fast_passes.store': {
+    methods: ["POST"]
+    pattern: '/v1/fast-passes'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['store']>>>
+    }
+  }
+  'fast_passes.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/fast-passes/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['show']>>>
+    }
+  }
+  'fast_passes.update': {
+    methods: ["PUT"]
+    pattern: '/v1/fast-passes/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['update']>>>
+    }
+  }
+  'fast_passes.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/fast-passes/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['destroy']>>>
+    }
+  }
+  'transactions.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/transactions'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/transactions_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/transactions_controller').default['index']>>>
+    }
+  }
+  'vouchers.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/vouchers'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/vouchers_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/vouchers_controller').default['index']>>>
+    }
+  }
+  'vouchers.store': {
+    methods: ["POST"]
+    pattern: '/v1/vouchers'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/voucher').voucherValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/voucher').voucherValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/vouchers_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/vouchers_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'vouchers.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/vouchers/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/voucher').voucherUpdateValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/voucher').voucherUpdateValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/vouchers_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/vouchers_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'vouchers.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/vouchers/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/vouchers_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/vouchers_controller').default['destroy']>>>
+    }
+  }
+  'logs.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/logs'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['index']>>>
+    }
+  }
+  'logs.store': {
+    methods: ["POST"]
+    pattern: '/v1/logs'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['store']>>>
+    }
+  }
+  'logs.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/logs/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['show']>>>
+    }
+  }
+  'logs.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/logs/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['update']>>>
+    }
+  }
+  'logs.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/logs/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['destroy']>>>
+    }
+  }
+  'sessions.sessions.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/account/sessions'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['index']>>>
+    }
+  }
+  'sessions.sessions.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/account/sessions/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['destroy']>>>
     }
   }
 }
