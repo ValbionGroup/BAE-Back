@@ -128,6 +128,7 @@ export interface ApiDefinition {
   assignments: {
     index: typeof routes['assignments.index']
     store: typeof routes['assignments.store']
+    update: typeof routes['assignments.update']
     destroy: typeof routes['assignments.destroy']
   }
   responses: {
@@ -140,6 +141,12 @@ export interface ApiDefinition {
     index: typeof routes['job_eligible_members.index']
     store: typeof routes['job_eligible_members.store']
     destroy: typeof routes['job_eligible_members.destroy']
+  }
+  accountPreferences: {
+    preferences: {
+      mine: typeof routes['account_preferences.preferences.mine']
+      updateMine: typeof routes['account_preferences.preferences.update_mine']
+    }
   }
   fastPasses: {
     index: typeof routes['fast_passes.index']

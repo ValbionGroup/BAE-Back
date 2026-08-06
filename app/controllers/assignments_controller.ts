@@ -3,12 +3,12 @@ import Event from '#models/event'
 import Job from '#models/job'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
-import { assignmentValidator } from '#validators/coordination'
+import { assignmentLockValidator, assignmentValidator } from '#validators/coordination'
 
 /**
  * Assignments are the `member_event_assigned_jobs` rows: which member holds
- * which job on which event. The composite key has no surrogate id, so `destroy`
- * reads it from the query string.
+ * which job on which event. The composite key has no surrogate id, so `update`
+ * and `destroy` read it from the query string.
  */
 export default class AssignmentsController {
   /**
@@ -49,6 +49,41 @@ export default class AssignmentsController {
     }
 
     return serialize({ memberId, eventId, jobId, locked: locked ?? false })
+  }
+
+  /**
+   * Update an existing assignment in place. Only `locked` is mutable.
+   *
+   * Without this, a client could only toggle the lock by deleting the row and
+   * recreating it — which silently reset `points_delta`, the value the matching
+   * engine refunds when it replaces a row.
+   */
+  async update({ request, response, serialize }: HttpContext) {
+    const { memberId, eventId, jobId } = await assignmentValidator.validate(request.qs())
+    const { locked } = await request.validateUsing(assignmentLockValidator)
+
+    const assignment = await MemberEventAssignedJob.query()
+      .where('memberId', memberId)
+      .where('eventId', eventId)
+      .where('jobId', jobId)
+      .first()
+
+    if (!assignment) {
+      return response.notFound({
+        error: { code: 'E_ROW_NOT_FOUND', message: 'Assignment not found' },
+      })
+    }
+
+    assignment.locked = locked
+    await assignment.save()
+
+    return serialize({
+      memberId: assignment.memberId,
+      eventId: assignment.eventId,
+      jobId: assignment.jobId,
+      locked: assignment.locked,
+      pointsDelta: assignment.pointsDelta,
+    })
   }
 
   /**

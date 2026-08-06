@@ -516,6 +516,12 @@ const routes = {
     tokens: [{"old":"/v1/assignments","type":0,"val":"v1","end":""},{"old":"/v1/assignments","type":0,"val":"assignments","end":""}],
     types: placeholder as Registry['assignments.store']['types'],
   },
+  'assignments.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/v1/assignments',
+    tokens: [{"old":"/v1/assignments","type":0,"val":"v1","end":""},{"old":"/v1/assignments","type":0,"val":"assignments","end":""}],
+    types: placeholder as Registry['assignments.update']['types'],
+  },
   'assignments.destroy': {
     methods: ["DELETE"],
     pattern: '/v1/assignments',
@@ -551,6 +557,18 @@ const routes = {
     pattern: '/v1/job-eligible-members',
     tokens: [{"old":"/v1/job-eligible-members","type":0,"val":"v1","end":""},{"old":"/v1/job-eligible-members","type":0,"val":"job-eligible-members","end":""}],
     types: placeholder as Registry['job_eligible_members.destroy']['types'],
+  },
+  'account_preferences.preferences.mine': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/account/preferences',
+    tokens: [{"old":"/v1/account/preferences","type":0,"val":"v1","end":""},{"old":"/v1/account/preferences","type":0,"val":"account","end":""},{"old":"/v1/account/preferences","type":0,"val":"preferences","end":""}],
+    types: placeholder as Registry['account_preferences.preferences.mine']['types'],
+  },
+  'account_preferences.preferences.update_mine': {
+    methods: ["PUT","PATCH"],
+    pattern: '/v1/account/preferences',
+    tokens: [{"old":"/v1/account/preferences","type":0,"val":"v1","end":""},{"old":"/v1/account/preferences","type":0,"val":"account","end":""},{"old":"/v1/account/preferences","type":0,"val":"preferences","end":""}],
+    types: placeholder as Registry['account_preferences.preferences.update_mine']['types'],
   },
   'fast_passes.index': {
     methods: ["GET","HEAD"],

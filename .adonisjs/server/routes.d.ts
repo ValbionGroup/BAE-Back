@@ -89,12 +89,15 @@ export type ScannedRoutes = {
     'event_jobs.destroy': { paramsTuple?: []; params?: {} }
     'assignments.index': { paramsTuple?: []; params?: {} }
     'assignments.store': { paramsTuple?: []; params?: {} }
+    'assignments.update': { paramsTuple?: []; params?: {} }
     'assignments.destroy': { paramsTuple?: []; params?: {} }
     'responses.index': { paramsTuple?: []; params?: {} }
     'preferences.index': { paramsTuple?: []; params?: {} }
     'job_eligible_members.index': { paramsTuple?: []; params?: {} }
     'job_eligible_members.store': { paramsTuple?: []; params?: {} }
     'job_eligible_members.destroy': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.mine': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.update_mine': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.store': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -202,6 +205,7 @@ export type ScannedRoutes = {
     'responses.index': { paramsTuple?: []; params?: {} }
     'preferences.index': { paramsTuple?: []; params?: {} }
     'job_eligible_members.index': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.mine': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
@@ -249,6 +253,7 @@ export type ScannedRoutes = {
     'responses.index': { paramsTuple?: []; params?: {} }
     'preferences.index': { paramsTuple?: []; params?: {} }
     'job_eligible_members.index': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.mine': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
@@ -272,6 +277,8 @@ export type ScannedRoutes = {
     'events.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.update': { paramsTuple?: []; params?: {} }
+    'assignments.update': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.update_mine': { paramsTuple?: []; params?: {} }
     'fast_passes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -291,6 +298,8 @@ export type ScannedRoutes = {
     'events.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.update': { paramsTuple?: []; params?: {} }
+    'assignments.update': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.update_mine': { paramsTuple?: []; params?: {} }
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }

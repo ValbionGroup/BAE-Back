@@ -42,11 +42,14 @@ router
     router.delete('/event-jobs', [controllers.EventJobs, 'destroy'])
 
     /**
-     * Assignments — composite key, `destroy` reads the
-     * `member_id` + `event_id` + `job_id` query params.
+     * Assignments — composite key, so `update` and `destroy` read the
+     * `member_id` + `event_id` + `job_id` query params. `PUT` and `PATCH` share
+     * one declaration: two separate ones derive the same route name and crash
+     * the boot.
      */
     router.get('/assignments', [controllers.Assignments, 'index'])
     router.post('/assignments', [controllers.Assignments, 'store'])
+    router.route('/assignments', ['PUT', 'PATCH'], [controllers.Assignments, 'update'])
     router.delete('/assignments', [controllers.Assignments, 'destroy'])
 
     /**
@@ -65,4 +68,19 @@ router
     router.delete('/job-eligible-members', [controllers.JobEligibleMembers, 'destroy'])
   })
   .prefix('/v1')
+  .use(middleware.auth())
+
+/*
+| A member managing their OWN job ranking. Lives under the `v1/account` prefix
+| next to `account/profile` and `account/sessions`: the caller is implied by the
+| token, so no member id appears in the path and nobody can rank on behalf of
+| someone else.
+*/
+router
+  .group(() => {
+    router.get('/preferences', [controllers.Preferences, 'mine'])
+    router.route('/preferences', ['PUT', 'PATCH'], [controllers.Preferences, 'updateMine'])
+  })
+  .prefix('v1/account')
+  .as('account_preferences')
   .use(middleware.auth())

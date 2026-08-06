@@ -44,7 +44,7 @@ export const eventJobCountValidator = vine.create({
 
 /**
  * Validator for an assignment, used both for the create body and for the
- * `member_id` + `event_id` + `job_id` query params of the delete.
+ * `member_id` + `event_id` + `job_id` query params of the delete and update.
  */
 export const assignmentValidator = vine.create({
   memberId: vine.number().positive(),
@@ -54,10 +54,32 @@ export const assignmentValidator = vine.create({
 })
 
 /**
+ * Validator for the body of an assignment update — the composite key travels in
+ * the query string, only the mutable flag is sent in the body.
+ *
+ * `pointsDelta` is deliberately absent: it is bookkeeping owned by the matching
+ * engine, which refunds it when replacing a row. Letting a client set it would
+ * corrupt members' point totals on the next run.
+ */
+export const assignmentLockValidator = vine.create({
+  locked: vine.boolean(),
+})
+
+/**
  * Validator for a job eligible member, used both for the create body and for
  * the `job_id` + `member_id` query params of the delete.
  */
 export const jobEligibleMemberValidator = vine.create({
   jobId: vine.number().positive(),
   memberId: vine.number().positive(),
+})
+
+/**
+ * Validator for a member setting their own job preferences.
+ *
+ * The list is ORDERED: rank is derived from position, so a client cannot submit
+ * a ranking with gaps, ties or duplicates. An empty array clears the list.
+ */
+export const jobPreferencesValidator = vine.create({
+  jobIds: vine.array(vine.number().positive()).distinct(),
 })

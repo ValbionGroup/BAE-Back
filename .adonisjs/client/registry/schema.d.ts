@@ -1027,6 +1027,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
+  'assignments.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/assignments'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').assignmentLockValidator)>|InferInput<(typeof import('#validators/coordination').assignmentValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').assignmentLockValidator)>|InferInput<(typeof import('#validators/coordination').assignmentValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
   'assignments.destroy': {
     methods: ["DELETE"]
     pattern: '/v1/assignments'
@@ -1097,6 +1109,30 @@ export interface Registry {
       query: ExtractQuery<InferInput<(typeof import('#validators/coordination').jobEligibleMemberValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/job_eligible_members_controller').default['destroy']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/job_eligible_members_controller').default['destroy']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'account_preferences.preferences.mine': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/account/preferences'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['mine']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['mine']>>>
+    }
+  }
+  'account_preferences.preferences.update_mine': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/account/preferences'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').jobPreferencesValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').jobPreferencesValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['updateMine']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['updateMine']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'fast_passes.index': {
