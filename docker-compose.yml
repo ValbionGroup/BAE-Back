@@ -24,10 +24,7 @@ services:
 
   # AdonisJS API (for production builds)
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
+    image: registry.eirb.fr/valbiongroup/bae-back:latest
     container_name: bae-api
     restart: unless-stopped
     depends_on:

@@ -1,4 +1,24 @@
-name: build-and-deploy.yml
+name: Build and deploy
 on:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
+  build-and-push:
+    permissions:
+      id-token: write
+    uses: Eirbware/.github/.github/workflows/build-and-publish.yml@master
+    with:
+      file: "./Dockerfile"
+      image_name: ${{ github.repository }}
+    secrets:
+      registry_username: ${{ secrets.registry_username }}
+      registry_api_key: ${{ secrets.registry_api_key }}
+
+  deploy:
+    needs: [ build-and-push ]
+    uses: Eirbware/.github/.github/workflows/deploy-stack.yml@master
+    secrets:
+      portainer_stack_webhook: ${{ secrets.portainer_stack_webhook }}
+      wireguard_conf: ${{ secrets.wireguard_conf }}
