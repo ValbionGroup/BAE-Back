@@ -15,7 +15,7 @@ export default class JobsController {
    */
   async store({ request, serialize }: HttpContext) {
     const payload = await request.validateUsing(jobValidator)
-    const job = await Job.create(payload)
+    const job = await Job.create({ type: 'during', ...payload })
     return serialize(job)
   }
 
