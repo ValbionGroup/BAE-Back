@@ -10,14 +10,14 @@ jobs:
       id-token: write
     uses: Eirbware/.github/.github/workflows/build-and-publish.yml@master
     with:
-      file: "./Dockerfile"
+      file: './Dockerfile'
       image_name: ${{ github.repository }}
     secrets:
       registry_username: ${{ secrets.registry_username }}
       registry_api_key: ${{ secrets.registry_api_key }}
 
   deploy:
-    needs: [ build-and-push ]
+    needs: [build-and-push]
     uses: Eirbware/.github/.github/workflows/deploy-stack.yml@master
     secrets:
       portainer_stack_webhook: ${{ secrets.portainer_stack_webhook }}
