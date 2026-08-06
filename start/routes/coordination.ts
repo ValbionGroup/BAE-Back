@@ -54,6 +54,15 @@ router
      */
     router.get('/responses', [controllers.Responses, 'index'])
     router.get('/preferences', [controllers.Preferences, 'index'])
+
+    /**
+     * Job eligible members — global (not per-event) restriction on which
+     * members the matching algorithm may assign to a job. Composite key,
+     * `destroy` reads the `job_id` + `member_id` query params.
+     */
+    router.get('/job-eligible-members', [controllers.JobEligibleMembers, 'index'])
+    router.post('/job-eligible-members', [controllers.JobEligibleMembers, 'store'])
+    router.delete('/job-eligible-members', [controllers.JobEligibleMembers, 'destroy'])
   })
   .prefix('/v1')
   .use(middleware.auth())

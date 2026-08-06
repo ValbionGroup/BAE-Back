@@ -202,6 +202,19 @@ export class GoodSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class JobEligibleMemberSchema extends BaseModel {
+  static $columns = ['createdAt', 'jobId', 'memberId', 'updatedAt'] as const
+  $columns = JobEligibleMemberSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare jobId: number
+  @column()
+  declare memberId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class JobSchema extends BaseModel {
   static $columns = ['createdAt', 'description', 'id', 'name', 'type', 'updatedAt'] as const
   $columns = JobSchema.$columns
@@ -253,7 +266,15 @@ export class LogSchema extends BaseModel {
 }
 
 export class MemberEventAssignedJobSchema extends BaseModel {
-  static $columns = ['createdAt', 'eventId', 'jobId', 'memberId', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'eventId',
+    'jobId',
+    'locked',
+    'memberId',
+    'pointsDelta',
+    'updatedAt',
+  ] as const
   $columns = MemberEventAssignedJobSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -261,8 +282,12 @@ export class MemberEventAssignedJobSchema extends BaseModel {
   declare eventId: number
   @column()
   declare jobId: number
+  @column()
+  declare locked: boolean
   @column({ isPrimary: true })
   declare memberId: number
+  @column()
+  declare pointsDelta: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

@@ -23,6 +23,8 @@ export default class AssignmentsController {
       memberId: assignment.memberId,
       eventId: assignment.eventId,
       jobId: assignment.jobId,
+      locked: assignment.locked,
+      pointsDelta: assignment.pointsDelta,
     }))
     return serialize(rows)
   }
@@ -31,7 +33,7 @@ export default class AssignmentsController {
    * Handle form submission for the create action
    */
   async store({ request, serialize }: HttpContext) {
-    const { memberId, eventId, jobId } = await request.validateUsing(assignmentValidator)
+    const { memberId, eventId, jobId, locked } = await request.validateUsing(assignmentValidator)
     await Member.findOrFail(memberId)
     await Event.findOrFail(eventId)
     await Job.findOrFail(jobId)
@@ -43,10 +45,10 @@ export default class AssignmentsController {
       .first()
 
     if (!existing) {
-      await MemberEventAssignedJob.create({ memberId, eventId, jobId })
+      await MemberEventAssignedJob.create({ memberId, eventId, jobId, locked: locked ?? false })
     }
 
-    return serialize({ memberId, eventId, jobId })
+    return serialize({ memberId, eventId, jobId, locked: locked ?? false })
   }
 
   /**

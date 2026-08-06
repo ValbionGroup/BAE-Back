@@ -110,6 +110,7 @@ export interface ApiDefinition {
     getResponse: typeof routes['events.get_response']
     setResponse: typeof routes['events.set_response']
     roster: typeof routes['events.roster']
+    runMatching: typeof routes['events.run_matching']
   }
   jobs: {
     index: typeof routes['jobs.index']
@@ -134,6 +135,11 @@ export interface ApiDefinition {
   }
   preferences: {
     index: typeof routes['preferences.index']
+  }
+  jobEligibleMembers: {
+    index: typeof routes['job_eligible_members.index']
+    store: typeof routes['job_eligible_members.store']
+    destroy: typeof routes['job_eligible_members.destroy']
   }
   fastPasses: {
     index: typeof routes['fast_passes.index']

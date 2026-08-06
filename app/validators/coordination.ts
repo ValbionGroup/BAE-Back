@@ -50,4 +50,14 @@ export const assignmentValidator = vine.create({
   memberId: vine.number().positive(),
   eventId: vine.number().positive(),
   jobId: vine.number().positive(),
+  locked: vine.boolean().optional(),
+})
+
+/**
+ * Validator for a job eligible member, used both for the create body and for
+ * the `job_id` + `member_id` query params of the delete.
+ */
+export const jobEligibleMemberValidator = vine.create({
+  jobId: vine.number().positive(),
+  memberId: vine.number().positive(),
 })

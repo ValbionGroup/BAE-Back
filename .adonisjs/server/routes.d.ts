@@ -77,6 +77,7 @@ export type ScannedRoutes = {
     'events.get_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
     'jobs.store': { paramsTuple?: []; params?: {} }
     'jobs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -91,6 +92,9 @@ export type ScannedRoutes = {
     'assignments.destroy': { paramsTuple?: []; params?: {} }
     'responses.index': { paramsTuple?: []; params?: {} }
     'preferences.index': { paramsTuple?: []; params?: {} }
+    'job_eligible_members.index': { paramsTuple?: []; params?: {} }
+    'job_eligible_members.store': { paramsTuple?: []; params?: {} }
+    'job_eligible_members.destroy': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.store': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -127,9 +131,11 @@ export type ScannedRoutes = {
     'restocks.store': { paramsTuple?: []; params?: {} }
     'events.store': { paramsTuple?: []; params?: {} }
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.store': { paramsTuple?: []; params?: {} }
     'event_jobs.store': { paramsTuple?: []; params?: {} }
     'assignments.store': { paramsTuple?: []; params?: {} }
+    'job_eligible_members.store': { paramsTuple?: []; params?: {} }
     'fast_passes.store': { paramsTuple?: []; params?: {} }
     'vouchers.store': { paramsTuple?: []; params?: {} }
     'logs.store': { paramsTuple?: []; params?: {} }
@@ -151,6 +157,7 @@ export type ScannedRoutes = {
     'jobs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.destroy': { paramsTuple?: []; params?: {} }
     'assignments.destroy': { paramsTuple?: []; params?: {} }
+    'job_eligible_members.destroy': { paramsTuple?: []; params?: {} }
     'fast_passes.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -194,6 +201,7 @@ export type ScannedRoutes = {
     'assignments.index': { paramsTuple?: []; params?: {} }
     'responses.index': { paramsTuple?: []; params?: {} }
     'preferences.index': { paramsTuple?: []; params?: {} }
+    'job_eligible_members.index': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
@@ -240,6 +248,7 @@ export type ScannedRoutes = {
     'assignments.index': { paramsTuple?: []; params?: {} }
     'responses.index': { paramsTuple?: []; params?: {} }
     'preferences.index': { paramsTuple?: []; params?: {} }
+    'job_eligible_members.index': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }

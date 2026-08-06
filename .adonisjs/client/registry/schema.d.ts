@@ -883,6 +883,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['roster']>>>
     }
   }
+  'events.run_matching': {
+    methods: ["POST"]
+    pattern: '/v1/events/:id/matching'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/events_controller').default['runMatching']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['runMatching']>>>
+    }
+  }
   'jobs.index': {
     methods: ["GET","HEAD"]
     pattern: '/v1/jobs'
@@ -1049,6 +1061,42 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['index']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['index']>>>
+    }
+  }
+  'job_eligible_members.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/job-eligible-members'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/job_eligible_members_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/job_eligible_members_controller').default['index']>>>
+    }
+  }
+  'job_eligible_members.store': {
+    methods: ["POST"]
+    pattern: '/v1/job-eligible-members'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').jobEligibleMemberValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').jobEligibleMemberValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/job_eligible_members_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/job_eligible_members_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'job_eligible_members.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/job-eligible-members'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/coordination').jobEligibleMemberValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/coordination').jobEligibleMemberValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/job_eligible_members_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/job_eligible_members_controller').default['destroy']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'fast_passes.index': {

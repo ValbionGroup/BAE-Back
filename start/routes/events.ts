@@ -28,6 +28,7 @@ router
     router.get('/events/:id/response', [controllers.Events, 'getResponse'])
     router.post('/events/:id/response', [controllers.Events, 'setResponse'])
     router.get('/events/:id/roster', [controllers.Events, 'roster'])
+    router.post('/events/:id/matching', [controllers.Events, 'runMatching'])
   })
   .prefix('/v1')
   .use(middleware.auth())

@@ -444,6 +444,12 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/roster","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/roster","type":0,"val":"events","end":""},{"old":"/v1/events/:id/roster","type":1,"val":"id","end":""},{"old":"/v1/events/:id/roster","type":0,"val":"roster","end":""}],
     types: placeholder as Registry['events.roster']['types'],
   },
+  'events.run_matching': {
+    methods: ["POST"],
+    pattern: '/v1/events/:id/matching',
+    tokens: [{"old":"/v1/events/:id/matching","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/matching","type":0,"val":"events","end":""},{"old":"/v1/events/:id/matching","type":1,"val":"id","end":""},{"old":"/v1/events/:id/matching","type":0,"val":"matching","end":""}],
+    types: placeholder as Registry['events.run_matching']['types'],
+  },
   'jobs.index': {
     methods: ["GET","HEAD"],
     pattern: '/v1/jobs',
@@ -527,6 +533,24 @@ const routes = {
     pattern: '/v1/preferences',
     tokens: [{"old":"/v1/preferences","type":0,"val":"v1","end":""},{"old":"/v1/preferences","type":0,"val":"preferences","end":""}],
     types: placeholder as Registry['preferences.index']['types'],
+  },
+  'job_eligible_members.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/job-eligible-members',
+    tokens: [{"old":"/v1/job-eligible-members","type":0,"val":"v1","end":""},{"old":"/v1/job-eligible-members","type":0,"val":"job-eligible-members","end":""}],
+    types: placeholder as Registry['job_eligible_members.index']['types'],
+  },
+  'job_eligible_members.store': {
+    methods: ["POST"],
+    pattern: '/v1/job-eligible-members',
+    tokens: [{"old":"/v1/job-eligible-members","type":0,"val":"v1","end":""},{"old":"/v1/job-eligible-members","type":0,"val":"job-eligible-members","end":""}],
+    types: placeholder as Registry['job_eligible_members.store']['types'],
+  },
+  'job_eligible_members.destroy': {
+    methods: ["DELETE"],
+    pattern: '/v1/job-eligible-members',
+    tokens: [{"old":"/v1/job-eligible-members","type":0,"val":"v1","end":""},{"old":"/v1/job-eligible-members","type":0,"val":"job-eligible-members","end":""}],
+    types: placeholder as Registry['job_eligible_members.destroy']['types'],
   },
   'fast_passes.index': {
     methods: ["GET","HEAD"],
