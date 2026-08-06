@@ -10,16 +10,31 @@ export default class LogsController {
    *
    * This used to return every row in one response — 500+ logs and well over a
    * megabyte, which the client then had to walk key by key through its case
-   * converter. Paginated by default; `serialize()` emits `{ data, metadata }`
-   * for a Lucid paginator.
+   * converter.
+   *
+   * The paginator is unwrapped with `.all()` rather than handed to `serialize()`
+   * directly: `Array.isArray()` is true for Lucid's `ModelPaginator`, so
+   * `case_converter_middleware` walks it as a plain array and chokes on the
+   * paginator's own internals. Passing the rows keeps `data` an array — which is
+   * what the client already expects — and the page info rides alongside it.
    */
   async index({ request, serialize }: HttpContext) {
     const page = Math.max(1, Number(request.input('page', 1)) || 1)
     const requested = Number(request.input('limit', DEFAULT_LOG_PAGE_SIZE)) || DEFAULT_LOG_PAGE_SIZE
     const limit = Math.min(MAX_LOG_PAGE_SIZE, Math.max(1, requested))
 
-    const logs = await Log.query().preload('user').orderBy('id', 'desc').paginate(page, limit)
-    return serialize(logs)
+    const paginator = await Log.query().preload('user').orderBy('id', 'desc').paginate(page, limit)
+    const payload = await serialize(paginator.all())
+
+    return {
+      ...payload,
+      metadata: {
+        total: paginator.total,
+        perPage: paginator.perPage,
+        currentPage: paginator.currentPage,
+        lastPage: paginator.lastPage,
+      },
+    }
   }
 
   /**

@@ -20,6 +20,9 @@ const permissions = [
   'restock:update',
   'restock:create',
   'restock:delete',
+  // Reading the request audit trail. Gated because logs identify who did what,
+  // and carry response bodies for every non-auth route.
+  'log:read',
 ]
 
 export default class extends BaseSeeder {
