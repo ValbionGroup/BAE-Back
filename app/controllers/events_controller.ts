@@ -151,11 +151,19 @@ export default class EventsController {
 
       // Attendance history means *other* evenings: counting this event's own
       // rows would make a second run rank people differently from the first.
+      //
+      // `countDistinct` on the event, never `count('*')`: since D1 one evening
+      // yields up to three rows for the same member (before/during/after), and
+      // `rankingKey` divides points by *evenings worked*. Counting rows would
+      // rank somebody who covered all three periods of a single evening below
+      // somebody who did one `during` on two evenings — penalising precisely
+      // the thankless shifts the D5 credits reward, and which the member does
+      // not even choose to take on.
       const attendanceRows = await db
         .from('member_event_assigned_jobs')
         .select('member_id')
         .whereNot('event_id', event.id)
-        .count('* as count')
+        .countDistinct('event_id as count')
         .groupBy('member_id')
         .useTransaction(trx)
       const attendanceByMember = new Map<number, number>(

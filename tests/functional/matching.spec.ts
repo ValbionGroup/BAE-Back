@@ -89,6 +89,60 @@ test.group('Event matching', (group) => {
     assert.equal(rows[0].memberId, memberB.id)
   })
 
+  test('counts attendance in evenings worked, not in assignment rows held', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
+
+    // A: ONE past evening, but he held all three periods of it -> 3 rows.
+    const memberA = await MemberFactory.create()
+    memberA.points = 60
+    await memberA.save()
+    const pastEventOfA = await EventFactory.create()
+    for (let i = 0; i < 3; i++) {
+      const pastJob = await JobFactory.create()
+      await MemberEventAssignedJobFactory.merge({
+        memberId: memberA.id,
+        eventId: pastEventOfA.id,
+        jobId: pastJob.id,
+      }).create()
+    }
+
+    // B: TWO past evenings, one job each -> 2 rows, so fewer rows than A but
+    // twice as many evenings worked.
+    const memberB = await MemberFactory.create()
+    memberB.points = 60
+    await memberB.save()
+    for (let i = 0; i < 2; i++) {
+      const pastEvent = await EventFactory.create()
+      const pastJob = await JobFactory.create()
+      await MemberEventAssignedJobFactory.merge({
+        memberId: memberB.id,
+        eventId: pastEvent.id,
+        jobId: pastJob.id,
+      }).create()
+    }
+
+    await makeAvailable(memberA, event.id)
+    await makeAvailable(memberB, event.id)
+    await setPreference(memberA, job.id, 1)
+    await setPreference(memberB, job.id, 1)
+
+    const user = await User.findOrFail(memberA.id)
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    response.assertStatus(200)
+
+    // Counting rows would give A 60/3 = 20 against B's 60/2 = 30 and hand the
+    // slot to B — penalising A for having covered the thankless periods.
+    // Counting evenings gives A 60/1 = 60 against B's 60/2 = 30.
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 1)
+    assert.equal(rows[0].memberId, memberA.id)
+  })
+
   test('assigns the reference scenario one job per period, skipping the second `during` job', async ({
     client,
     assert,
@@ -489,8 +543,9 @@ test.group('Event matching', (group) => {
     const aAfterFirstRun = await Member.findOrFail(memberA.id)
     assert.equal(aAfterFirstRun.points, 50)
 
-    // A stronger contender now enters the pool for the same job: A worked one
-    // event since, so his ranking key is 50/1 against B's 70/1.
+    // A stronger contender now enters the pool for the same job. Neither has
+    // any attendance history — this evening does not count towards its own
+    // ranking — so the floored denominator leaves 50/1 against 70/1.
     const memberB = await MemberFactory.create()
     memberB.points = 70
     await memberB.save()
