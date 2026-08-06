@@ -8,6 +8,11 @@
  * `member_event_assigned_jobs`, then persists the output.
  */
 
+/** Chronological order — préparation, soirée, nettoyage. This is the order
+ *  used everywhere a period is iterated. */
+export const JOB_PERIODS = ['before', 'during', 'after'] as const
+export type JobPeriod = (typeof JOB_PERIODS)[number]
+
 export interface RankedCandidate {
   memberId: number
   points: number
@@ -42,25 +47,74 @@ export function sortByJobRanking(candidates: RankedCandidate[]): number[] {
 }
 
 /**
- * A rank-1 bonus decaying by a fixed step per rank achieved, floored at 0.
- * Tunable: BASE_BONUS/STEP are a starting point, not a fixed contract.
+ * The effective proposal list of a member for ONE period.
+ *
+ * The expressed ranking comes first, in its own order; any job of the
+ * period absent from the ranking follows as a block, tied, broken by
+ * ascending id. Without that block, leaving dishes unranked would mean
+ * never being assigned to them: `stableMatch` only proposes what appears in
+ * the list.
  */
-export const BASE_BONUS = 10
-export const STEP = 2
+export function buildEffectivePreferences(
+  expressedRankByJobId: Readonly<Record<number, number>>,
+  eligibleJobIds: readonly number[]
+): number[] {
+  const ranked: { jobId: number; rank: number }[] = []
+  const unranked: number[] = []
 
-export function computePointsDelta(rankAchieved: number): number {
-  return Math.max(0, BASE_BONUS - STEP * (rankAchieved - 1))
+  for (const jobId of eligibleJobIds) {
+    const rank = expressedRankByJobId[jobId]
+    if (rank !== undefined) {
+      ranked.push({ jobId, rank })
+    } else {
+      unranked.push(jobId)
+    }
+  }
+
+  ranked.sort((a, b) => a.rank - b.rank || a.jobId - b.jobId)
+  unranked.sort((a, b) => a - b)
+
+  return [...ranked.map((r) => r.jobId), ...unranked]
 }
 
-export function clampPoints(points: number): number {
-  return Math.min(100, Math.max(0, points))
+/** Crédit gagné en tenant un poste, par période. Préparation et nettoyage
+ *  rapportent plus : ce sont structurellement les moments ingrats. */
+export const PERIOD_CREDIT: Readonly<Record<JobPeriod, number>> = {
+  before: 12,
+  during: 8,
+  after: 12,
+}
+
+/** Coût du rang obtenu : être bien servi dépense du crédit de priorité. */
+export const RANK_COST_BASE = 12
+export const RANK_COST_STEP = 2
+
+/** `null` = poste non classé : il ne coûte rien, on ne l'avait pas demandé. */
+export function rankCost(rankAchieved: number | null): number {
+  if (rankAchieved === null) {
+    return 0
+  }
+  return Math.max(0, RANK_COST_BASE - RANK_COST_STEP * (rankAchieved - 1))
+}
+
+/**
+ * Le delta de crédit d'UNE affectation.
+ *
+ * Positif : le membre gagne de la priorité pour les prochaines soirées.
+ * Négatif : il vient de la dépenser en obtenant un bon rang.
+ */
+export function computePointsDelta(period: JobPeriod, rankAchieved: number | null): number {
+  return PERIOD_CREDIT[period] - rankCost(rankAchieved)
 }
 
 export interface CandidateInput {
   memberId: number
-  /** Most-preferred first; already filtered to jobs offered at this event
-   *  and jobs this member is eligible for. */
+  /** Sortie de `buildEffectivePreferences` : postes de la période, le plus
+   *  désiré d'abord, bloc ex æquo compris. */
   orderedJobIds: number[]
+  /** Classement GLOBAL du membre, id de poste → rang 1-based, tel que
+   *  stocké dans `member_job_preferences`. Absent = non classé. */
+  expressedRankByJobId: Readonly<Record<number, number>>
 }
 
 export interface JobCapacityInput {
@@ -72,8 +126,8 @@ export interface JobCapacityInput {
 export interface MatchResult {
   memberId: number
   jobId: number
-  /** 1-based position of `jobId` within this member's own `orderedJobIds`. */
-  rankAchieved: number
+  /** Rang global exprimé pour ce poste, `null` s'il n'était pas classé. */
+  rankAchieved: number | null
 }
 
 /**
@@ -93,6 +147,9 @@ export function stableMatch(
   const nextProposalIndex = new Map<number, number>(candidates.map((c) => [c.memberId, 0]))
   const preferences = new Map<number, number[]>(
     candidates.map((c) => [c.memberId, c.orderedJobIds])
+  )
+  const expressedRankByMember = new Map<number, Readonly<Record<number, number>>>(
+    candidates.map((c) => [c.memberId, c.expressedRankByJobId])
   )
   const held = new Map<number, number[]>() // jobId -> memberIds currently held, worst last
 
@@ -148,8 +205,8 @@ export function stableMatch(
   const matches: MatchResult[] = []
   for (const [jobId, memberIds] of held) {
     for (const memberId of memberIds) {
-      const jobIds = preferences.get(memberId)!
-      matches.push({ memberId, jobId, rankAchieved: jobIds.indexOf(jobId) + 1 })
+      const rankAchieved = expressedRankByMember.get(memberId)?.[jobId] ?? null
+      matches.push({ memberId, jobId, rankAchieved })
     }
   }
 
