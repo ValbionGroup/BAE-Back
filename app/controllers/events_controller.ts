@@ -8,8 +8,10 @@ import { availabilityValidator } from '#validators/event'
 import {
   type CandidateInput,
   type JobCapacityInput,
+  type JobPeriod,
   type RankedCandidate,
-  clampPoints,
+  JOB_PERIODS,
+  buildEffectivePreferences,
   computePointsDelta,
   sortByJobRanking,
   stableMatch,
@@ -77,9 +79,16 @@ export default class EventsController {
 
   /**
    * Runs the stable-marriage job matching for this event and persists the
-   * result. Re-running replaces prior algorithm-produced assignments (and
-   * exactly reverses the points they awarded) but never touches manually
-   * locked rows, which are excluded from the pool and never scored.
+   * result — one pass per period, so a member can hold a `before`, a `during`
+   * and an `after` job on the same evening (D1).
+   *
+   * Re-running replaces prior algorithm-produced assignments but never touches
+   * manually locked rows: a lock only reserves its job's capacity and pulls the
+   * member out of the pool *for that job's period* (D9 concerns the evening,
+   * the matching pool does not).
+   *
+   * `members.points` is never written here (D7): each delta lives on its
+   * assignment row until the evening is closed.
    */
   async runMatching({ params, serialize }: HttpContext) {
     const event = await Event.findOrFail(params.id)
@@ -93,36 +102,59 @@ export default class EventsController {
       const lockedRows = await MemberEventAssignedJob.query({ client: trx })
         .where('eventId', event.id)
         .where('locked', true)
+
+      // Locked rows may point at a job the event no longer offers, so the
+      // period lookup covers their jobs too — the response reports it.
+      const periodJobIds = new Set<number>([
+        ...capacityByJob.keys(),
+        ...lockedRows.map((row) => row.jobId),
+      ])
+      const jobDetails = await Job.query()
+        .useTransaction(trx)
+        .whereIn('id', [...periodJobIds])
+        .preload('eligibleMembers')
+      const periodByJob = new Map<number, JobPeriod>(
+        jobDetails.map((job) => [job.id, job.type as JobPeriod])
+      )
+
+      const lockedMemberIdsByPeriod = new Map<JobPeriod, Set<number>>(
+        JOB_PERIODS.map((period) => [period, new Set<number>()])
+      )
       const lockedMemberIds = new Set(lockedRows.map((row) => row.memberId))
       for (const row of lockedRows) {
         if (capacityByJob.has(row.jobId)) {
           capacityByJob.set(row.jobId, capacityByJob.get(row.jobId)! - 1)
         }
+        const period = periodByJob.get(row.jobId)
+        if (period) {
+          lockedMemberIdsByPeriod.get(period)!.add(row.memberId)
+        }
       }
 
+      // One pool for the whole evening: `member_responses.is_available` is a
+      // single boolean, and that is deliberate — saying yes means being
+      // available for all three moments.
       const respondingMembers = await event
         .related('members')
         .query()
         .useTransaction(trx)
         .wherePivot('is_available', true)
-      const candidateMembers = respondingMembers.filter((member) => !lockedMemberIds.has(member.id))
 
       // A job with no `job_eligible_members` rows is unrestricted (open to
       // everyone) — only jobs with at least one row narrow the pool.
-      const offeredJobs = await Job.query()
-        .useTransaction(trx)
-        .whereIn('id', [...capacityByJob.keys()])
-        .preload('eligibleMembers')
       const eligibilityByJob = new Map<number, Set<number> | null>(
-        offeredJobs.map((job) => [
+        jobDetails.map((job) => [
           job.id,
           job.eligibleMembers.length > 0 ? new Set(job.eligibleMembers.map((m) => m.id)) : null,
         ])
       )
 
+      // Attendance history means *other* evenings: counting this event's own
+      // rows would make a second run rank people differently from the first.
       const attendanceRows = await db
         .from('member_event_assigned_jobs')
         .select('member_id')
+        .whereNot('event_id', event.id)
         .count('* as count')
         .groupBy('member_id')
         .useTransaction(trx)
@@ -130,21 +162,17 @@ export default class EventsController {
         attendanceRows.map((row) => [Number(row.member_id), Number(row.count)])
       )
 
-      const candidates: CandidateInput[] = []
+      // The expressed ranking is global and loaded once: it is restricted to
+      // the jobs of a period at proposal time, never re-numbered (D3).
+      const expressedRankByMember = new Map<number, Record<number, number>>()
       const rankedCandidates: RankedCandidate[] = []
-      for (const member of candidateMembers) {
+      for (const member of respondingMembers) {
         const preferredJobs = await member.related('preferences').query().useTransaction(trx)
-        const orderedJobIds = preferredJobs
-          .slice()
-          .sort((a, b) => Number(a.$extras.pivot_rank) - Number(b.$extras.pivot_rank))
-          .filter((job) => capacityByJob.has(job.id))
-          .filter((job) => {
-            const eligibility = eligibilityByJob.get(job.id)
-            return !eligibility || eligibility.has(member.id)
-          })
-          .map((job) => job.id)
-
-        candidates.push({ memberId: member.id, orderedJobIds })
+        const expressedRankByJobId: Record<number, number> = {}
+        for (const job of preferredJobs) {
+          expressedRankByJobId[job.id] = Number(job.$extras.pivot_rank)
+        }
+        expressedRankByMember.set(member.id, expressedRankByJobId)
         rankedCandidates.push({
           memberId: member.id,
           points: member.points,
@@ -153,53 +181,93 @@ export default class EventsController {
       }
 
       const jobRankingOrder = sortByJobRanking(rankedCandidates)
-      const jobCapacities: JobCapacityInput[] = [...capacityByJob.entries()].map(
-        ([jobId, remainingCount]) => ({ jobId, remainingCount: Math.max(0, remainingCount) })
-      )
 
-      const { matches, unmatchedMemberIds } = stableMatch(
-        candidates,
-        jobCapacities,
-        jobRankingOrder
-      )
+      const matched: {
+        memberId: number
+        jobId: number
+        period: JobPeriod
+        rankAchieved: number | null
+        pointsDelta: number
+      }[] = []
+      const matchedMemberIds = new Set<number>()
 
-      const priorRows = await MemberEventAssignedJob.query({ client: trx })
-        .where('eventId', event.id)
-        .where('locked', false)
-      for (const row of priorRows) {
-        const member = await Member.findOrFail(row.memberId, { client: trx })
-        member.points = clampPoints(member.points - row.pointsDelta)
-        await member.useTransaction(trx).save()
+      for (const period of JOB_PERIODS) {
+        const jobIdsOfPeriod = [...capacityByJob.keys()].filter(
+          (jobId) => periodByJob.get(jobId) === period
+        )
+        if (jobIdsOfPeriod.length === 0) {
+          continue
+        }
+
+        const lockedForPeriod = lockedMemberIdsByPeriod.get(period)!
+        const candidates: CandidateInput[] = []
+        for (const member of respondingMembers) {
+          if (lockedForPeriod.has(member.id)) {
+            continue
+          }
+          const eligibleJobIds = jobIdsOfPeriod.filter((jobId) => {
+            const eligibility = eligibilityByJob.get(jobId)
+            return !eligibility || eligibility.has(member.id)
+          })
+          const expressedRankByJobId = expressedRankByMember.get(member.id) ?? {}
+          candidates.push({
+            memberId: member.id,
+            orderedJobIds: buildEffectivePreferences(expressedRankByJobId, eligibleJobIds),
+            expressedRankByJobId,
+          })
+        }
+
+        const jobCapacities: JobCapacityInput[] = jobIdsOfPeriod.map((jobId) => ({
+          jobId,
+          remainingCount: Math.max(0, capacityByJob.get(jobId)!),
+        }))
+
+        const { matches } = stableMatch(candidates, jobCapacities, jobRankingOrder)
+        for (const match of matches) {
+          matched.push({
+            ...match,
+            period,
+            pointsDelta: computePointsDelta(period, match.rankAchieved),
+          })
+          matchedMemberIds.add(match.memberId)
+        }
       }
+
+      // Being passed over on one period is not "unassigned": only a member who
+      // ends the evening with nothing at all — no match, no lock — counts.
+      const unmatchedMemberIds = respondingMembers
+        .map((member) => member.id)
+        .filter((memberId) => !matchedMemberIds.has(memberId) && !lockedMemberIds.has(memberId))
+        .sort((a, b) => a - b)
+
+      // No refund: the deltas never reached `members.points` in the first
+      // place, they are consolidated when the evening is closed (D7).
       await MemberEventAssignedJob.query({ client: trx })
         .where('eventId', event.id)
         .where('locked', false)
         .delete()
 
-      const persistedMatches = []
-      for (const match of matches) {
-        const member = await Member.findOrFail(match.memberId, { client: trx })
-        const before = member.points
-        member.points = clampPoints(before + computePointsDelta(match.rankAchieved))
-        const appliedDelta = member.points - before
-        await member.useTransaction(trx).save()
+      for (const match of matched) {
         await MemberEventAssignedJob.create(
           {
             memberId: match.memberId,
             eventId: event.id,
             jobId: match.jobId,
             locked: false,
-            pointsDelta: appliedDelta,
+            pointsDelta: match.pointsDelta,
           },
           { client: trx }
         )
-        persistedMatches.push({ ...match, pointsDelta: appliedDelta })
       }
 
       return {
-        matched: persistedMatches,
+        matched,
         unmatchedMemberIds,
-        locked: lockedRows.map((row) => ({ memberId: row.memberId, jobId: row.jobId })),
+        locked: lockedRows.map((row) => ({
+          memberId: row.memberId,
+          jobId: row.jobId,
+          period: periodByJob.get(row.jobId) ?? null,
+        })),
       }
     })
 
