@@ -13,6 +13,15 @@
 export const JOB_PERIODS = ['before', 'during', 'after'] as const
 export type JobPeriod = (typeof JOB_PERIODS)[number]
 
+/**
+ * Single source of truth for the default period a job gets when none is
+ * specified — mirrors the SQL default on `jobs.type`
+ * (`database/migrations/1773830925334_create_jobs_table.ts`, which names this
+ * constant in a comment since a migration cannot import it). Used by
+ * `JobsController.store` and `JobFactory` so the two never drift apart.
+ */
+export const DEFAULT_JOB_PERIOD: JobPeriod = 'during'
+
 export interface RankedCandidate {
   memberId: number
   points: number

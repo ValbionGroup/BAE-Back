@@ -3,6 +3,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import User from '#models/user'
 import { MemberFactory } from '#database/factories/members_factory'
 import { JobFactory } from '#database/factories/job_factory'
+import { DEFAULT_JOB_PERIOD } from '#services/matching_service'
 
 test.group('Job periods', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
@@ -33,20 +34,24 @@ test.group('Job periods', (group) => {
     assert.equal((show.body() as { data: { type: string } }).data.type, 'before')
   })
 
-  test('POST /v1/jobs without a type falls back to during', async ({ client }) => {
+  test('POST /v1/jobs without a type falls back to DEFAULT_JOB_PERIOD', async ({
+    client,
+    assert,
+  }) => {
     const member = await MemberFactory.create()
     const user = await User.findOrFail(member.id)
 
     const created = await client.post('/v1/jobs').loginAs(user).json({ name: 'Service' })
     created.assertStatus(200)
-    created.assertBodyContains({ data: { type: 'during' } })
+    const body = created.body() as { data: { type: string } }
+    assert.equal(body.data.type, DEFAULT_JOB_PERIOD)
   })
 
   test('PUT /v1/jobs/:id changes the type', async ({ client, assert }) => {
     const member = await MemberFactory.create()
     const user = await User.findOrFail(member.id)
     const job = await JobFactory.create()
-    assert.equal(job.type, 'during')
+    assert.equal(job.type, DEFAULT_JOB_PERIOD)
 
     const updated = await client
       .put(`/v1/jobs/${job.id}`)
@@ -54,6 +59,25 @@ test.group('Job periods', (group) => {
       .json({ name: job.name, type: 'after' })
     updated.assertStatus(200)
     updated.assertBodyContains({ data: { type: 'after' } })
+  })
+
+  test('PUT /v1/jobs/:id without a type preserves the existing period', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await User.findOrFail(member.id)
+    const job = await JobFactory.merge({ type: 'before' }).create()
+
+    const updated = await client
+      .put(`/v1/jobs/${job.id}`)
+      .loginAs(user)
+      .json({ name: 'Installation des tables (renommée)' })
+    updated.assertStatus(200)
+    updated.assertBodyContains({ data: { type: 'before' } })
+
+    const show = await client.get(`/v1/jobs/${job.id}`).loginAs(user)
+    assert.equal((show.body() as { data: { type: string } }).data.type, 'before')
   })
 
   test('an unknown type is rejected with 422', async ({ client }) => {

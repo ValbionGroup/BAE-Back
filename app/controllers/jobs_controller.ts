@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Job from '#models/job'
 import { jobValidator } from '#validators/coordination'
+import { DEFAULT_JOB_PERIOD } from '#services/matching_service'
 
 export default class JobsController {
   /**
@@ -15,7 +16,7 @@ export default class JobsController {
    */
   async store({ request, serialize }: HttpContext) {
     const payload = await request.validateUsing(jobValidator)
-    const job = await Job.create({ type: 'during', ...payload })
+    const job = await Job.create({ type: DEFAULT_JOB_PERIOD, ...payload })
     return serialize(job)
   }
 
