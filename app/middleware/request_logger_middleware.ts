@@ -1,6 +1,7 @@
 import Log from '#models/log'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+import { redactResponseBody } from '#services/log_redaction_service'
 
 export default class RequestLoggerMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
@@ -19,6 +20,11 @@ export default class RequestLoggerMiddleware {
     const message = `${method} ${url} → ${status} (${Math.round(durationMs)}ms)`
     const userId = (ctx.auth?.user as { id?: number } | undefined)?.id ?? null
 
+    // `GET /v1/logs` is readable by any authenticated user, so the stored body
+    // must never carry credentials: auth responses are dropped outright and
+    // secret-looking keys elsewhere are masked.
+    const response = redactResponseBody(url, ctx.response.getBody())
+
     Log.create({
       level,
       message,
@@ -26,7 +32,11 @@ export default class RequestLoggerMiddleware {
       url,
       ip: ctx.request.ip(),
       userId,
-      meta: { status, durationMs: Math.round(durationMs), response: ctx.response.getBody() },
+      meta: {
+        status,
+        durationMs: Math.round(durationMs),
+        ...(response === undefined ? {} : { response }),
+      },
     }).catch(() => {})
   }
 }

@@ -1,12 +1,24 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Log from '#models/log'
 
+const DEFAULT_LOG_PAGE_SIZE = 50
+const MAX_LOG_PAGE_SIZE = 200
+
 export default class LogsController {
   /**
-   * Display a list of resource
+   * Display a list of resource, newest first.
+   *
+   * This used to return every row in one response — 500+ logs and well over a
+   * megabyte, which the client then had to walk key by key through its case
+   * converter. Paginated by default; `serialize()` emits `{ data, metadata }`
+   * for a Lucid paginator.
    */
-  async index({ serialize }: HttpContext) {
-    const logs = await Log.query().preload('user')
+  async index({ request, serialize }: HttpContext) {
+    const page = Math.max(1, Number(request.input('page', 1)) || 1)
+    const requested = Number(request.input('limit', DEFAULT_LOG_PAGE_SIZE)) || DEFAULT_LOG_PAGE_SIZE
+    const limit = Math.min(MAX_LOG_PAGE_SIZE, Math.max(1, requested))
+
+    const logs = await Log.query().preload('user').orderBy('id', 'desc').paginate(page, limit)
     return serialize(logs)
   }
 
