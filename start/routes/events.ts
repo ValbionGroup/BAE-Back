@@ -29,6 +29,13 @@ router
     router.post('/events/:id/response', [controllers.Events, 'setResponse'])
     router.get('/events/:id/roster', [controllers.Events, 'roster'])
     router.post('/events/:id/matching', [controllers.Events, 'runMatching'])
+
+    /**
+     * Closing an evening: consolidates the pending `points_delta` of its
+     * assignments into `members.points`. Idempotent — a second call settles
+     * nothing.
+     */
+    router.post('/events/:id/settle', [controllers.Events, 'settle'])
   })
   .prefix('/v1')
   .use(middleware.auth())

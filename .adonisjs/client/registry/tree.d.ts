@@ -111,6 +111,7 @@ export interface ApiDefinition {
     setResponse: typeof routes['events.set_response']
     roster: typeof routes['events.roster']
     runMatching: typeof routes['events.run_matching']
+    settle: typeof routes['events.settle']
   }
   jobs: {
     index: typeof routes['jobs.index']

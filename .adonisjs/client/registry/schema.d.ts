@@ -895,6 +895,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['runMatching']>>>
     }
   }
+  'events.settle': {
+    methods: ["POST"]
+    pattern: '/v1/events/:id/settle'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/events_controller').default['settle']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['settle']>>>
+    }
+  }
   'jobs.index': {
     methods: ["GET","HEAD"]
     pattern: '/v1/jobs'

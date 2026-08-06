@@ -450,6 +450,12 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/matching","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/matching","type":0,"val":"events","end":""},{"old":"/v1/events/:id/matching","type":1,"val":"id","end":""},{"old":"/v1/events/:id/matching","type":0,"val":"matching","end":""}],
     types: placeholder as Registry['events.run_matching']['types'],
   },
+  'events.settle': {
+    methods: ["POST"],
+    pattern: '/v1/events/:id/settle',
+    tokens: [{"old":"/v1/events/:id/settle","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/settle","type":0,"val":"events","end":""},{"old":"/v1/events/:id/settle","type":1,"val":"id","end":""},{"old":"/v1/events/:id/settle","type":0,"val":"settle","end":""}],
+    types: placeholder as Registry['events.settle']['types'],
+  },
   'jobs.index': {
     methods: ["GET","HEAD"],
     pattern: '/v1/jobs',

@@ -28,7 +28,9 @@ test.group('Assignments locking', (group) => {
     }
     const row = body.data.find((r) => r.member_id === member.id)
     assert.equal(row?.locked, true)
-    assert.equal(row?.points_delta, 0)
+    // A hand-made assignment is scored exactly like the same automatic one
+    // (§4.5): an unranked `during` job is worth CHARGE.during 8 − rankCost(null).
+    assert.equal(row?.points_delta, 8)
   })
 
   test('defaults locked to false when omitted', async ({ client }) => {

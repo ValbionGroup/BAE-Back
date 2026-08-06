@@ -78,6 +78,7 @@ export type ScannedRoutes = {
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'events.settle': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
     'jobs.store': { paramsTuple?: []; params?: {} }
     'jobs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -135,6 +136,7 @@ export type ScannedRoutes = {
     'events.store': { paramsTuple?: []; params?: {} }
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'events.settle': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.store': { paramsTuple?: []; params?: {} }
     'event_jobs.store': { paramsTuple?: []; params?: {} }
     'assignments.store': { paramsTuple?: []; params?: {} }

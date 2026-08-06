@@ -332,7 +332,10 @@ test.group('Event matching', (group) => {
       .where('memberId', lockedMember.id)
       .firstOrFail()
     assert.isTrue(lockedRow.locked)
-    assert.equal(lockedRow.pointsDelta, 0)
+    // Created by hand on an unranked `during` job, so it carries the credit the
+    // engine would have granted for the same job (§4.5): 8 − rankCost(null).
+    // The point of the assertion is that the re-run leaves it alone.
+    assert.equal(lockedRow.pointsDelta, 8)
 
     const refreshedLockedMember = await Member.findOrFail(lockedMember.id)
     assert.equal(refreshedLockedMember.points, 30)
@@ -575,6 +578,8 @@ test.group('Event matching', (group) => {
       .where('memberId', lockedMember.id)
       .firstOrFail()
     assert.isTrue(lockedRowAfterRerun.locked)
-    assert.equal(lockedRowAfterRerun.pointsDelta, 0)
+    // Manual credit for an unranked `during` job (§4.5), untouched by the
+    // re-run — the row is neither deleted nor rescored.
+    assert.equal(lockedRowAfterRerun.pointsDelta, 8)
   })
 })

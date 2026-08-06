@@ -4,6 +4,7 @@ import Job from '#models/job'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
 import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
 import { availabilityValidator } from '#validators/event'
 import {
   type CandidateInput,
@@ -90,18 +91,32 @@ export default class EventsController {
    * `members.points` is never written here (D7): each delta lives on its
    * assignment row until the evening is closed.
    */
-  async runMatching({ params, serialize }: HttpContext) {
+  async runMatching({ params, response, serialize }: HttpContext) {
     const event = await Event.findOrFail(params.id)
 
     const summary = await db.transaction(async (trx) => {
+      // Every assignment row of the event, locked `FOR UPDATE` for the whole
+      // transaction. The lock is what makes the settled check below a real
+      // guard: without it a `settle` could consolidate a row between the check
+      // and the deletion at the end, and that credit would become
+      // unrefundable — the row carrying it would be gone.
+      const existingRows = await MemberEventAssignedJob.query({ client: trx })
+        .where('eventId', event.id)
+        .forUpdate()
+
+      // A re-run deletes every unlocked row. Once a delta has been consolidated
+      // into `members.points`, deleting its row would erase the only trace of a
+      // credit already granted.
+      if (existingRows.some((row) => row.settledAt !== null)) {
+        return null
+      }
+
       const jobRows = await event.related('jobs').query().useTransaction(trx)
       const capacityByJob = new Map<number, number>(
         jobRows.map((job) => [job.id, Number(job.$extras.pivot_count)])
       )
 
-      const lockedRows = await MemberEventAssignedJob.query({ client: trx })
-        .where('eventId', event.id)
-        .where('locked', true)
+      const lockedRows = existingRows.filter((row) => row.locked)
 
       // Locked rows may point at a job the event no longer offers, so the
       // period lookup covers their jobs too — the response reports it.
@@ -276,6 +291,73 @@ export default class EventsController {
           jobId: row.jobId,
           period: periodByJob.get(row.jobId) ?? null,
         })),
+      }
+    })
+
+    if (summary === null) {
+      return response.conflict({
+        error: {
+          code: 'E_EVENT_ALREADY_SETTLED',
+          message:
+            "Les points de cette soirée ont déjà été consolidés : relancer l'affectation fausserait les scores.",
+        },
+      })
+    }
+
+    return serialize(summary)
+  }
+
+  /**
+   * Closes the evening: consolidates every pending `points_delta` of the event
+   * into `members.points` (D7).
+   *
+   * Idempotent row by row. The claim is a single `UPDATE … WHERE settled_at IS
+   * NULL … RETURNING`, so it is also the lock: a concurrent close blocks on the
+   * same rows, then re-evaluates the predicate and finds nothing left to claim.
+   * Reading the rows first and updating them afterwards would let two calls
+   * read the same pending set and apply it twice.
+   */
+  async settle({ params, serialize }: HttpContext) {
+    const event = await Event.findOrFail(params.id)
+
+    const summary = await db.transaction(async (trx) => {
+      const claimed = await trx
+        .from('member_event_assigned_jobs')
+        .where('event_id', event.id)
+        .whereNull('settled_at')
+        .update({ settled_at: DateTime.now().toJSDate() }, ['member_id', 'points_delta'])
+
+      const deltaByMember = new Map<number, number>()
+      let totalDelta = 0
+      for (const row of claimed) {
+        const memberId = Number(row.member_id)
+        const delta = Number(row.points_delta)
+        deltaByMember.set(memberId, (deltaByMember.get(memberId) ?? 0) + delta)
+        totalDelta += delta
+      }
+
+      // `increment` with a negative amount is the refund direction: a member
+      // who was served his first choice legitimately spends credit (D6, the
+      // score may go negative).
+      for (const [memberId, delta] of deltaByMember) {
+        if (delta !== 0) {
+          await trx.from('members').where('id', memberId).increment('points', delta)
+        }
+      }
+
+      // Counted after the claim so that a close racing another one reports the
+      // rows the winner just consolidated, instead of an empty snapshot.
+      const settledTotal = await trx
+        .from('member_event_assigned_jobs')
+        .where('event_id', event.id)
+        .whereNotNull('settled_at')
+        .count('* as total')
+        .first()
+
+      return {
+        settled: claimed.length,
+        alreadySettled: Math.max(0, Number(settledTotal?.total ?? 0) - claimed.length),
+        totalDelta,
       }
     })
 
