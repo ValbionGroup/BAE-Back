@@ -137,7 +137,7 @@ export default class EventsController {
         return response.conflict({
           error: {
             code: 'E_PRESENCE_LOCKED_BY_ASSIGNMENT',
-            message: 'Vous tenez un poste sur cette soirée. Voyez le bureau pour vous désengager.',
+            message: 'Vous tenez un poste sur cette soirée : voyez le bureau pour vous désengager.',
           },
         })
       }
