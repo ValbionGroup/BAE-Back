@@ -62,7 +62,7 @@ export default class JobsController {
         response.conflict({
           error: {
             code: 'E_JOB_SETTLED',
-            message: 'Poste tenu sur une soirée consolidée. Déclôturez-la avant de le supprimer.',
+            message: 'Poste tenu sur une soirée consolidée : déclôturez-la d’abord.',
           },
         })
         return

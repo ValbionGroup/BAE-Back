@@ -80,7 +80,7 @@ export default class EventsController {
         response.conflict({
           error: {
             code: 'E_EVENT_SETTLED',
-            message: 'Soirée déjà consolidée. Déclôturez-la avant de la supprimer.',
+            message: 'Soirée déjà consolidée : déclôturez-la d’abord.',
           },
         })
         return
@@ -130,8 +130,7 @@ export default class EventsController {
         return response.conflict({
           error: {
             code: 'E_PRESENCE_LOCKED_BY_ASSIGNMENT',
-            message:
-              'Vous tenez un poste sur cette soirée. Demandez au bureau ou au coordinateur de vous en retirer avant de vous déclarer absent·e.',
+            message: 'Vous tenez un poste sur cette soirée. Voyez le bureau pour vous désengager.',
           },
         })
       }
@@ -369,8 +368,7 @@ export default class EventsController {
       return response.conflict({
         error: {
           code: 'E_EVENT_ALREADY_SETTLED',
-          message:
-            "Les points de cette soirée ont déjà été consolidés : relancer l'affectation fausserait les scores.",
+          message: "Soirée déjà consolidée : l'affectation ne peut plus être relancée.",
         },
       })
     }

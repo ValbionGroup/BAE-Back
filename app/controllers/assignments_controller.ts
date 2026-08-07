@@ -8,11 +8,6 @@ import { assignmentLockValidator, assignmentValidator } from '#validators/coordi
 import { type JobPeriod, computePointsDelta } from '#services/matching_service'
 
 /**
- * Assignments are the `member_event_assigned_jobs` rows: which member holds
- * which job on which event. The composite key has no surrogate id, so `update`
- * and `destroy` read it from the query string.
- */
-/**
  * The single wire shape of an assignment.
  *
  * `index` used to report `settled_at` while `store` and `update` did not, so a
@@ -30,6 +25,11 @@ function toWire(assignment: MemberEventAssignedJob) {
   }
 }
 
+/**
+ * Assignments are the `member_event_assigned_jobs` rows: which member holds
+ * which job on which event. The composite key has no surrogate id, so `update`
+ * and `destroy` read it from the query string.
+ */
 export default class AssignmentsController {
   /**
    * Display a list of resource
@@ -174,7 +174,7 @@ export default class AssignmentsController {
 
     if (!assignment) {
       return response.notFound({
-        error: { code: 'E_ROW_NOT_FOUND', message: 'Assignment not found' },
+        error: { code: 'E_ROW_NOT_FOUND', message: 'Affectation introuvable.' },
       })
     }
 
