@@ -29,6 +29,10 @@ export const PERMISSIONS = [
   'event:matching',
   'event:settle',
   'assignment:write',
+  'member:read',
+  'member:write',
+  'role:read',
+  'role:write',
 ] as const
 
 export type PermissionName = (typeof PERMISSIONS)[number]
@@ -50,8 +54,12 @@ export type RoleName = (typeof ROLES)[number]
  * Socle commun. Un membre ne porte qu'un rôle et rien n'est hérité : la base
  * doit donc être recopiée dans chaque entrée, sinon une permission commune
  * ajoutée ici n'atteindrait aucun rôle.
+ *
+ * `member:read` y figure parce que `GET /v1/members` n'est pas une route
+ * d'administration : `CoordinationService.loadAll()` et `MemberAssignmentsStore`
+ * l'appellent, donc la restreindre coupe l'accueil de tout membre ordinaire.
  */
-const BASE: readonly PermissionName[] = ['presence:read']
+const BASE: readonly PermissionName[] = ['presence:read', 'presence:write', 'member:read']
 
 /** Permissions propres à chaque rôle, hors socle. */
 const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
@@ -69,13 +77,12 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'log:read',
   ],
   'Coordinateur': [
-    'presence:write',
     'event:matching',
     'event:settle',
     'assignment:write',
     'stock:read',
   ],
-  'Secretaire': ['presence:write', 'log:read'],
+  'Secretaire': ['log:read', 'role:read'],
   'Pole Log': [
     'stock:read',
     'stock:update',
