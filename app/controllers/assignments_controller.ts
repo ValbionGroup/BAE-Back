@@ -91,6 +91,13 @@ export default class AssignmentsController {
    * Without this, a client could only toggle the lock by deleting the row and
    * recreating it — which silently reset `points_delta`, the value the matching
    * engine refunds when it replaces a row.
+   *
+   * Same trap as `destroy`: the real primary key is composite, but the
+   * generated schema only marks `member_id` as primary, so `assignment.save()`
+   * emits `UPDATE … WHERE member_id = ?` and locks EVERY row of that member,
+   * across every evening. A row locked by accident then survives the
+   * `.where('locked', false).delete()` of a re-run — the engine can no longer
+   * replace it and its capacity stays reserved. Hence the explicit builder.
    */
   async update({ request, response, serialize }: HttpContext) {
     const { memberId, eventId, jobId } = await assignmentValidator.validate(request.qs())
@@ -108,14 +115,17 @@ export default class AssignmentsController {
       })
     }
 
-    assignment.locked = locked
-    await assignment.save()
+    await MemberEventAssignedJob.query()
+      .where('memberId', memberId)
+      .where('eventId', eventId)
+      .where('jobId', jobId)
+      .update({ locked })
 
     return serialize({
       memberId: assignment.memberId,
       eventId: assignment.eventId,
       jobId: assignment.jobId,
-      locked: assignment.locked,
+      locked,
       pointsDelta: assignment.pointsDelta,
     })
   }

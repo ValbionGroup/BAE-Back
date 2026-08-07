@@ -180,4 +180,83 @@ test.group('Assignments update', (group) => {
 
     response.assertStatus(422)
   })
+
+  /**
+   * The composite key again. `assignment.save()` keys the UPDATE on the model's
+   * primary column alone, and the generated schema only marks `member_id` as
+   * primary — so locking one row used to lock every row of that member.
+   *
+   * A row locked by accident then escapes the `.where('locked', false).delete()`
+   * of a matching re-run: the engine can no longer replace it, and its capacity
+   * stays reserved for good.
+   */
+  test('locks only the targeted row, leaving the member other job of the evening open', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await User.findOrFail(member.id)
+    const event = await EventFactory.create()
+    const duringJob = await JobFactory.merge({ type: 'during' }).create()
+    const afterJob = await JobFactory.merge({ type: 'after' }).create()
+
+    for (const job of [duringJob, afterJob]) {
+      await MemberEventAssignedJob.create({
+        memberId: member.id,
+        eventId: event.id,
+        jobId: job.id,
+        locked: false,
+        pointsDelta: 0,
+      })
+    }
+
+    const response = await client
+      .put('/v1/assignments')
+      .qs({ member_id: member.id, event_id: event.id, job_id: duringJob.id })
+      .loginAs(user)
+      .json({ locked: true })
+
+    response.assertStatus(200)
+
+    const rows = await MemberEventAssignedJob.query()
+      .where('memberId', member.id)
+      .where('eventId', event.id)
+    const lockedByJob = new Map(rows.map((row) => [row.jobId, row.locked]))
+    assert.isTrue(lockedByJob.get(duringJob.id))
+    assert.isFalse(lockedByJob.get(afterJob.id))
+  })
+
+  test('does not leak the lock onto the member assignment of another evening', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await User.findOrFail(member.id)
+    const event = await EventFactory.create()
+    const otherEvent = await EventFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
+
+    for (const target of [event, otherEvent]) {
+      await MemberEventAssignedJob.create({
+        memberId: member.id,
+        eventId: target.id,
+        jobId: job.id,
+        locked: false,
+        pointsDelta: 0,
+      })
+    }
+
+    await client
+      .put('/v1/assignments')
+      .qs({ member_id: member.id, event_id: event.id, job_id: job.id })
+      .loginAs(user)
+      .json({ locked: true })
+
+    const untouched = await MemberEventAssignedJob.query()
+      .where('memberId', member.id)
+      .where('eventId', otherEvent.id)
+      .where('jobId', job.id)
+      .firstOrFail()
+    assert.isFalse(untouched.locked)
+  })
 })
