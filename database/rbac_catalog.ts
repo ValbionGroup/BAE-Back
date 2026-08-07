@@ -1,9 +1,9 @@
 /**
  * Source unique des rôles, des permissions et de leur association.
  *
- * Les trois seeders RBAC et le middleware d'autorisation lisent ici plutôt que
- * de porter chacun leur liste : c'est la dispersion qui avait laissé passer une
- * carte mappant un rôle absent de la base, sans erreur.
+ * Les trois seeders RBAC lisent ici plutôt que de porter chacun leur liste :
+ * un rôle ou une permission mal orthographié échoue alors au typecheck, là où
+ * des listes indépendantes divergent en silence et n'accordent plus rien.
  */
 
 export const PERMISSIONS = [
