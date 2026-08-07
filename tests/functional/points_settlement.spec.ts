@@ -162,6 +162,8 @@ test.group('Manual assignment credit', (group) => {
   test('credits a manual assignment exactly like the engine would', async ({ client, assert }) => {
     const event = await EventFactory.create()
     const job = await JobFactory.merge({ type: 'after' }).create()
+    // `store` only accepts a job the evening actually offers.
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
     const { member, user } = await seedMember(0)
     await setPreference(member, job.id, 2)
 
@@ -184,6 +186,7 @@ test.group('Manual assignment credit', (group) => {
   test('gives the full charge credit for an unranked job', async ({ client, assert }) => {
     const event = await EventFactory.create()
     const job = await JobFactory.merge({ type: 'after' }).create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
     const { member, user } = await seedMember(0)
 
     await client
@@ -203,6 +206,7 @@ test.group('Manual assignment credit', (group) => {
   test('does not recompute the delta of an existing row', async ({ client, assert }) => {
     const event = await EventFactory.create()
     const job = await JobFactory.merge({ type: 'after' }).create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
     const { member, user } = await seedMember(0)
 
     await client

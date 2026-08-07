@@ -43,8 +43,15 @@ export default class AssignmentsController {
    *
    * Create-or-IGNORE, not upsert: an existing row keeps its delta, whatever the
    * member's ranking has become since, and a settled row is never rewritten.
+   *
+   * The three structural rules below are checked here and nowhere else. The
+   * matching engine enforces them by construction — it only ever proposes
+   * offered jobs, to eligible members, one per period — so a hand-made row was
+   * the one way around them. Harmless while every delta was 0; since §4.5 each
+   * accepted row is worth up to +12, so skipping the checks means minting
+   * credit.
    */
-  async store({ request, serialize }: HttpContext) {
+  async store({ request, response, serialize }: HttpContext) {
     const { memberId, eventId, jobId, locked } = await request.validateUsing(assignmentValidator)
     await Member.findOrFail(memberId)
     await Event.findOrFail(eventId)
@@ -63,6 +70,58 @@ export default class AssignmentsController {
         jobId: existing.jobId,
         locked: existing.locked,
         pointsDelta: existing.pointsDelta,
+      })
+    }
+
+    // 1. The evening has to offer the job at all. Without this an unoffered
+    //    job is pure credit: it takes no slot from anybody, so nothing else in
+    //    the system ever notices it.
+    const offered = await db
+      .from('event_jobs')
+      .where('event_id', eventId)
+      .where('job_id', jobId)
+      .first()
+
+    if (!offered) {
+      return response.unprocessableEntity({
+        error: {
+          code: 'E_JOB_NOT_OFFERED',
+          message: 'Ce poste n’est pas ouvert sur cette soirée.',
+        },
+      })
+    }
+
+    // 2. Eligibility, same convention as the engine: a job with no
+    //    `job_eligible_members` row is unrestricted, one with at least one row
+    //    is open only to the members listed.
+    const eligibilityRows = await db.from('job_eligible_members').where('job_id', jobId)
+
+    if (
+      eligibilityRows.length > 0 &&
+      !eligibilityRows.some((row) => Number(row.member_id) === memberId)
+    ) {
+      return response.unprocessableEntity({
+        error: {
+          code: 'E_MEMBER_NOT_ELIGIBLE',
+          message: 'Ce membre n’est pas habilité à ce poste.',
+        },
+      })
+    }
+
+    // 3. At most one job per period per evening — the invariant the whole
+    //    three-moments model rests on.
+    const samePeriod = await MemberEventAssignedJob.query()
+      .where('memberId', memberId)
+      .where('eventId', eventId)
+      .whereIn('jobId', (query) => query.from('jobs').select('id').where('type', job.type))
+      .first()
+
+    if (samePeriod) {
+      return response.conflict({
+        error: {
+          code: 'E_PERIOD_ALREADY_ASSIGNED',
+          message: 'Ce membre tient déjà un poste sur cette période.',
+        },
       })
     }
 

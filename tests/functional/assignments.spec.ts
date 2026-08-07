@@ -14,6 +14,9 @@ test.group('Assignments locking', (group) => {
     const user = await User.findOrFail(member.id)
     const event = await EventFactory.create()
     const job = await JobFactory.create()
+    // The evening must offer the job — `store` refuses an unoffered one since
+    // a hand-made assignment carries real credit.
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     const created = await client
       .post('/v1/assignments')
@@ -38,6 +41,7 @@ test.group('Assignments locking', (group) => {
     const user = await User.findOrFail(member.id)
     const event = await EventFactory.create()
     const job = await JobFactory.create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     const created = await client
       .post('/v1/assignments')
@@ -79,6 +83,147 @@ test.group('Assignments locking', (group) => {
     const settledRow = settledBody.data.find((r) => r.member_id === member.id)
     assert.isString(settledRow?.settled_at)
     assert.isNotNull(settledRow?.settled_at)
+  })
+})
+
+/**
+ * Structural rules of a hand-made assignment.
+ *
+ * `store` used to accept anything: a job the evening does not even offer, a job
+ * the member is barred from, a second job on a period they already cover. That
+ * was harmless while `points_delta` was always 0 — since §4.5 every accepted
+ * row is worth up to +12, so an unprivileged member could mint credit at will.
+ */
+test.group('Assignments structural rules', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  async function scene() {
+    const member = await MemberFactory.create()
+    const user = await User.findOrFail(member.id)
+    const event = await EventFactory.create()
+    return { member, user, event }
+  }
+
+  async function offer(event: Awaited<ReturnType<typeof EventFactory.create>>, jobId: number) {
+    await event.related('jobs').sync({ [jobId]: { count: 2 } }, false)
+  }
+
+  test('refuses a job the evening does not offer', async ({ client, assert }) => {
+    const { member, user, event } = await scene()
+    const job = await JobFactory.merge({ type: 'before' }).create()
+
+    const response = await client
+      .post('/v1/assignments')
+      .loginAs(user)
+      .json({ member_id: member.id, event_id: event.id, job_id: job.id })
+
+    response.assertStatus(422)
+    response.assertBodyContains({ error: { code: 'E_JOB_NOT_OFFERED' } })
+
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 0)
+  })
+
+  test('refuses a member barred from a restricted job', async ({ client, assert }) => {
+    const { member, user, event } = await scene()
+    const job = await JobFactory.merge({ type: 'before' }).create()
+    await offer(event, job.id)
+    const allowed = await MemberFactory.create()
+    await job.related('eligibleMembers').sync({ [allowed.id]: {} }, false)
+
+    const response = await client
+      .post('/v1/assignments')
+      .loginAs(user)
+      .json({ member_id: member.id, event_id: event.id, job_id: job.id })
+
+    response.assertStatus(422)
+    response.assertBodyContains({ error: { code: 'E_MEMBER_NOT_ELIGIBLE' } })
+
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 0)
+  })
+
+  test('leaves a job with no eligibility rows open to everyone', async ({ client }) => {
+    const { member, user, event } = await scene()
+    const job = await JobFactory.merge({ type: 'before' }).create()
+    await offer(event, job.id)
+
+    const response = await client
+      .post('/v1/assignments')
+      .loginAs(user)
+      .json({ member_id: member.id, event_id: event.id, job_id: job.id })
+
+    response.assertStatus(200)
+  })
+
+  test('refuses a second job on a period the member already covers', async ({ client, assert }) => {
+    const { member, user, event } = await scene()
+    const held = await JobFactory.merge({ type: 'during' }).create()
+    const other = await JobFactory.merge({ type: 'during' }).create()
+    await event.related('jobs').sync({ [held.id]: { count: 1 }, [other.id]: { count: 1 } }, false)
+    await MemberEventAssignedJob.create({
+      memberId: member.id,
+      eventId: event.id,
+      jobId: held.id,
+      locked: false,
+      pointsDelta: 8,
+    })
+
+    const response = await client
+      .post('/v1/assignments')
+      .loginAs(user)
+      .json({ member_id: member.id, event_id: event.id, job_id: other.id })
+
+    response.assertStatus(409)
+    response.assertBodyContains({ error: { code: 'E_PERIOD_ALREADY_ASSIGNED' } })
+
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 1)
+  })
+
+  test('accepts a second job on another period of the same evening', async ({ client, assert }) => {
+    const { member, user, event } = await scene()
+    const duringJob = await JobFactory.merge({ type: 'during' }).create()
+    const afterJob = await JobFactory.merge({ type: 'after' }).create()
+    await event
+      .related('jobs')
+      .sync({ [duringJob.id]: { count: 1 }, [afterJob.id]: { count: 1 } }, false)
+    await MemberEventAssignedJob.create({
+      memberId: member.id,
+      eventId: event.id,
+      jobId: duringJob.id,
+      locked: false,
+      pointsDelta: 8,
+    })
+
+    const response = await client
+      .post('/v1/assignments')
+      .loginAs(user)
+      .json({ member_id: member.id, event_id: event.id, job_id: afterJob.id })
+
+    response.assertStatus(200)
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 2)
+  })
+
+  /**
+   * The reported abuse, end to end: five jobs the evening does not offer, each
+   * accepted at +12, then a close carrying the member to 60 points.
+   */
+  test('cannot mint credit out of jobs the evening never offered', async ({ client, assert }) => {
+    const { member, user, event } = await scene()
+
+    for (let i = 0; i < 5; i++) {
+      const job = await JobFactory.merge({ type: 'before' }).create()
+      const response = await client
+        .post('/v1/assignments')
+        .loginAs(user)
+        .json({ member_id: member.id, event_id: event.id, job_id: job.id })
+      response.assertStatus(422)
+    }
+
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 0)
   })
 })
 
