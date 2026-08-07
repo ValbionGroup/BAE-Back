@@ -1,5 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
 import Role from '#models/role'
+import { rolePermissionsValidator } from '#validators/role'
 
 export default class RolesController {
   /**
@@ -38,6 +40,27 @@ export default class RolesController {
     }
     role.name = name
     await role.save()
+    return serialize(role)
+  }
+
+  /**
+   * Replace the permissions granted to a role.
+   *
+   * `sync` and not `attach`: the body carries the complete list, so the call is
+   * idempotent and a permission dropped from the list is revoked in the same
+   * request. Names travel on the wire because `Permission.primaryKey` is the
+   * `permission` string itself — there is no id to resolve.
+   */
+  async syncPermissions({ params, request, serialize }: HttpContext) {
+    const { permissions } = await request.validateUsing(rolePermissionsValidator)
+    const role = await Role.findOrFail(params.id)
+
+    await db.transaction(async (trx) => {
+      role.useTransaction(trx)
+      await role.related('permissions').sync(permissions)
+    })
+
+    await role.load('permissions')
     return serialize(role)
   }
 

@@ -29,6 +29,12 @@ router
     router.post('/roles', [controllers.Roles, 'store'])
     router.get('/roles/:id', [controllers.Roles, 'show'])
     router.route('/roles/:id', ['PUT', 'PATCH'], [controllers.Roles, 'update'])
+    // `put` seul, pas `router.route(path, ['PUT', 'PATCH'], …)` : un remplacement
+    // complet n'est pas un PATCH, et déclarer les deux verbes séparément sur la
+    // même action fait planter le boot (nom de route auto-dérivé en double).
+    router
+      .put('/roles/:id/permissions', [controllers.Roles, 'syncPermissions'])
+      .use(middleware.can('role:write'))
     router.delete('/roles/:id', [controllers.Roles, 'destroy'])
 
     /**
