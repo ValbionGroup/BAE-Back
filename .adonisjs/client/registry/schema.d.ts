@@ -211,18 +211,6 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['index']>>>
     }
   }
-  'permissions.store': {
-    methods: ["POST"]
-    pattern: '/v1/permissions'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['store']>>>
-    }
-  }
   'permissions.show': {
     methods: ["GET","HEAD"]
     pattern: '/v1/permissions/:id'
@@ -233,30 +221,6 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['show']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['show']>>>
-    }
-  }
-  'permissions.update': {
-    methods: ["PUT","PATCH"]
-    pattern: '/v1/permissions/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['update']>>>
-    }
-  }
-  'permissions.destroy': {
-    methods: ["DELETE"]
-    pattern: '/v1/permissions/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['destroy']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['destroy']>>>
     }
   }
   'categories.index': {

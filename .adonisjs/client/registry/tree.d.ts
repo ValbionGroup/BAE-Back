@@ -34,10 +34,7 @@ export interface ApiDefinition {
   }
   permissions: {
     index: typeof routes['permissions.index']
-    store: typeof routes['permissions.store']
     show: typeof routes['permissions.show']
-    update: typeof routes['permissions.update']
-    destroy: typeof routes['permissions.destroy']
   }
   categories: {
     index: typeof routes['categories.index']

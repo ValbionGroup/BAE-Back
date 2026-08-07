@@ -132,4 +132,16 @@ test.group('Roles permissions exposure', (group) => {
       'un rôle sans membre n’est pas un porteur : le retirer ne verrouille rien'
     )
   })
+
+  test('the permission catalog cannot be written over HTTP', async ({ client }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    const response = await client
+      .post('/v1/permissions')
+      .json({ permission: 'banane:manger' })
+      .loginAs(user)
+
+    response.assertStatus(404)
+  })
 })

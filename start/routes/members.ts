@@ -39,12 +39,13 @@ router
 
     /**
      * Permissions
+     *
+     * Lecture seule : `database/rbac_catalog.ts` est la source unique. Une
+     * permission créée à chaud serait une ligne que nul `middleware.can()` ne
+     * nomme, donc un garde fantôme qu'aucun typecheck ne peut voir.
      */
     router.get('/permissions', [controllers.Permissions, 'index'])
-    router.post('/permissions', [controllers.Permissions, 'store'])
     router.get('/permissions/:id', [controllers.Permissions, 'show'])
-    router.route('/permissions/:id', ['PUT', 'PATCH'], [controllers.Permissions, 'update'])
-    router.delete('/permissions/:id', [controllers.Permissions, 'destroy'])
   })
   .prefix('/v1')
   .use(middleware.auth())
