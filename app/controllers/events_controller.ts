@@ -52,9 +52,43 @@ export default class EventsController {
     return serialize(event)
   }
 
-  async destroy({ params }: HttpContext) {
+  /**
+   * Deletes an evening — unless its points were consolidated.
+   *
+   * `members.points` is a DERIVED total (D7): the sum of the settled
+   * `points_delta`, which is exactly what `points:recompute` rebuilds. While
+   * the assignment FKs cascaded, deleting an evening erased the rows without
+   * touching `members.points` — the total survived until the next recompute,
+   * which then wiped a credit that had genuinely been earned. So the ledger of
+   * a closed evening is not deletable; `node ace event:unsettle` hands the
+   * credit back first, knowingly, and then this passes.
+   *
+   * The UNSETTLED rows are deleted here by hand because the FK is now
+   * `RESTRICT`: their delta never reached anybody's total, so there is nothing
+   * to give back and nothing to preserve.
+   */
+  async destroy({ params, response }: HttpContext) {
     const event = await Event.query().where('id', params.id).firstOrFail()
-    await event.delete()
+
+    await db.transaction(async (trx) => {
+      const settled = await MemberEventAssignedJob.query({ client: trx })
+        .where('eventId', event.id)
+        .whereNotNull('settledAt')
+        .first()
+
+      if (settled) {
+        response.conflict({
+          error: {
+            code: 'E_EVENT_SETTLED',
+            message: 'Soirée déjà consolidée. Déclôturez-la avant de la supprimer.',
+          },
+        })
+        return
+      }
+
+      await MemberEventAssignedJob.query({ client: trx }).where('eventId', event.id).delete()
+      await event.useTransaction(trx).delete()
+    })
   }
 
   async getResponse({ params, auth }: HttpContext) {

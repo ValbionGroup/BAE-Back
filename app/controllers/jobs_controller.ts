@@ -1,5 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Job from '#models/job'
+import MemberEventAssignedJob from '#models/member_event_assigned_job'
+import db from '@adonisjs/lucid/services/db'
 import { jobValidator } from '#validators/coordination'
 import { DEFAULT_JOB_PERIOD } from '#services/matching_service'
 
@@ -40,11 +42,35 @@ export default class JobsController {
   }
 
   /**
-   * Delete record
+   * Delete record — unless a consolidated assignment still points at it.
+   *
+   * Same reasoning as `EventsController.destroy`: `members.points` is derived
+   * from the settled `points_delta`, so a settled row may not vanish or
+   * `points:recompute` would erase real credit. Unsettled rows are dropped by
+   * hand, the FK being `RESTRICT`.
    */
   async destroy({ params, response }: HttpContext) {
     const job = await Job.query().where('id', params.id).firstOrFail()
-    await job.delete()
-    return response.noContent()
+
+    await db.transaction(async (trx) => {
+      const settled = await MemberEventAssignedJob.query({ client: trx })
+        .where('jobId', job.id)
+        .whereNotNull('settledAt')
+        .first()
+
+      if (settled) {
+        response.conflict({
+          error: {
+            code: 'E_JOB_SETTLED',
+            message: 'Poste tenu sur une soirée consolidée. Déclôturez-la avant de le supprimer.',
+          },
+        })
+        return
+      }
+
+      await MemberEventAssignedJob.query({ client: trx }).where('jobId', job.id).delete()
+      await job.useTransaction(trx).delete()
+      response.noContent()
+    })
   }
 }
