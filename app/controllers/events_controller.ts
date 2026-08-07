@@ -69,11 +69,40 @@ export default class EventsController {
     return { data: status }
   }
 
-  async setResponse({ params, request, auth }: HttpContext) {
+  /**
+   * Sets the authenticated member's own availability for an event.
+   *
+   * Declaring oneself absent is refused once the member holds at least one
+   * job on this evening — any period, D9 — because `AssignmentsController`
+   * does not read this table when assigning, so a lock is the only place the
+   * rule can be enforced. Confirming presence is always allowed (D8): a
+   * manual assignment may target a member who had said no, and that member
+   * needs a way back to "available" rather than being stuck as "assigned and
+   * absent".
+   */
+  async setResponse({ params, request, response, auth }: HttpContext) {
     const user = auth.use('api').getUserOrFail()
     const { isAvailable } = await request.validateUsing(availabilityValidator)
     await Event.findOrFail(params.id)
     const member = await Member.findOrFail(user.id)
+
+    if (!isAvailable) {
+      const hasAssignment = await MemberEventAssignedJob.query()
+        .where('memberId', member.id)
+        .where('eventId', params.id)
+        .first()
+
+      if (hasAssignment) {
+        return response.conflict({
+          error: {
+            code: 'E_PRESENCE_LOCKED_BY_ASSIGNMENT',
+            message:
+              'Vous tenez un poste sur cette soirée. Demandez au bureau ou au coordinateur de vous en retirer avant de vous déclarer absent·e.',
+          },
+        })
+      }
+    }
+
     await member.related('responses').sync({ [params.id]: { is_available: isAvailable } }, false)
     return { data: isAvailable ? 1 : 0 }
   }
