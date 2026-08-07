@@ -237,10 +237,18 @@ export default class EventsController {
       // somebody who did one `during` on two evenings — penalising precisely
       // the thankless shifts the D5 credits reward, and which the member does
       // not even choose to take on.
+      //
+      // SETTLED evenings only. `rankingKey` divides points by evenings worked,
+      // and since D7 the numerator moves at the close and nowhere else — so an
+      // evening counted in the denominator before its close removes priority
+      // for work the member has not been credited for yet. The heavier the
+      // shift, the worse the penalty: exactly backwards. `whereNotNull` puts
+      // the two halves of the ratio back in step.
       const attendanceRows = await db
         .from('member_event_assigned_jobs')
         .select('member_id')
         .whereNot('event_id', event.id)
+        .whereNotNull('settled_at')
         .countDistinct('event_id as count')
         .groupBy('member_id')
         .useTransaction(trx)

@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import { DateTime } from 'luxon'
 import { asCoordinator } from '#tests/helpers/permissions'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
@@ -57,6 +58,8 @@ test.group('Event matching', (group) => {
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     // A: more raw points, but 5 prior events worked -> ranking key 20/5 = 4.
+    // Settled evenings: attendance only counts consolidated ones, so the
+    // denominator moves in step with the numerator.
     const memberA = await MemberFactory.create()
     memberA.points = 20
     await memberA.save()
@@ -67,6 +70,7 @@ test.group('Event matching', (group) => {
         memberId: memberA.id,
         eventId: pastEvent.id,
         jobId: pastJob.id,
+        settledAt: DateTime.now(),
       }).create()
     }
 
@@ -89,6 +93,58 @@ test.group('Event matching', (group) => {
     assert.equal(rows[0].memberId, memberB.id)
   })
 
+  /**
+   * The two halves of `rankingKey = points / attendance` have to move together.
+   *
+   * Since D7 the numerator only moves at the close, so counting an evening in
+   * the denominator before it is closed penalises a member for work they have
+   * not been credited for yet — the heavier the shift, the worse the penalty,
+   * exactly backwards. Attendance therefore counts SETTLED evenings only.
+   */
+  test('ignores evenings whose points have not been consolidated yet', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
+
+    // A worked 5 evenings nobody has closed: 60 credit points still pending on
+    // the rows, none of it in `members.points`.
+    const memberA = await MemberFactory.create()
+    memberA.points = 20
+    await memberA.save()
+    for (let i = 0; i < 5; i++) {
+      const pastEvent = await EventFactory.create()
+      const pastJob = await JobFactory.create()
+      await MemberEventAssignedJobFactory.merge({
+        memberId: memberA.id,
+        eventId: pastEvent.id,
+        jobId: pastJob.id,
+        pointsDelta: 12,
+      }).create()
+    }
+
+    const memberB = await MemberFactory.create()
+    memberB.points = 10
+    await memberB.save()
+
+    await makeAvailable(memberA, event.id)
+    await makeAvailable(memberB, event.id)
+    await setPreference(memberA, job.id, 1)
+    await setPreference(memberB, job.id, 1)
+
+    const user = await asCoordinator(memberA)
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    response.assertStatus(200)
+
+    // Counting the open evenings would give A 20/5 = 4 against B's 10/1 = 10
+    // and hand the slot to B — A punished for five shifts nobody has paid for.
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 1)
+    assert.equal(rows[0].memberId, memberA.id)
+  })
+
   test('counts attendance in evenings worked, not in assignment rows held', async ({
     client,
     assert,
@@ -98,6 +154,7 @@ test.group('Event matching', (group) => {
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     // A: ONE past evening, but he held all three periods of it -> 3 rows.
+    // Settled, same reason as above.
     const memberA = await MemberFactory.create()
     memberA.points = 60
     await memberA.save()
@@ -108,6 +165,7 @@ test.group('Event matching', (group) => {
         memberId: memberA.id,
         eventId: pastEventOfA.id,
         jobId: pastJob.id,
+        settledAt: DateTime.now(),
       }).create()
     }
 
@@ -123,6 +181,7 @@ test.group('Event matching', (group) => {
         memberId: memberB.id,
         eventId: pastEvent.id,
         jobId: pastJob.id,
+        settledAt: DateTime.now(),
       }).create()
     }
 
