@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import Role from '#models/role'
 import Permission from '#models/permission'
@@ -81,6 +82,11 @@ test.group('Roles permissions exposure', (group) => {
   })
 
   test('refuses a sync that leaves nobody holding role:write', async ({ client, assert }) => {
+    // La base peut déjà contenir d'autres porteurs de role:write (comptes admin
+    // réels en dev, rôles seedés) : sans les retirer ici, le compte global ne
+    // retombe jamais à zéro et le test ne prouve rien, seedée ou non.
+    await db.from('roles_permissions').where('permission_id', 'role:write').delete()
+
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['role:write'])
     const role = await Role.findOrFail(member.roleId)
@@ -91,6 +97,11 @@ test.group('Roles permissions exposure', (group) => {
       .loginAs(user)
 
     response.assertStatus(409)
+    assert.equal(response.body().error.code, 'E_RBAC_LOCKOUT')
+    assert.equal(
+      response.body().error.message,
+      'Accordez d’abord role:write à un rôle occupé avant de la retirer ici.'
+    )
 
     await role.load('permissions')
     assert.deepEqual(

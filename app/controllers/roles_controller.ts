@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import { Exception } from '@adonisjs/core/exceptions'
+import ApiException from '#exceptions/api_exception'
 import Role from '#models/role'
 import Member from '#models/member'
 import { rolePermissionsValidator } from '#validators/role'
@@ -75,9 +75,10 @@ export default class RolesController {
       // `count` revient en string du driver Postgres : sans `Number`, la
       // comparaison est toujours fausse et l'invariant ne protège rien.
       if (Number(holders[0].$extras.total) === 0) {
-        throw new Exception(
+        throw new ApiException(
+          'E_RBAC_LOCKOUT',
           'Accordez d’abord role:write à un rôle occupé avant de la retirer ici.',
-          { code: 'E_RBAC_LOCKOUT', status: 409 }
+          409
         )
       }
     })
