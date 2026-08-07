@@ -12,6 +12,24 @@ import { type JobPeriod, computePointsDelta } from '#services/matching_service'
  * which job on which event. The composite key has no surrogate id, so `update`
  * and `destroy` read it from the query string.
  */
+/**
+ * The single wire shape of an assignment.
+ *
+ * `index` used to report `settled_at` while `store` and `update` did not, so a
+ * client had to re-read the whole listing to learn whether the row it had just
+ * written was already consolidated. One resource, one shape.
+ */
+function toWire(assignment: MemberEventAssignedJob) {
+  return {
+    memberId: assignment.memberId,
+    eventId: assignment.eventId,
+    jobId: assignment.jobId,
+    locked: assignment.locked,
+    pointsDelta: assignment.pointsDelta,
+    settledAt: assignment.settledAt ? assignment.settledAt.toISO() : null,
+  }
+}
+
 export default class AssignmentsController {
   /**
    * Display a list of resource
@@ -21,15 +39,7 @@ export default class AssignmentsController {
       .orderBy('eventId')
       .orderBy('jobId')
       .orderBy('memberId')
-    const rows = assignments.map((assignment) => ({
-      memberId: assignment.memberId,
-      eventId: assignment.eventId,
-      jobId: assignment.jobId,
-      locked: assignment.locked,
-      pointsDelta: assignment.pointsDelta,
-      settledAt: assignment.settledAt ? assignment.settledAt.toISO() : null,
-    }))
-    return serialize(rows)
+    return serialize(assignments.map(toWire))
   }
 
   /**
@@ -64,13 +74,7 @@ export default class AssignmentsController {
       .first()
 
     if (existing) {
-      return serialize({
-        memberId: existing.memberId,
-        eventId: existing.eventId,
-        jobId: existing.jobId,
-        locked: existing.locked,
-        pointsDelta: existing.pointsDelta,
-      })
+      return serialize(toWire(existing))
     }
 
     // 1. The evening has to offer the job at all. Without this an unoffered
@@ -133,7 +137,7 @@ export default class AssignmentsController {
     const rankAchieved = preference ? Number(preference.rank) : null
     const pointsDelta = computePointsDelta(job.type as JobPeriod, rankAchieved)
 
-    await MemberEventAssignedJob.create({
+    const created = await MemberEventAssignedJob.create({
       memberId,
       eventId,
       jobId,
@@ -141,7 +145,7 @@ export default class AssignmentsController {
       pointsDelta,
     })
 
-    return serialize({ memberId, eventId, jobId, locked: locked ?? false, pointsDelta })
+    return serialize(toWire(created))
   }
 
   /**
@@ -180,13 +184,8 @@ export default class AssignmentsController {
       .where('jobId', jobId)
       .update({ locked })
 
-    return serialize({
-      memberId: assignment.memberId,
-      eventId: assignment.eventId,
-      jobId: assignment.jobId,
-      locked,
-      pointsDelta: assignment.pointsDelta,
-    })
+    assignment.locked = locked
+    return serialize(toWire(assignment))
   }
 
   /**

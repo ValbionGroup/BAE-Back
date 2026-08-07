@@ -327,6 +327,57 @@ test.group('Assignments update', (group) => {
   })
 
   /**
+   * One resource, one shape. `index` reported `settled_at` while `store` and
+   * `update` did not, so a client had to re-fetch the list to learn whether the
+   * row it had just written was already consolidated.
+   */
+  test('reports settled_at like the listing does, on create and on update', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await asCoordinator(member)
+    const event = await EventFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
+
+    const created = await client
+      .post('/v1/assignments')
+      .loginAs(user)
+      .json({ member_id: member.id, event_id: event.id, job_id: job.id })
+    const createdBody = created.body() as { data: { settled_at: string | null } }
+    assert.property(createdBody.data, 'settled_at')
+    assert.isNull(createdBody.data.settled_at)
+
+    const updated = await client
+      .put('/v1/assignments')
+      .qs({ member_id: member.id, event_id: event.id, job_id: job.id })
+      .loginAs(user)
+      .json({ locked: true })
+    const updatedBody = updated.body() as { data: { settled_at: string | null } }
+    assert.property(updatedBody.data, 'settled_at')
+    assert.isNull(updatedBody.data.settled_at)
+
+    await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
+
+    const afterClose = await client
+      .put('/v1/assignments')
+      .qs({ member_id: member.id, event_id: event.id, job_id: job.id })
+      .loginAs(user)
+      .json({ locked: false })
+    const afterCloseBody = afterClose.body() as { data: { settled_at: string | null } }
+    assert.isString(afterCloseBody.data.settled_at)
+
+    // And a create-or-ignore hit on an already settled row reports it too.
+    const again = await client
+      .post('/v1/assignments')
+      .loginAs(user)
+      .json({ member_id: member.id, event_id: event.id, job_id: job.id })
+    const againBody = again.body() as { data: { settled_at: string | null } }
+    assert.isString(againBody.data.settled_at)
+  })
+
+  /**
    * The composite key again. `assignment.save()` keys the UPDATE on the model's
    * primary column alone, and the generated schema only marks `member_id` as
    * primary — so locking one row used to lock every row of that member.
