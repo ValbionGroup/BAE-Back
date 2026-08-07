@@ -86,7 +86,14 @@ export default class EventsController {
         return
       }
 
-      await MemberEventAssignedJob.query({ client: trx }).where('eventId', event.id).delete()
+      // `whereNull('settledAt')` and not a blanket delete: it keeps the FK
+      // `RESTRICT` as a real backstop. Should the guard above ever be
+      // weakened, the database refuses the deletion instead of quietly taking
+      // the settled ledger down with the evening.
+      await MemberEventAssignedJob.query({ client: trx })
+        .where('eventId', event.id)
+        .whereNull('settledAt')
+        .delete()
       await event.useTransaction(trx).delete()
     })
   }

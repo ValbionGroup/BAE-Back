@@ -68,7 +68,12 @@ export default class JobsController {
         return
       }
 
-      await MemberEventAssignedJob.query({ client: trx }).where('jobId', job.id).delete()
+      // Unsettled rows only — the FK `RESTRICT` stays the backstop if this
+      // guard is ever weakened.
+      await MemberEventAssignedJob.query({ client: trx })
+        .where('jobId', job.id)
+        .whereNull('settledAt')
+        .delete()
       await job.useTransaction(trx).delete()
       response.noContent()
     })
