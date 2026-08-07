@@ -29,8 +29,8 @@ export interface ApiDefinition {
     store: typeof routes['roles.store']
     show: typeof routes['roles.show']
     update: typeof routes['roles.update']
-    syncPermissions: typeof routes['roles.sync_permissions']
     destroy: typeof routes['roles.destroy']
+    syncPermissions: typeof routes['roles.sync_permissions']
   }
   permissions: {
     index: typeof routes['permissions.index']

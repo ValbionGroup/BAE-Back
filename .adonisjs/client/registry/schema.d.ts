@@ -175,18 +175,6 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>>
     }
   }
-  'roles.sync_permissions': {
-    methods: ["PUT"]
-    pattern: '/v1/roles/:id/permissions'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/role').rolePermissionsValidator)>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#validators/role').rolePermissionsValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['syncPermissions']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['syncPermissions']>>> | { status: 422; response: { errors: SimpleError[] } }
-    }
-  }
   'roles.destroy': {
     methods: ["DELETE"]
     pattern: '/v1/roles/:id'
@@ -197,6 +185,18 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
+    }
+  }
+  'roles.sync_permissions': {
+    methods: ["PUT"]
+    pattern: '/v1/roles/:id/permissions'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/role').rolePermissionsValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/role').rolePermissionsValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['syncPermissions']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['syncPermissions']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'permissions.index': {

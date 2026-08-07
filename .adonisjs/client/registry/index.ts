@@ -90,17 +90,17 @@ const routes = {
     tokens: [{"old":"/v1/roles/:id","type":0,"val":"v1","end":""},{"old":"/v1/roles/:id","type":0,"val":"roles","end":""},{"old":"/v1/roles/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['roles.update']['types'],
   },
-  'roles.sync_permissions': {
-    methods: ["PUT"],
-    pattern: '/v1/roles/:id/permissions',
-    tokens: [{"old":"/v1/roles/:id/permissions","type":0,"val":"v1","end":""},{"old":"/v1/roles/:id/permissions","type":0,"val":"roles","end":""},{"old":"/v1/roles/:id/permissions","type":1,"val":"id","end":""},{"old":"/v1/roles/:id/permissions","type":0,"val":"permissions","end":""}],
-    types: placeholder as Registry['roles.sync_permissions']['types'],
-  },
   'roles.destroy': {
     methods: ["DELETE"],
     pattern: '/v1/roles/:id',
     tokens: [{"old":"/v1/roles/:id","type":0,"val":"v1","end":""},{"old":"/v1/roles/:id","type":0,"val":"roles","end":""},{"old":"/v1/roles/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['roles.destroy']['types'],
+  },
+  'roles.sync_permissions': {
+    methods: ["PUT"],
+    pattern: '/v1/roles/:id/permissions',
+    tokens: [{"old":"/v1/roles/:id/permissions","type":0,"val":"v1","end":""},{"old":"/v1/roles/:id/permissions","type":0,"val":"roles","end":""},{"old":"/v1/roles/:id/permissions","type":1,"val":"id","end":""},{"old":"/v1/roles/:id/permissions","type":0,"val":"permissions","end":""}],
+    types: placeholder as Registry['roles.sync_permissions']['types'],
   },
   'permissions.index': {
     methods: ["GET","HEAD"],

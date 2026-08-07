@@ -1,7 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
-import User from '#models/user'
 import Role from '#models/role'
 import Permission from '#models/permission'
 import { MemberFactory } from '#database/factories/members_factory'
@@ -12,7 +11,7 @@ test.group('Roles permissions exposure', (group) => {
 
   test('GET /v1/roles exposes the permissions granted to each role', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['role:read'])
 
     await Permission.firstOrCreate({ permission: 'stock:read' })
     await Permission.firstOrCreate({ permission: 'log:read' })
@@ -143,5 +142,34 @@ test.group('Roles permissions exposure', (group) => {
       .loginAs(user)
 
     response.assertStatus(404)
+  })
+
+  test('GET /v1/roles is closed to a member without role:read', async ({ client }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['presence:read'])
+
+    const response = await client.get('/v1/roles').loginAs(user)
+
+    response.assertStatus(403)
+  })
+
+  test('GET /v1/roles is open to a member with role:read', async ({ client }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:read'])
+
+    const response = await client.get('/v1/roles').loginAs(user)
+
+    response.assertStatus(200)
+  })
+
+  test('GET /v1/members stays open to an ordinary member', async ({ client }) => {
+    // `member:read` est dans le socle : Coordination, Accueil et Mes présences
+    // appellent cette route. La restreindre casse l'accueil de tout le monde.
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['presence:read', 'member:read'])
+
+    const response = await client.get('/v1/members').loginAs(user)
+
+    response.assertStatus(200)
   })
 })

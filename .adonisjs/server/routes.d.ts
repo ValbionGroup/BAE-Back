@@ -18,8 +18,8 @@ export type ScannedRoutes = {
     'roles.store': { paramsTuple?: []; params?: {} }
     'roles.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'roles.sync_permissions': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'roles.sync_permissions': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'permissions.index': { paramsTuple?: []; params?: {} }
     'permissions.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'categories.index': { paramsTuple?: []; params?: {} }
