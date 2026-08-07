@@ -27,6 +27,7 @@ export default class AssignmentsController {
       jobId: assignment.jobId,
       locked: assignment.locked,
       pointsDelta: assignment.pointsDelta,
+      settledAt: assignment.settledAt ? assignment.settledAt.toISO() : null,
     }))
     return serialize(rows)
   }

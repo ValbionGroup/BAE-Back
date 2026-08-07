@@ -45,6 +45,41 @@ test.group('Assignments locking', (group) => {
       .json({ member_id: member.id, event_id: event.id, job_id: job.id })
     created.assertBodyContains({ data: { locked: false } })
   })
+
+  test('exposes settled_at as an ISO string, null when the row is not settled', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await User.findOrFail(member.id)
+    const event = await EventFactory.create()
+    const job = await JobFactory.create()
+
+    await MemberEventAssignedJob.create({
+      memberId: member.id,
+      eventId: event.id,
+      jobId: job.id,
+      locked: false,
+      pointsDelta: 4,
+    })
+
+    const pending = await client.get('/v1/assignments').loginAs(user)
+    const pendingBody = pending.body() as {
+      data: Array<{ member_id: number; settled_at: string | null }>
+    }
+    const pendingRow = pendingBody.data.find((r) => r.member_id === member.id)
+    assert.isNull(pendingRow?.settled_at)
+
+    await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
+
+    const settled = await client.get('/v1/assignments').loginAs(user)
+    const settledBody = settled.body() as {
+      data: Array<{ member_id: number; settled_at: string | null }>
+    }
+    const settledRow = settledBody.data.find((r) => r.member_id === member.id)
+    assert.isString(settledRow?.settled_at)
+    assert.isNotNull(settledRow?.settled_at)
+  })
 })
 
 test.group('Assignments update', (group) => {
