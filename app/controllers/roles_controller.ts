@@ -6,7 +6,7 @@ export default class RolesController {
    * Display a list of resource
    */
   async index({ serialize }: HttpContext) {
-    const roles = await Role.query()
+    const roles = await Role.query().preload('permissions')
     return serialize(roles)
   }
 
