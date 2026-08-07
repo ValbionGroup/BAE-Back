@@ -30,6 +30,9 @@ export default class extends BaseSeeder {
         'restock:create',
         'restock:delete',
         'log:read',
+        'event:matching',
+        'event:settle',
+        'assignment:write',
       ],
       Service: [
         'presence:read',
@@ -62,7 +65,10 @@ export default class extends BaseSeeder {
         'product:read',
         'log:read',
       ],
-      HR: ['presence:write', 'presence:read'],
+      // HR already owns `presence:write`, i.e. who is there on a given evening
+      // — running the matching and closing the evening are the same job seen
+      // from the other end, so the coordination scope lands here too.
+      HR: ['presence:write', 'presence:read', 'event:matching', 'event:settle', 'assignment:write'],
     }
 
     // Assign permissions to roles

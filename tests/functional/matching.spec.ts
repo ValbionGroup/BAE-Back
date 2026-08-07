@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import User from '#models/user'
+import { asCoordinator } from '#tests/helpers/permissions'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
 import { MemberFactory } from '#database/factories/members_factory'
@@ -80,7 +80,7 @@ test.group('Event matching', (group) => {
     await setPreference(memberA, job.id, 1)
     await setPreference(memberB, job.id, 1)
 
-    const user = await User.findOrFail(memberA.id)
+    const user = await asCoordinator(memberA)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -131,7 +131,7 @@ test.group('Event matching', (group) => {
     await setPreference(memberA, job.id, 1)
     await setPreference(memberB, job.id, 1)
 
-    const user = await User.findOrFail(memberA.id)
+    const user = await asCoordinator(memberA)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -172,7 +172,7 @@ test.group('Event matching', (group) => {
     await setPreference(member, installation.id, 3)
     await setPreference(member, vaisselle.id, 4)
 
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -205,7 +205,7 @@ test.group('Event matching', (group) => {
 
     const member = await MemberFactory.create()
     await makeAvailable(member, event.id)
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     await client
       .post('/v1/assignments')
       .loginAs(user)
@@ -244,7 +244,7 @@ test.group('Event matching', (group) => {
     const member = await MemberFactory.create()
     await makeAvailable(member, event.id)
 
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -277,7 +277,7 @@ test.group('Event matching', (group) => {
     // Only preference is for a job not offered at this event.
     await setPreference(member, unofferedJob.id, 1)
 
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -307,7 +307,7 @@ test.group('Event matching', (group) => {
     const lockedMember = await MemberFactory.create()
     lockedMember.points = 30
     await lockedMember.save()
-    const lockedUser = await User.findOrFail(lockedMember.id)
+    const lockedUser = await asCoordinator(lockedMember)
     await client
       .post('/v1/assignments')
       .loginAs(lockedUser)
@@ -369,7 +369,7 @@ test.group('Event matching', (group) => {
     await makeAvailable(ineligibleMember, event.id)
     await setPreference(ineligibleMember, job.id, 1)
 
-    const user = await User.findOrFail(ineligibleMember.id)
+    const user = await asCoordinator(ineligibleMember)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -394,7 +394,7 @@ test.group('Event matching', (group) => {
     await makeAvailable(member, event.id)
     await setPreference(member, job.id, 1)
 
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
 
     const rows = await MemberEventAssignedJob.query()
@@ -423,7 +423,7 @@ test.group('Event matching', (group) => {
     const memberB = await MemberFactory.create()
     await makeAvailable(memberB, event.id)
 
-    const user = await User.findOrFail(memberA.id)
+    const user = await asCoordinator(memberA)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -466,7 +466,7 @@ test.group('Event matching', (group) => {
       members.push(member)
     }
 
-    const user = await User.findOrFail(members[0].id)
+    const user = await asCoordinator(members[0])
     await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     const firstRun = await assignmentSignature(event.id)
 
@@ -497,7 +497,7 @@ test.group('Event matching', (group) => {
     await makeAvailable(memberB, event.id)
     await setPreference(memberB, beforeJob.id, 1)
 
-    const user = await User.findOrFail(memberA.id)
+    const user = await asCoordinator(memberA)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -523,7 +523,7 @@ test.group('Event matching', (group) => {
       .sync({ [job.id]: { count: 1 }, [lockedJob.id]: { count: 1 } }, false)
 
     const lockedMember = await MemberFactory.create()
-    const lockedUser = await User.findOrFail(lockedMember.id)
+    const lockedUser = await asCoordinator(lockedMember)
     await client
       .post('/v1/assignments')
       .loginAs(lockedUser)

@@ -30,7 +30,9 @@ test.group('Job periods', (group) => {
     created.assertStatus(200)
     created.assertBodyContains({ data: { type: 'before' } })
 
-    const show = await client.get(`/v1/jobs/${(created.body() as { data: { id: number } }).data.id}`).loginAs(user)
+    const show = await client
+      .get(`/v1/jobs/${(created.body() as { data: { id: number } }).data.id}`)
+      .loginAs(user)
     assert.equal((show.body() as { data: { type: string } }).data.type, 'before')
   })
 

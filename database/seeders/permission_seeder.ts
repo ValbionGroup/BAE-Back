@@ -23,6 +23,15 @@ const permissions = [
   // Reading the request audit trail. Gated because logs identify who did what,
   // and carry response bodies for every non-auth route.
   'log:read',
+  // Coordination of an evening. All three write the priority credit, so they
+  // belong to the bureau, not to every authenticated member.
+  // Running the stable-marriage matching: rewrites every unlocked assignment.
+  'event:matching',
+  // Closing an evening: consolidates the deltas into `members.points`, and no
+  // route undoes it.
+  'event:settle',
+  // Creating, locking or deleting an assignment by hand.
+  'assignment:write',
 ]
 
 export default class extends BaseSeeder {

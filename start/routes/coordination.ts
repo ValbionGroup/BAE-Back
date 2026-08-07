@@ -46,11 +46,22 @@ router
      * `member_id` + `event_id` + `job_id` query params. `PUT` and `PATCH` share
      * one declaration: two separate ones derive the same route name and crash
      * the boot.
+     *
+     * The three writes are gated: each one moves credit (creating a row grants
+     * up to +12, deleting a settled one takes it back), so they belong to the
+     * coordination scope, not to every authenticated member. The listing stays
+     * open — reading who holds what is what the roster screens do.
      */
     router.get('/assignments', [controllers.Assignments, 'index'])
-    router.post('/assignments', [controllers.Assignments, 'store'])
-    router.route('/assignments', ['PUT', 'PATCH'], [controllers.Assignments, 'update'])
-    router.delete('/assignments', [controllers.Assignments, 'destroy'])
+    router
+      .post('/assignments', [controllers.Assignments, 'store'])
+      .use(middleware.can('assignment:write'))
+    router
+      .route('/assignments', ['PUT', 'PATCH'], [controllers.Assignments, 'update'])
+      .use(middleware.can('assignment:write'))
+    router
+      .delete('/assignments', [controllers.Assignments, 'destroy'])
+      .use(middleware.can('assignment:write'))
 
     /**
      * Global indexes

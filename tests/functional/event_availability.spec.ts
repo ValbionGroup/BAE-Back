@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import User from '#models/user'
+import { grantPermissions } from '#tests/helpers/permissions'
 import { MemberFactory } from '#database/factories/members_factory'
 import { EventFactory } from '#database/factories/event_factory'
 import { JobFactory } from '#database/factories/job_factory'
@@ -123,7 +124,9 @@ test.group('Event availability — presence lock (D8, D9)', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    // `DELETE /v1/assignments` now requires `assignment:write` — the release
+    // this test describes is coordination work, so the caller carries it.
+    const user = await grantPermissions(member, ['assignment:write'])
     const event = await EventFactory.create()
     const job = await JobFactory.create()
 

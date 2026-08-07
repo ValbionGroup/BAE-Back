@@ -66,9 +66,7 @@ test.group('Matching algorithm (pure functions)', () => {
     assert.deepEqual(result, [10, 20])
   })
 
-  test('rankCost decays linearly from rank 1 and floors at 0; null costs nothing', ({
-    assert,
-  }) => {
+  test('rankCost decays linearly from rank 1 and floors at 0; null costs nothing', ({ assert }) => {
     assert.equal(rankCost(1), 12)
     assert.equal(rankCost(2), 10)
     assert.equal(rankCost(6), 2)

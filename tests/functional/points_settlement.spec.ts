@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import ace from '@adonisjs/core/services/ace'
 import { DateTime } from 'luxon'
-import User from '#models/user'
+import { asCoordinator } from '#tests/helpers/permissions'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
 import { MemberFactory } from '#database/factories/members_factory'
@@ -23,7 +23,7 @@ async function seedMember(points = 0) {
   const member = await MemberFactory.create()
   member.points = points
   await member.save()
-  const user = await User.findOrFail(member.id)
+  const user = await asCoordinator(member)
   return { member, user }
 }
 

@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import User from '#models/user'
+import { asCoordinator } from '#tests/helpers/permissions'
 import { MemberFactory } from '#database/factories/members_factory'
 import { EventFactory } from '#database/factories/event_factory'
 import { JobFactory } from '#database/factories/job_factory'
@@ -11,7 +11,7 @@ test.group('Assignments locking', (group) => {
 
   test('stores and exposes the locked flag on a created assignment', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const event = await EventFactory.create()
     const job = await JobFactory.create()
     // The evening must offer the job — `store` refuses an unoffered one since
@@ -38,7 +38,7 @@ test.group('Assignments locking', (group) => {
 
   test('defaults locked to false when omitted', async ({ client }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const event = await EventFactory.create()
     const job = await JobFactory.create()
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
@@ -55,7 +55,7 @@ test.group('Assignments locking', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const event = await EventFactory.create()
     const job = await JobFactory.create()
 
@@ -99,7 +99,7 @@ test.group('Assignments structural rules', (group) => {
 
   async function scene() {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const event = await EventFactory.create()
     return { member, user, event }
   }
@@ -232,7 +232,7 @@ test.group('Assignments update', (group) => {
 
   async function seedAssignment(pointsDelta = 0) {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const event = await EventFactory.create()
     const job = await JobFactory.create()
     const assignment = await MemberEventAssignedJob.create({
@@ -340,7 +340,7 @@ test.group('Assignments update', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const event = await EventFactory.create()
     const duringJob = await JobFactory.merge({ type: 'during' }).create()
     const afterJob = await JobFactory.merge({ type: 'after' }).create()
@@ -376,7 +376,7 @@ test.group('Assignments update', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const event = await EventFactory.create()
     const otherEvent = await EventFactory.create()
     const job = await JobFactory.merge({ type: 'during' }).create()
