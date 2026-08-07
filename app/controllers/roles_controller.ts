@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import { Exception } from '@adonisjs/core/exceptions'
 import Role from '#models/role'
+import Member from '#models/member'
 import { rolePermissionsValidator } from '#validators/role'
 
 export default class RolesController {
@@ -58,6 +60,26 @@ export default class RolesController {
     await db.transaction(async (trx) => {
       role.useTransaction(trx)
       await role.related('permissions').sync(permissions)
+
+      // Vérifié APRÈS application, dans la transaction : une seule règle, exacte
+      // par construction. Simuler l'état futur avant le sync donnerait deux
+      // logiques à garder d'accord.
+      const holders = await Member.query({ client: trx })
+        .whereHas('role', (roleQuery) =>
+          roleQuery.whereHas('permissions', (permissionQuery) =>
+            permissionQuery.where('permission', 'role:write')
+          )
+        )
+        .count('* as total')
+
+      // `count` revient en string du driver Postgres : sans `Number`, la
+      // comparaison est toujours fausse et l'invariant ne protège rien.
+      if (Number(holders[0].$extras.total) === 0) {
+        throw new Exception(
+          'Accordez d’abord role:write à un rôle occupé avant de la retirer ici.',
+          { code: 'E_RBAC_LOCKOUT', status: 409 }
+        )
+      }
     })
 
     await role.load('permissions')

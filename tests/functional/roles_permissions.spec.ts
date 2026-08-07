@@ -79,4 +79,46 @@ test.group('Roles permissions exposure', (group) => {
       'un corps invalide ne doit rien écrire, pas même la partie valide'
     )
   })
+
+  test('refuses a sync that leaves nobody holding role:write', async ({ client, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+    const role = await Role.findOrFail(member.roleId)
+
+    const response = await client
+      .put(`/v1/roles/${role.id}/permissions`)
+      .json({ permissions: [] })
+      .loginAs(user)
+
+    response.assertStatus(409)
+
+    await role.load('permissions')
+    assert.deepEqual(
+      role.permissions.map((entry) => entry.permission),
+      ['role:write'],
+      'le refus doit annuler le sync, pas le laisser à moitié appliqué'
+    )
+  })
+
+  test('allows stripping role:write from a role nobody holds', async ({ client, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    await Permission.firstOrCreate({ permission: 'role:write' })
+    const vacant = await Role.create({ name: 'Pole Vacant' })
+    await vacant.related('permissions').sync(['role:write'])
+
+    const response = await client
+      .put(`/v1/roles/${vacant.id}/permissions`)
+      .json({ permissions: [] })
+      .loginAs(user)
+
+    response.assertStatus(200)
+
+    await vacant.load('permissions')
+    assert.isEmpty(
+      vacant.permissions,
+      'un rôle sans membre n’est pas un porteur : le retirer ne verrouille rien'
+    )
+  })
 })
