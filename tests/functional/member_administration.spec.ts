@@ -89,8 +89,9 @@ test.group('Member administration', (group) => {
       .loginAs(user)
 
     response.assertStatus(403)
-    const body = response.body() as { error: { code: string } }
+    const body = response.body() as { error: { code: string; message: string } }
     assert.equal(body.error.code, 'E_RBAC_ABOVE_ACTOR')
+    assert.equal(body.error.message, 'Ce rôle accorde des permissions que vous n’avez pas : role:write.')
 
     await target.refresh()
     assert.notEqual(target.roleId, admin.id, 'un refus ne doit rien écrire')
@@ -112,8 +113,41 @@ test.group('Member administration', (group) => {
       .loginAs(user)
 
     response.assertStatus(403)
+    const body = response.body() as { error: { code: string; message: string } }
+    assert.equal(body.error.code, 'E_RBAC_ABOVE_ACTOR')
+    assert.equal(
+      body.error.message,
+      'Ce membre porte des permissions que vous n’avez pas : role:write.'
+    )
+  })
+
+  test('refuses self-promotion: an actor cannot grant themselves a role above their own', async ({
+    client,
+    assert,
+  }) => {
+    const actor = await MemberFactory.create()
+    const user = await grantPermissions(actor, ['member:write'])
+    const ownRoleId = actor.roleId
+
+    await Permission.firstOrCreate({ permission: 'role:write' })
+    const admin = await Role.create({ name: 'Pole Auto Promo' })
+    await admin.related('permissions').sync(['role:write'])
+
+    const response = await client
+      .patch(`/v1/members/${actor.id}`)
+      .json({ roleId: admin.id })
+      .loginAs(user)
+
+    response.assertStatus(403)
     const body = response.body() as { error: { code: string } }
     assert.equal(body.error.code, 'E_RBAC_ABOVE_ACTOR')
+
+    await actor.refresh()
+    assert.equal(
+      actor.roleId,
+      ownRoleId,
+      'la règle 2 ne fait aucun cas particulier de soi-même : se promouvoir est le trou qu’elle ferme'
+    )
   })
 
   test('lets two members holding the SAME set manage each other', async ({ client, assert }) => {
