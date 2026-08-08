@@ -39,10 +39,11 @@ export default class PermissionMiddleware {
     const missing = required.filter((entry) => !granted.has(entry))
 
     if (missing.length > 0) {
-      // `ApiException`, not the bare `Exception` this used to throw: the handler
-      // only special-cases `ApiException`, so the plain form fell to the
-      // catch-all and shipped as `E_INTERNAL_SERVER_ERROR` outside debug mode —
-      // the same defect already fixed for the 409 in `RolesController`.
+      // `ApiException` et non une `Exception` nue : le gestionnaire d'erreurs ne
+      // traite spécialement que la première. Une exception nue tombe dans le
+      // fourre-tout, qui conserve le statut mais remplace le corps par
+      // `E_INTERNAL_SERVER_ERROR` et « Internal server error » hors mode debug —
+      // le client n'apprendrait donc pas quelle permission lui manque.
       throw new ApiException('E_FORBIDDEN', `Missing permission: ${missing.join(', ')}`, 403)
     }
 
