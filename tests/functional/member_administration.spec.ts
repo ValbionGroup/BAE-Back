@@ -200,8 +200,9 @@ test.group('Member administration', (group) => {
     const response = await client.delete(`/v1/members/${actor.id}`).loginAs(user)
 
     response.assertStatus(409)
-    const body = response.body() as { error: { code: string } }
+    const body = response.body() as { error: { code: string; message: string } }
     assert.equal(body.error.code, 'E_MEMBER_SELF_DELETE')
+    assert.equal(body.error.message, 'Vous ne pouvez pas supprimer votre propre compte.')
     assert.isNotNull(await Member.find(actor.id))
   })
 
@@ -218,8 +219,12 @@ test.group('Member administration', (group) => {
     const response = await client.delete(`/v1/members/${target.id}`).loginAs(user)
 
     response.assertStatus(403)
-    const body = response.body() as { error: { code: string } }
+    const body = response.body() as { error: { code: string; message: string } }
     assert.equal(body.error.code, 'E_RBAC_ABOVE_ACTOR')
+    assert.equal(
+      body.error.message,
+      'Ce membre porte des permissions que vous n’avez pas : role:write.'
+    )
     assert.isNotNull(await Member.find(target.id), 'un refus ne doit rien supprimer')
   })
 
