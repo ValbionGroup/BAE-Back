@@ -25,7 +25,8 @@ test.group('Member administration', (group) => {
     const response = await client.delete('/v1/members/999999').loginAs(user)
 
     response.assertStatus(404)
-    const body = response.body() as { error: { code: string } }
+    const body = response.body() as { error: { code: string; message: string } }
     assert.equal(body.error.code, 'E_MEMBER_NOT_FOUND')
+    assert.equal(body.error.message, 'Membre introuvable.')
   })
 })
