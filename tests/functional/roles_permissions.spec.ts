@@ -3,6 +3,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
 import Role from '#models/role'
 import Permission from '#models/permission'
+import User from '#models/user'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 
@@ -110,6 +111,35 @@ test.group('Roles permissions exposure', (group) => {
     )
   })
 
+  test('refuses a sync that leaves nobody holding role:read', async ({ client, assert }) => {
+    // Same reasoning as the role:write case above: clear other holders first, or
+    // the global count never reaches zero and the test proves nothing.
+    await db.from('roles_permissions').where('permission_id', 'role:read').delete()
+
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write', 'role:read'])
+    const role = await Role.findOrFail(member.roleId)
+
+    const response = await client
+      .put(`/v1/roles/${role.id}/permissions`)
+      .json({ permissions: ['role:write'] })
+      .loginAs(user)
+
+    response.assertStatus(409)
+    assert.equal(response.body().error.code, 'E_RBAC_LOCKOUT')
+    assert.equal(
+      response.body().error.message,
+      'Accordez d’abord role:read à un rôle occupé avant de la retirer ici.'
+    )
+
+    await role.load('permissions')
+    assert.sameMembers(
+      role.permissions.map((entry) => entry.permission),
+      ['role:write', 'role:read'],
+      'le refus doit annuler le sync, pas le laisser à moitié appliqué'
+    )
+  })
+
   test('allows stripping role:write from a role nobody holds', async ({ client, assert }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['role:write'])
@@ -144,13 +174,18 @@ test.group('Roles permissions exposure', (group) => {
     response.assertStatus(404)
   })
 
-  test('GET /v1/roles is closed to a member without role:read', async ({ client }) => {
+  test('GET /v1/roles is closed to a member without role:read', async ({ client, assert }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['presence:read'])
 
     const response = await client.get('/v1/roles').loginAs(user)
 
     response.assertStatus(403)
+    // A bare `Exception` used to reach here: status 403 survived but the body
+    // collapsed to `E_INTERNAL_SERVER_ERROR` / "Internal server error" outside
+    // debug mode. `assertStatus` alone would not have caught that regression.
+    assert.equal(response.body().error.code, 'E_FORBIDDEN')
+    assert.equal(response.body().error.message, 'Missing permission: role:read')
   })
 
   test('GET /v1/roles is open to a member with role:read', async ({ client }) => {
@@ -171,5 +206,88 @@ test.group('Roles permissions exposure', (group) => {
     const response = await client.get('/v1/members').loginAs(user)
 
     response.assertStatus(200)
+  })
+})
+
+test.group('Roles permissions — concurrent syncs', () => {
+  // Deliberately NOT `testUtils.db().withGlobalTransaction()`: that hook makes
+  // every `db.transaction()` opened during the test reuse the same wrapping
+  // transaction as a savepoint on ONE physical connection — a single Postgres
+  // session can't have two overlapping transactions, so the race this test
+  // exists to reproduce could never actually happen under it. Real, separate
+  // connections are required, so this group commits for real and cleans up by
+  // hand instead of relying on rollback.
+  test('two concurrent syncs on different roles cannot both empty role:write', async ({
+    client,
+    assert,
+  }) => {
+    // `created_at` is `notNullable` with no column default (see the migration),
+    // so restoring these rows later needs the original value, not a fresh one.
+    const otherHolders = await db
+      .from('roles_permissions')
+      .where('permission_id', 'role:write')
+      .select('role_id', 'created_at')
+
+    await db.from('roles_permissions').where('permission_id', 'role:write').delete()
+
+    const roleA = await Role.create({ name: 'Pole Concurrent A' })
+    const roleB = await Role.create({ name: 'Pole Concurrent B' })
+    await roleA.related('permissions').sync(['role:write'])
+    await roleB.related('permissions').sync(['role:write'])
+
+    const memberA = await MemberFactory.create()
+    memberA.roleId = roleA.id
+    await memberA.save()
+    const userA = await User.findOrFail(memberA.id)
+
+    const memberB = await MemberFactory.create()
+    memberB.roleId = roleB.id
+    await memberB.save()
+    const userB = await User.findOrFail(memberB.id)
+
+    try {
+      // Neither request is awaited individually before the other is issued: both
+      // hit the server, and therefore both open their own `db.transaction()` on
+      // their own connection, before either has a chance to commit. That is what
+      // makes this a genuine interleaving rather than two sequential calls that
+      // happen to be wrapped in the same `Promise.all`.
+      const [responseA, responseB] = await Promise.all([
+        client.put(`/v1/roles/${roleA.id}/permissions`).json({ permissions: [] }).loginAs(userA),
+        client.put(`/v1/roles/${roleB.id}/permissions`).json({ permissions: [] }).loginAs(userB),
+      ])
+
+      const statuses = [responseA.status(), responseB.status()].sort((a, b) => a - b)
+      assert.deepEqual(
+        statuses,
+        [200, 409],
+        'exactly one of the two concurrent syncs must be refused — never both accepted, never both refused'
+      )
+
+      const remaining = await db
+        .from('roles_permissions')
+        .where('permission_id', 'role:write')
+        .count('* as total')
+      assert.equal(
+        Number(remaining[0].total),
+        1,
+        'the invariant must hold after the race: role:write still has exactly one living holder'
+      )
+    } finally {
+      // `members.id` cascades from `users.id`, so deleting the users is enough to
+      // remove the member rows too.
+      await userA.delete()
+      await userB.delete()
+      await roleA.delete()
+      await roleB.delete()
+      if (otherHolders.length > 0) {
+        await db.table('roles_permissions').insert(
+          otherHolders.map((row) => ({
+            role_id: row.role_id,
+            permission_id: 'role:write',
+            created_at: row.created_at,
+          }))
+        )
+      }
+    }
   })
 })

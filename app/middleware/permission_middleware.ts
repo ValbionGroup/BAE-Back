@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import { Exception } from '@adonisjs/core/exceptions'
+import ApiException from '#exceptions/api_exception'
 import Member from '#models/member'
 
 /**
@@ -39,10 +39,11 @@ export default class PermissionMiddleware {
     const missing = required.filter((entry) => !granted.has(entry))
 
     if (missing.length > 0) {
-      throw new Exception(`Missing permission: ${missing.join(', ')}`, {
-        code: 'E_FORBIDDEN',
-        status: 403,
-      })
+      // `ApiException`, not the bare `Exception` this used to throw: the handler
+      // only special-cases `ApiException`, so the plain form fell to the
+      // catch-all and shipped as `E_INTERNAL_SERVER_ERROR` outside debug mode —
+      // the same defect already fixed for the 409 in `RolesController`.
+      throw new ApiException('E_FORBIDDEN', `Missing permission: ${missing.join(', ')}`, 403)
     }
 
     return next()

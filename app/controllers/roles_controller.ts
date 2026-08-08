@@ -5,6 +5,25 @@ import Role from '#models/role'
 import Member from '#models/member'
 import { rolePermissionsValidator } from '#validators/role'
 
+/**
+ * Arbitrary but fixed key for `pg_advisory_xact_lock`. Every caller that mutates
+ * role permissions and then counts holders of a protected permission must take
+ * this same lock first, or two concurrent syncs on DIFFERENT roles can each run
+ * under READ COMMITTED without ever seeing the other's uncommitted delete — both
+ * pass their headcount check, and the invariant they exist to enforce is lost.
+ * The lock is transaction-scoped, so it releases itself on commit or rollback.
+ */
+const RBAC_LOCK_KEY = 872_364_501
+
+/**
+ * Permissions that must always survive a sync somewhere in the org: without
+ * `role:write` nobody can fix a bad grant, and without `role:read` nobody can
+ * even see the matrix (it also gates `/equipe`, `GET /roles`, `GET /permissions`,
+ * and the sidebar entry) to find their way back. Losing either one is only
+ * recoverable via direct database access.
+ */
+const RBAC_PROTECTED_PERMISSIONS = ['role:read', 'role:write'] as const
+
 export default class RolesController {
   /**
    * Display a list of resource
@@ -58,28 +77,35 @@ export default class RolesController {
     const role = await Role.findOrFail(params.id)
 
     await db.transaction(async (trx) => {
+      // Taken BEFORE the sync, so a second concurrent request on another role
+      // blocks here until this one commits or rolls back — it then recounts
+      // against the real, post-commit state instead of a stale snapshot.
+      await trx.rawQuery('SELECT pg_advisory_xact_lock(?)', [RBAC_LOCK_KEY])
+
       role.useTransaction(trx)
       await role.related('permissions').sync(permissions)
 
       // Vérifié APRÈS application, dans la transaction : une seule règle, exacte
       // par construction. Simuler l'état futur avant le sync donnerait deux
       // logiques à garder d'accord.
-      const holders = await Member.query({ client: trx })
-        .whereHas('role', (roleQuery) =>
-          roleQuery.whereHas('permissions', (permissionQuery) =>
-            permissionQuery.where('permission', 'role:write')
+      for (const permission of RBAC_PROTECTED_PERMISSIONS) {
+        const holders = await Member.query({ client: trx })
+          .whereHas('role', (roleQuery) =>
+            roleQuery.whereHas('permissions', (permissionQuery) =>
+              permissionQuery.where('permission', permission)
+            )
           )
-        )
-        .count('* as total')
+          .count('* as total')
 
-      // `count` revient en string du driver Postgres : sans `Number`, la
-      // comparaison est toujours fausse et l'invariant ne protège rien.
-      if (Number(holders[0].$extras.total) === 0) {
-        throw new ApiException(
-          'E_RBAC_LOCKOUT',
-          'Accordez d’abord role:write à un rôle occupé avant de la retirer ici.',
-          409
-        )
+        // `count` revient en string du driver Postgres : sans `Number`, la
+        // comparaison est toujours fausse et l'invariant ne protège rien.
+        if (Number(holders[0].$extras.total) === 0) {
+          throw new ApiException(
+            'E_RBAC_LOCKOUT',
+            `Accordez d’abord ${permission} à un rôle occupé avant de la retirer ici.`,
+            409
+          )
+        }
       }
     })
 
