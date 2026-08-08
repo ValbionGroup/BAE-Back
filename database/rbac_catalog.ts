@@ -76,12 +76,7 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'stock:read',
     'log:read',
   ],
-  'Coordinateur': [
-    'event:matching',
-    'event:settle',
-    'assignment:write',
-    'stock:read',
-  ],
+  'Coordinateur': ['event:matching', 'event:settle', 'assignment:write', 'stock:read'],
   'Secretaire': ['log:read', 'role:read'],
   'Pole Log': [
     'stock:read',
