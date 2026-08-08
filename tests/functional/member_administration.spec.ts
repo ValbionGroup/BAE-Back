@@ -4,6 +4,9 @@ import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 import Role from '#models/role'
 import Permission from '#models/permission'
+import db from '@adonisjs/lucid/services/db'
+import Member from '#models/member'
+import User from '#models/user'
 
 test.group('Member administration', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
@@ -165,5 +168,80 @@ test.group('Member administration', (group) => {
     response.assertStatus(200)
     await peer.refresh()
     assert.equal(peer.firstName, 'Pair', 'l’inclusion est large : un pair gère son pair')
+  })
+
+  test('deleting a member deletes the user account and its sessions', async ({
+    client,
+    assert,
+  }) => {
+    const actor = await MemberFactory.create()
+    const user = await grantPermissions(actor, ['member:write'])
+    const target = await MemberFactory.create()
+    const targetUser = await User.findOrFail(target.id)
+    await User.accessTokens.create(targetUser)
+
+    const response = await client.delete(`/v1/members/${target.id}`).loginAs(user)
+
+    response.assertStatus(204)
+    assert.isNull(await Member.find(target.id), 'la ligne members doit disparaître')
+    assert.isNull(await User.find(target.id), 'le compte utilisateur part avec')
+
+    const tokens = await db
+      .from('auth_access_tokens')
+      .where('tokenable_id', target.id)
+      .count('* as total')
+    assert.equal(Number(tokens[0].total), 0, 'les sessions cascadent depuis users')
+  })
+
+  test('refuses to delete oneself', async ({ client, assert }) => {
+    const actor = await MemberFactory.create()
+    const user = await grantPermissions(actor, ['member:write'])
+
+    const response = await client.delete(`/v1/members/${actor.id}`).loginAs(user)
+
+    response.assertStatus(409)
+    const body = response.body() as { error: { code: string } }
+    assert.equal(body.error.code, 'E_MEMBER_SELF_DELETE')
+    assert.isNotNull(await Member.find(actor.id))
+  })
+
+  test('refuses to delete a member holding permissions the actor lacks', async ({
+    client,
+    assert,
+  }) => {
+    const actor = await MemberFactory.create()
+    const user = await grantPermissions(actor, ['member:write'])
+
+    const target = await MemberFactory.create()
+    await grantPermissions(target, ['member:write', 'role:write'])
+
+    const response = await client.delete(`/v1/members/${target.id}`).loginAs(user)
+
+    response.assertStatus(403)
+    const body = response.body() as { error: { code: string } }
+    assert.equal(body.error.code, 'E_RBAC_ABOVE_ACTOR')
+    assert.isNotNull(await Member.find(target.id), 'un refus ne doit rien supprimer')
+  })
+
+  test('a peer sharing the protected role can still be deleted', async ({ client, assert }) => {
+    // La base peut déjà contenir d'autres porteurs (comptes réels en dev, rôles
+    // seedés) : sans les neutraliser, le décompte ne prouve rien.
+    await db.from('roles_permissions').where('permission_id', 'role:write').delete()
+    await db.from('roles_permissions').where('permission_id', 'role:read').delete()
+
+    await Permission.firstOrCreate({ permission: 'member:write' })
+    const protectedRole = await Role.create({ name: 'Pole Protege' })
+    await protectedRole.related('permissions').sync(['member:write', 'role:read', 'role:write'])
+
+    const actor = await MemberFactory.merge({ roleId: protectedRole.id }).create()
+    const target = await MemberFactory.merge({ roleId: protectedRole.id }).create()
+    const user = await User.findOrFail(actor.id)
+
+    const response = await client.delete(`/v1/members/${target.id}`).loginAs(user)
+
+    // L'acteur occupe encore le rôle protégé : la permission garde un porteur,
+    // la suppression est légitime et l'invariant n'a pas à s'y opposer.
+    response.assertStatus(204)
+    assert.isNull(await Member.find(target.id))
   })
 })

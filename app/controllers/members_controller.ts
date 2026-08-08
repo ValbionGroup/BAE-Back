@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Member from '#models/member'
 import Role from '#models/role'
+import User from '#models/user'
 import ApiException from '#exceptions/api_exception'
 import { updateMemberValidator } from '#validators/member'
 import {
@@ -106,16 +107,56 @@ export default class MembersController {
 
   /**
    * Delete record
+   *
+   * Supprime le COMPTE, pas seulement la ligne `members` : un `users` sans
+   * `members` n'a aujourd'hui aucun usage légitime (la table `clients` du §4.4
+   * n'existe pas), et `ProfileController.show` déréférence `user.member` sans
+   * tester sa nullité — la personne recevrait un 500 au démarrage du dashboard
+   * au lieu d'un refus propre.
+   *
+   * Tout cascade depuis `users` : `members`, `auth_access_tokens` (la session
+   * meurt avec le compte), puis depuis `members` les préférences, réponses,
+   * affectations et éligibilités. `orders.member_id`, `restocks.member_id` et
+   * `logs.user_id` passent en `SET NULL` — l'historique de caisse et le journal
+   * d'audit survivent sans leur auteur.
    */
-  async destroy({ params }: HttpContext) {
-    const member = await Member.query().preload('role').where('id', params.id).first()
-    if (!member) {
-      // `ApiException` et non `new Error` : le gestionnaire ne traite spécialement
-      // que la première. Une `Error` nue n'a même pas de statut et sort en 500
-      // franc, là où le client attend un 404 — et le front ne peut alors rien
-      // formuler d'utile.
-      throw new ApiException('E_MEMBER_NOT_FOUND', 'Membre introuvable.', 404)
-    }
-    await member.delete()
+  async destroy({ params, auth, response }: HttpContext) {
+    const actorId = auth.getUserOrFail().id
+    const targetId = Number(params.id)
+
+    await db.transaction(async (trx) => {
+      await acquireRbacLock(trx)
+      const atRisk = await snapshotAtRiskPermissions(trx)
+
+      const member = await Member.query({ client: trx }).where('id', targetId).first()
+      if (!member) {
+        throw new ApiException('E_MEMBER_NOT_FOUND', 'Membre introuvable.', 404)
+      }
+
+      // Avant la règle 1, qui passerait trivialement sur soi-même : le geste
+      // détruit sa propre session au milieu de la requête.
+      if (member.id === actorId) {
+        throw new ApiException(
+          'E_MEMBER_SELF_DELETE',
+          'Vous ne pouvez pas supprimer votre propre compte.',
+          409
+        )
+      }
+
+      assertCanActOn(
+        await permissionsOfMember(actorId, trx),
+        await permissionsOfMember(member.id, trx)
+      )
+
+      const user = await User.query({ client: trx }).where('id', member.id).first()
+      if (user) {
+        user.useTransaction(trx)
+        await user.delete()
+      }
+
+      await assertNoLockout(trx, atRisk)
+    })
+
+    return response.noContent()
   }
 }
