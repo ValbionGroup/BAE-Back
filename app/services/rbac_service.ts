@@ -27,29 +27,68 @@ const RBAC_LOCK_KEY = 872_364_501
  */
 const RBAC_PROTECTED_PERMISSIONS = ['role:read', 'role:write'] as const
 
+export type ProtectedPermission = (typeof RBAC_PROTECTED_PERMISSIONS)[number]
+
 /** Take BEFORE mutating, so a concurrent writer blocks until we commit. */
 export async function acquireRbacLock(trx: TransactionClientContract): Promise<void> {
   await trx.rawQuery('SELECT pg_advisory_xact_lock(?)', [RBAC_LOCK_KEY])
 }
 
+async function countHolders(
+  trx: TransactionClientContract,
+  permission: ProtectedPermission
+): Promise<number> {
+  const holders = await Member.query({ client: trx })
+    .whereHas('role', (roleQuery) =>
+      roleQuery.whereHas('permissions', (permissionQuery) =>
+        permissionQuery.where('permission', permission)
+      )
+    )
+    .count('* as total')
+
+  // `count` revient en string du driver Postgres : sans `Number`, la
+  // comparaison est toujours fausse et l'invariant ne protège rien.
+  return Number(holders[0].$extras.total)
+}
+
 /**
- * Vérifié APRÈS application, dans la transaction : une seule règle, exacte par
+ * Instantané pris AVANT la mutation, sous le verrou : la liste des permissions
+ * protégées qui ont encore des porteurs.
+ *
+ * Une permission que personne ne porte déjà n'est pas protégeable : la défendre
+ * refuserait toute édition sans rendre l'accès à quiconque, alors que la
+ * réattribuer est précisément ce que l'appelant vient faire. Seules comptent
+ * celles que CETTE mutation ferait tomber à zéro.
+ *
+ * Sans ce filtre, un `role:read` tombé à zéro pour n'importe quelle raison
+ * ferait échouer en 409 toute édition ultérieure, sur n'importe quel rôle,
+ * définitivement — le seul endpoint capable de réparer étant celui qui refuse.
+ */
+export async function snapshotAtRiskPermissions(
+  trx: TransactionClientContract
+): Promise<ProtectedPermission[]> {
+  const atRisk: ProtectedPermission[] = []
+  for (const permission of RBAC_PROTECTED_PERMISSIONS) {
+    if ((await countHolders(trx, permission)) > 0) {
+      atRisk.push(permission)
+    }
+  }
+  return atRisk
+}
+
+/**
+ * Recompté APRÈS application, dans la transaction : la règle est exacte par
  * construction. Simuler l'état futur avant la mutation donnerait deux logiques
  * à garder d'accord.
+ *
+ * `atRisk` vient de `snapshotAtRiskPermissions`, appelé avant la mutation.
  */
-export async function assertNoLockout(trx: TransactionClientContract): Promise<void> {
-  for (const permission of RBAC_PROTECTED_PERMISSIONS) {
-    const holders = await Member.query({ client: trx })
-      .whereHas('role', (roleQuery) =>
-        roleQuery.whereHas('permissions', (permissionQuery) =>
-          permissionQuery.where('permission', permission)
-        )
-      )
-      .count('* as total')
-
-    // `count` revient en string du driver Postgres : sans `Number`, la
-    // comparaison est toujours fausse et l'invariant ne protège rien.
-    if (Number(holders[0].$extras.total) === 0) {
+export async function assertNoLockout(
+  trx: TransactionClientContract,
+  atRisk: readonly ProtectedPermission[]
+): Promise<void> {
+  for (const permission of atRisk) {
+    if ((await countHolders(trx, permission)) === 0) {
       throw new ApiException(
         'E_RBAC_LOCKOUT',
         `Accordez d’abord ${permission} à un rôle occupé avant de la retirer ici.`,

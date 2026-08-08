@@ -140,6 +140,41 @@ test.group('Roles permissions exposure', (group) => {
     )
   })
 
+  test('allows an unrelated sync when role:read already has no holders', async ({
+    client,
+    assert,
+  }) => {
+    // Same reasoning as the two lockout tests above: clear role:read down to zero
+    // holders first. Unlike those, this one exercises the OTHER side of the
+    // invariant — a permission already at zero before the mutation must not brick
+    // every future sync on every role, only the ones that would push a permission
+    // still held by someone down to zero. `role:write` is left alone, so the
+    // actor's own role keeps it and can call the route.
+    await db.from('roles_permissions').where('permission_id', 'role:read').delete()
+
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    await Permission.firstOrCreate({ permission: 'stock:read' })
+    await Permission.firstOrCreate({ permission: 'log:read' })
+    const role = await Role.create({ name: 'Pole Tiers' })
+    await role.related('permissions').sync(['stock:read'])
+
+    const response = await client
+      .put(`/v1/roles/${role.id}/permissions`)
+      .json({ permissions: ['log:read'] })
+      .loginAs(user)
+
+    response.assertStatus(200)
+
+    await role.load('permissions')
+    assert.deepEqual(
+      role.permissions.map((entry) => entry.permission),
+      ['log:read'],
+      'une permission protégée déjà à zéro porteur ne doit pas bloquer un sync qui ne la touche pas'
+    )
+  })
+
   test('allows stripping role:write from a role nobody holds', async ({ client, assert }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['role:write'])

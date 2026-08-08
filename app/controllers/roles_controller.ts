@@ -2,7 +2,11 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Role from '#models/role'
 import { rolePermissionsValidator } from '#validators/role'
-import { acquireRbacLock, assertNoLockout } from '#services/rbac_service'
+import {
+  acquireRbacLock,
+  assertNoLockout,
+  snapshotAtRiskPermissions,
+} from '#services/rbac_service'
 
 export default class RolesController {
   /**
@@ -61,11 +65,12 @@ export default class RolesController {
       // autre rôle bloque ici jusqu'à notre commit ou rollback — elle recompte
       // alors contre l'état réel, pas contre un instantané périmé.
       await acquireRbacLock(trx)
+      const atRisk = await snapshotAtRiskPermissions(trx)
 
       role.useTransaction(trx)
       await role.related('permissions').sync(permissions)
 
-      await assertNoLockout(trx)
+      await assertNoLockout(trx, atRisk)
     })
 
     await role.load('permissions')
