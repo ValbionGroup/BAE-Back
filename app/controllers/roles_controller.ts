@@ -24,6 +24,8 @@ const RBAC_LOCK_KEY = 872_364_501
  */
 const RBAC_PROTECTED_PERMISSIONS = ['role:read', 'role:write'] as const
 
+type ProtectedPermission = (typeof RBAC_PROTECTED_PERMISSIONS)[number]
+
 export default class RolesController {
   /**
    * Display a list of resource
@@ -77,18 +79,12 @@ export default class RolesController {
     const role = await Role.findOrFail(params.id)
 
     await db.transaction(async (trx) => {
-      // Taken BEFORE the sync, so a second concurrent request on another role
-      // blocks here until this one commits or rolls back — it then recounts
-      // against the real, post-commit state instead of a stale snapshot.
+      // Pris avant le premier comptage : une requête concurrente sur un autre
+      // rôle attend ici, puis mesure l'état réellement commité par celle-ci au
+      // lieu d'un instantané périmé.
       await trx.rawQuery('SELECT pg_advisory_xact_lock(?)', [RBAC_LOCK_KEY])
 
-      role.useTransaction(trx)
-      await role.related('permissions').sync(permissions)
-
-      // Vérifié APRÈS application, dans la transaction : une seule règle, exacte
-      // par construction. Simuler l'état futur avant le sync donnerait deux
-      // logiques à garder d'accord.
-      for (const permission of RBAC_PROTECTED_PERMISSIONS) {
+      const countHolders = async (permission: ProtectedPermission) => {
         const holders = await Member.query({ client: trx })
           .whereHas('role', (roleQuery) =>
             roleQuery.whereHas('permissions', (permissionQuery) =>
@@ -99,7 +95,28 @@ export default class RolesController {
 
         // `count` revient en string du driver Postgres : sans `Number`, la
         // comparaison est toujours fausse et l'invariant ne protège rien.
-        if (Number(holders[0].$extras.total) === 0) {
+        return Number(holders[0].$extras.total)
+      }
+
+      // Une permission que personne ne porte déjà n'est pas protégeable : la
+      // défendre ici refuserait toute édition sans rendre l'accès à quiconque,
+      // alors que réattribuer la permission est justement ce que l'appelant
+      // vient faire. Seules comptent celles que CE sync ferait tomber à zéro.
+      const atRisk: ProtectedPermission[] = []
+      for (const permission of RBAC_PROTECTED_PERMISSIONS) {
+        if ((await countHolders(permission)) > 0) {
+          atRisk.push(permission)
+        }
+      }
+
+      role.useTransaction(trx)
+      await role.related('permissions').sync(permissions)
+
+      // Recomptées APRÈS application, dans la transaction : la règle est exacte
+      // par construction. Simuler l'état futur avant le sync donnerait deux
+      // logiques à garder d'accord.
+      for (const permission of atRisk) {
+        if ((await countHolders(permission)) === 0) {
           throw new ApiException(
             'E_RBAC_LOCKOUT',
             `Accordez d’abord ${permission} à un rôle occupé avant de la retirer ici.`,

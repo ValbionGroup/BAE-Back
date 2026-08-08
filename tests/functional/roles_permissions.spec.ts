@@ -228,6 +228,11 @@ test.group('Roles permissions — concurrent syncs', () => {
 
     await db.from('roles_permissions').where('permission_id', 'role:write').delete()
 
+    // Rien ne seede le catalogue pour les tests : sans cette ligne, les `sync`
+    // ci-dessous violent la clé étrangère sur `permissions` dès que la base ne
+    // contient pas déjà `role:write`.
+    await Permission.firstOrCreate({ permission: 'role:write' })
+
     const roleA = await Role.create({ name: 'Pole Concurrent A' })
     const roleB = await Role.create({ name: 'Pole Concurrent B' })
     await roleA.related('permissions').sync(['role:write'])
