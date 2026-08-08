@@ -181,11 +181,9 @@ test.group('Roles permissions exposure', (group) => {
     const response = await client.get('/v1/roles').loginAs(user)
 
     response.assertStatus(403)
-    // A bare `Exception` used to reach here: status 403 survived but the body
-    // collapsed to `E_INTERNAL_SERVER_ERROR` / "Internal server error" outside
-    // debug mode. `assertStatus` alone would not have caught that regression.
-    assert.equal(response.body().error.code, 'E_FORBIDDEN')
-    assert.equal(response.body().error.message, 'Missing permission: role:read')
+    const body = response.body() as unknown as { error: { code: string; message: string } }
+    assert.equal(body.error.code, 'E_FORBIDDEN')
+    assert.equal(body.error.message, 'Missing permission: role:read')
   })
 
   test('GET /v1/roles is open to a member with role:read', async ({ client }) => {
