@@ -237,9 +237,12 @@ test.group('Member administration', (group) => {
     await db.from('roles_permissions').where('permission_id', 'role:write').delete()
     await db.from('roles_permissions').where('permission_id', 'role:read').delete()
 
-    await Permission.firstOrCreate({ permission: 'member:write' })
+    const held = ['member:write', 'role:read', 'role:write']
+    for (const permission of held) {
+      await Permission.firstOrCreate({ permission })
+    }
     const protectedRole = await Role.create({ name: 'Pole Protege' })
-    await protectedRole.related('permissions').sync(['member:write', 'role:read', 'role:write'])
+    await protectedRole.related('permissions').sync(held)
 
     const actor = await MemberFactory.merge({ roleId: protectedRole.id }).create()
     const target = await MemberFactory.merge({ roleId: protectedRole.id }).create()
