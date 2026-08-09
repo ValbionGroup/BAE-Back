@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Role from '#models/role'
+import ApiException from '#exceptions/api_exception'
 import { rolePermissionsValidator } from '#validators/role'
 import {
   acquireRbacLock,
@@ -79,12 +80,30 @@ export default class RolesController {
 
   /**
    * Delete record
+   *
+   * `members.role_id` est `ON DELETE SET NULL` et `roles_permissions.role_id`
+   * est `ON DELETE CASCADE` : supprimer le seul rôle porteur de `role:write`
+   * détache tous ses membres ET emporte la ligne de permission avec lui, ce qui
+   * fait tomber le compte global à zéro dans le même geste. Même enveloppe que
+   * `syncPermissions` : verrou, instantané avant mutation, suppression sous
+   * transaction, assertion après.
    */
-  async destroy({ params }: HttpContext) {
-    const role = await Role.find(params.id)
-    if (!role) {
-      throw new Error('Role not found')
-    }
-    await role.delete()
+  async destroy({ params, response }: HttpContext) {
+    await db.transaction(async (trx) => {
+      await acquireRbacLock(trx)
+      const atRisk = await snapshotAtRiskPermissions(trx)
+
+      const role = await Role.query({ client: trx }).where('id', params.id).first()
+      if (!role) {
+        throw new ApiException('E_ROLE_NOT_FOUND', 'Rôle introuvable.', 404)
+      }
+
+      role.useTransaction(trx)
+      await role.delete()
+
+      await assertNoLockout(trx, atRisk)
+    })
+
+    return response.noContent()
   }
 }

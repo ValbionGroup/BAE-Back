@@ -197,6 +197,64 @@ test.group('Roles permissions exposure', (group) => {
     )
   })
 
+  test('DELETE /v1/roles/:id refuses to delete the sole role carrying role:write', async ({
+    client,
+    assert,
+  }) => {
+    // Same reasoning as the sync lockout tests: clear other holders first, or
+    // the global count never reaches zero and the test proves nothing.
+    await db.from('roles_permissions').where('permission_id', 'role:write').delete()
+
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+    const role = await Role.findOrFail(member.roleId)
+
+    const response = await client.delete(`/v1/roles/${role.id}`).loginAs(user)
+
+    response.assertStatus(409)
+    assert.equal(response.body().error.code, 'E_RBAC_LOCKOUT')
+    assert.equal(
+      response.body().error.message,
+      'Accordez d’abord role:write à un rôle occupé avant de la retirer ici.'
+    )
+
+    const stillThere = await Role.find(role.id)
+    assert.isNotNull(stillThere, 'le refus doit annuler la suppression, pas la laisser passer')
+  })
+
+  test('DELETE /v1/roles/:id succeeds for an unrelated role carrying no protected permission', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    await Permission.firstOrCreate({ permission: 'stock:read' })
+    const role = await Role.create({ name: 'Pole Jetable' })
+    await role.related('permissions').sync(['stock:read'])
+
+    const response = await client.delete(`/v1/roles/${role.id}`).loginAs(user)
+
+    response.assertStatus(204)
+
+    const gone = await Role.find(role.id)
+    assert.isNull(gone, 'un rôle sans permission protégée doit rester supprimable')
+  })
+
+  test('DELETE /v1/roles/:id on an unknown id answers 404 with E_ROLE_NOT_FOUND', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    const response = await client.delete('/v1/roles/999999').loginAs(user)
+
+    response.assertStatus(404)
+    assert.equal(response.body().error.code, 'E_ROLE_NOT_FOUND')
+    assert.equal(response.body().error.message, 'Rôle introuvable.')
+  })
+
   test('the permission catalog cannot be written over HTTP', async ({ client }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['role:write'])
