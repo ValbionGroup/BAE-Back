@@ -2,8 +2,9 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 import testUtils from '@adonisjs/core/services/test_utils'
 import Voucher from '#models/voucher'
-import { UserFactory } from '#database/factories/user_factory'
+import { MemberFactory } from '#database/factories/members_factory'
 import { SupplierFactory } from '#database/factories/supplier_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 
 /**
  * Crée un bon directement plutôt que par une factory : c'est le seul fichier
@@ -24,7 +25,8 @@ test.group('Vouchers', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
   test('creates a voucher and returns it with its supplier', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['voucher:read', 'voucher:write'])
     const supplier = await SupplierFactory.merge({ name: 'Leclerc' }).create()
 
     const response = await client
@@ -49,7 +51,8 @@ test.group('Vouchers', (group) => {
   })
 
   test('marks a voucher as consumed', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['voucher:read', 'voucher:write'])
     const supplier = await SupplierFactory.create()
     const voucher = await makeVoucher(supplier.id)
 
@@ -79,7 +82,8 @@ test.group('Vouchers', (group) => {
     client,
     assert,
   }) => {
-    const user = await UserFactory.create()
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['voucher:read', 'voucher:write'])
     const supplier = await SupplierFactory.create()
     const voucher = await makeVoucher(supplier.id, DateTime.now())
 
