@@ -3,10 +3,18 @@ import Supplier from '#models/supplier'
 
 export default class SuppliersController {
   /**
-   * Display a list of resource
+   * Display a list of resource, alphabetically.
+   *
+   * Deliberately without `preload('goods')` / `preload('restocks')`: the only
+   * consumer is the supplier picker of the voucher modal, which needs `id` and
+   * `name`. Preloading returned the whole catalogue and every restock ever
+   * recorded — invisible today, costly once restocks pile up.
+   *
+   * The alphabetical order is not cosmetic either: this feeds a `<select>` a
+   * human scans by eye, and insertion order means nothing to them.
    */
   async index({ serialize }: HttpContext) {
-    return serialize(await Supplier.query().preload('goods').preload('restocks'))
+    return serialize(await Supplier.query().orderBy('name'))
   }
 
   /**
