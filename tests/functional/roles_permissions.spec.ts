@@ -241,6 +241,23 @@ test.group('Roles permissions exposure', (group) => {
     assert.isNull(gone, 'un rôle sans permission protégée doit rester supprimable')
   })
 
+  test('PATCH /v1/roles/:id on an unknown id answers 404 with E_ROLE_NOT_FOUND', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    const response = await client
+      .patch('/v1/roles/999999')
+      .json({ name: 'Peu importe' })
+      .loginAs(user)
+
+    response.assertStatus(404)
+    assert.equal(response.body().error.code, 'E_ROLE_NOT_FOUND')
+    assert.equal(response.body().error.message, 'Rôle introuvable.')
+  })
+
   test('DELETE /v1/roles/:id on an unknown id answers 404 with E_ROLE_NOT_FOUND', async ({
     client,
     assert,

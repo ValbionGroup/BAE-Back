@@ -42,7 +42,7 @@ export default class RolesController {
     const { name } = request.body()
     const role = await Role.find(params.id)
     if (!role) {
-      throw new Error('Role not found')
+      throw new ApiException('E_ROLE_NOT_FOUND', 'Rôle introuvable.', 404)
     }
     role.name = name
     await role.save()
