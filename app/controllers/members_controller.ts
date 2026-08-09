@@ -154,6 +154,13 @@ export default class MembersController {
         await user.delete()
       }
 
+      // Prouvablement inatteignable ici : la règle 1 ci-dessus force l'acteur à
+      // porter tout ce que la cible porte, et l'auto-suppression est refusée plus
+      // haut, donc l'acteur survit toujours comme porteur — contrairement à
+      // `update`, où un acteur seul porteur de `role:write` qui met son propre
+      // `roleId` à `null` contourne `assertCanGrant` et n'est rattrapé qu'ici. On
+      // la garde quand même : décision arbitrée, défense en profondeur pour le
+      // jour où la liste protégée s'agrandit ou où la règle 1 s'assouplit.
       await assertNoLockout(trx, atRisk)
     })
 

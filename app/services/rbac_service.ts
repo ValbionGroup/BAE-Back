@@ -157,6 +157,12 @@ export function assertCanActOn(actor: Set<string>, target: Set<string>): void {
  * C'est elle qui ferme le trou réel : sans elle, un porteur de `member:write`
  * met `roleId` = un rôle qui porte `role:write` SUR SA PROPRE LIGNE et se
  * promeut. Il n'a jamais besoin de toucher à quelqu'un d'autre.
+ *
+ * La hiérarchie dérivée ne contraint que STRICTEMENT en dessous de
+ * `role:write` : un porteur de `role:write` peut faire un `PUT
+ * /v1/roles/<son propre rôle>/permissions` avec tout le catalogue en un seul
+ * appel — `role:write` est racine par construction, cette règle ne le retient
+ * pas lui-même.
  */
 export function assertCanGrant(actor: Set<string>, role: Set<string>): void {
   const missing = beyond(actor, role)
