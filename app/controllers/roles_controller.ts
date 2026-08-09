@@ -3,11 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import Role from '#models/role'
 import ApiException from '#exceptions/api_exception'
 import { rolePermissionsValidator } from '#validators/role'
-import {
-  acquireRbacLock,
-  assertNoLockout,
-  snapshotAtRiskPermissions,
-} from '#services/rbac_service'
+import { acquireRbacLock, assertNoLockout, snapshotAtRiskPermissions } from '#services/rbac_service'
 
 export default class RolesController {
   /**

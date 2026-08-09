@@ -54,7 +54,7 @@ test.group('member:role command', (group) => {
     assert.isNull(member.roleId, 'un dry-run ne doit rien écrire')
   })
 
-  test('fails on an unknown member', async ({ assert }) => {
+  test('fails on an unknown member', async ({ }) => {
     const command = await ace.create(MemberRole, ['999999', 'Administrateur'])
     await command.exec()
 

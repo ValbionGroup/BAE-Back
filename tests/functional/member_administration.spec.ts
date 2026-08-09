@@ -94,7 +94,10 @@ test.group('Member administration', (group) => {
     response.assertStatus(403)
     const body = response.body() as { error: { code: string; message: string } }
     assert.equal(body.error.code, 'E_RBAC_ABOVE_ACTOR')
-    assert.equal(body.error.message, 'Ce rôle accorde des permissions que vous n’avez pas : role:write.')
+    assert.equal(
+      body.error.message,
+      'Ce rôle accorde des permissions que vous n’avez pas : role:write.'
+    )
 
     await target.refresh()
     assert.notEqual(target.roleId, admin.id, 'un refus ne doit rien écrire')
