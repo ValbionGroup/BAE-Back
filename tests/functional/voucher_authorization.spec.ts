@@ -75,7 +75,6 @@ test.group('Vouchers authorization', (group) => {
 
   test('refuses to consume a voucher without voucher:write', async ({ client }) => {
     const user = await userWith(['voucher:read'])
-    const supplier = await SupplierFactory.create()
     const response = await client
       .patch('/v1/vouchers/1')
       .json({ used_at: DateTime.now().toISO() })
@@ -83,6 +82,15 @@ test.group('Vouchers authorization', (group) => {
 
     // Le garde passe **avant** le contrôleur : l'id inexistant n'est jamais
     // atteint, donc c'est bien 403 et non 404 qu'on attend ici.
+    response.assertStatus(403)
+  })
+
+  test('refuses to delete a voucher without voucher:write', async ({ client }) => {
+    const user = await userWith(['voucher:read'])
+    const response = await client.delete('/v1/vouchers/1').loginAs(user)
+
+    // Même garde que pour PATCH : il passe avant le contrôleur, donc l'id
+    // inexistant n'est jamais atteint et c'est bien 403 et non 404 qu'on attend ici.
     response.assertStatus(403)
   })
 })
