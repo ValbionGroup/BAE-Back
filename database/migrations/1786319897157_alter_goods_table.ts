@@ -1,20 +1,13 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 /**
- * Adds the barcode a scanner reads off a package to `goods`.
+ * Le code-barres qu'un scanner lit sur un emballage.
  *
- * Nullable, because the column has to land on a table that is already
- * populated and most references will never be scanned — a good entered by
- * hand has no barcode and that is not a defect.
- *
- * Unique, because the whole point is the reverse lookup: one code must resolve
- * to exactly one product, or "scan it and I'll tell you what it is" has no
- * answer. Postgres allows many NULLs under a UNIQUE constraint, so the
- * unscannable goods do not collide with each other.
- *
- * Stored as a string, never a number: EAN-13 codes exceed the safe integer
- * range once concatenated, and leading zeros are significant — `0012345678905`
- * and `12345678905` are different products.
+ * Nullable : la colonne arrive sur une table peuplée et un produit saisi à la
+ * main n'a pas de code. Unique : un code doit résoudre vers exactement un
+ * produit — Postgres tolère plusieurs NULL, donc les produits non scannables ne
+ * se gênent pas. Texte et non nombre : un EAN-13 dépasse l'entier sûr et ses
+ * zéros de tête sont significatifs.
  */
 export default class extends BaseSchema {
   protected tableName = 'goods'

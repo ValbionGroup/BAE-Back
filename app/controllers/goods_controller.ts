@@ -6,14 +6,8 @@ import { bestSupplierPrice, supplierPrices } from '#services/pricing_service'
 /** Code d'unicité violée de Postgres. */
 const UNIQUE_VIOLATION = '23505'
 
-/**
- * Traduit la collision de code-barres en refus lisible.
- *
- * `goods.barcode` est unique : rattacher à un produit un code déjà porté par un
- * autre remonterait sinon en 500, alors que c'est un geste ordinaire de
- * l'utilisateur — il vient de scanner le mauvais paquet. Le message dit quoi
- * faire, ce qu'un « Internal server error » ne peut pas.
- */
+/** Une collision d'unicité est un geste ordinaire — le mauvais paquet scanné —
+ *  pas une panne serveur. */
 function rethrowBarcodeConflict(error: unknown): never {
   if ((error as { code?: string })?.code === UNIQUE_VIOLATION) {
     throw new ApiException(
@@ -35,9 +29,8 @@ export default class GoodsController {
    * the frontend renders one column per supplier and highlights `bestSupplier`.
    */
   async index({ request, serialize }: HttpContext) {
-    // `?barcode=` sert le scanner : un code lu résout vers zéro ou un produit,
-    // la colonne étant unique. Un filtre plutôt qu'une route dédiée, pour ne
-    // pas avoir à la déclarer avant `/goods/:id` et dépendre de l'ordre.
+    // Un filtre plutôt qu'une route dédiée, pour ne pas dépendre de l'ordre de
+    // déclaration face à `/goods/:id`.
     const barcode = request.qs().barcode
     const goods = await Good.query()
       .preload('products')
@@ -67,14 +60,11 @@ export default class GoodsController {
     const good = new Good()
     good.name = name
     good.unit = unit
-    // `?? ''` : la colonne est NOT NULL, et une marque absente est le cas
-    // ordinaire. Sans ce défaut, créer un produit sans marque partait en 500 —
-    // ce que l'endpoint faisait depuis toujours, faute de test.
+    // La colonne est NOT NULL : sans ce défaut, créer un produit sans marque
+    // partait en 500.
     good.brand = brand ?? ''
     good.categoryId = categoryId
-    // `?? null` et non la valeur nue : une chaîne vide passerait la contrainte
-    // d'unicité une première fois puis collisionnerait avec le produit suivant
-    // créé sans code.
+    // Une chaîne vide passerait l'unicité une fois, puis collisionnerait.
     good.barcode = barcode || null
     await good.save().catch(rethrowBarcodeConflict)
     return serialize(good)
@@ -108,13 +98,9 @@ export default class GoodsController {
     good.name = payload.name
     good.unit = payload.unit
     good.categoryId = payload.categoryId
-    // Même prudence que pour le code-barres : une clé absente ne doit pas
-    // effacer la marque existante, et la colonne étant NOT NULL, l'absence de
-    // valeur vaut chaîne vide.
+    // Une clé absente ne doit pas effacer la marque existante.
     if ('brand' in payload) good.brand = payload.brand ?? ''
-    // Seulement si la clé est présente : c'est ce qui permet d'associer un code
-    // à un produit existant sans réécrire le reste de sa fiche, et de le
-    // détacher en envoyant `null` explicitement.
+    // Clé présente seulement : associer un code sans réécrire la fiche.
     if ('barcode' in payload) good.barcode = payload.barcode || null
     await good.save().catch(rethrowBarcodeConflict)
     return serialize(good)
