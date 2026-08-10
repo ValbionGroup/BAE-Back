@@ -43,6 +43,15 @@ router
     router
       .get('/events/:id/products', [controllers.EventProducts, 'index'])
       .use(middleware.can('menu:read'))
+    router
+      .post('/events/:id/products', [controllers.EventProducts, 'store'])
+      .use(middleware.can('menu:write'))
+    router
+      .patch('/events/:id/products/:productId', [controllers.EventProducts, 'update'])
+      .use(middleware.can('menu:write'))
+    router
+      .delete('/events/:id/products/:productId', [controllers.EventProducts, 'destroy'])
+      .use(middleware.can('menu:write'))
 
     /**
      * Running the matching rewrites every unlocked assignment of the evening,

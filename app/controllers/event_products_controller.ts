@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
 import Event from '#models/event'
-import type Product from '#models/product'
+import Product from '#models/product'
 import ApiException from '#exceptions/api_exception'
 import { minSupplierPrice } from '#services/pricing_service'
+import { eventProductValidator, eventProductUpdateValidator } from '#validators/event_product'
 
 /**
  * Une ligne du menu d'une soirée, c'est-à-dire une ligne du pivot
@@ -87,10 +89,129 @@ async function loadEventWithMenu(id: string): Promise<Event> {
   return event
 }
 
+/**
+ * Le prix de vente le plus récent de ce produit, toutes soirées confondues.
+ *
+ * Même sous-requête que `ProductsController.summary` (`last_price`) : les deux
+ * doivent donner le même nombre, sinon un article changerait de prix selon
+ * l'écran qui le regarde. Renvoie 0 quand le produit n'a jamais été vendu.
+ */
+async function lastSalePrice(productId: number): Promise<number> {
+  const row = await db
+    .from('event_products')
+    .join('events', 'events.id', 'event_products.event_id')
+    .where('event_products.product_id', productId)
+    .orderBy('events.date', 'desc')
+    .select('event_products.price')
+    .first()
+
+  return row ? Number(row.price) : 0
+}
+
+/**
+ * La ligne de pivot fraîchement écrite, rechargée avec tout ce dont
+ * `toMenuLine` a besoin.
+ *
+ * Recharger plutôt que construire la réponse à la main : le coût dérivé
+ * dépend des denrées et de leurs fournisseurs, et un objet assemblé de mémoire
+ * finirait par diverger de ce que `index()` renvoie pour la même ligne.
+ */
+async function reloadLine(eventId: string, productId: number): Promise<MenuLinePayload> {
+  const event = await loadEventWithMenu(eventId)
+  const line = event.products.find((product) => product.id === productId)
+  if (!line) {
+    throw new ApiException('E_PRODUCT_NOT_FOUND', "Cette recette n'existe pas.", 404)
+  }
+  return toMenuLine(line)
+}
+
 export default class EventProductsController {
   /** Le menu d'une soirée, recettes par ordre alphabétique. */
   async index({ params, serialize }: HttpContext) {
     const event = await loadEventWithMenu(params.id)
     return serialize(event.products.map(toMenuLine))
+  }
+
+  /**
+   * Ajoute une recette au menu.
+   *
+   * Le doublon est refusé avant l'écriture : la clé primaire composite
+   * `(event_id, product_id)` le refuserait de toute façon, mais par une erreur
+   * SQL brute que le client ne peut pas interpréter.
+   */
+  async store({ params, request, serialize }: HttpContext) {
+    const event = await loadEventWithMenu(params.id)
+    const payload = await request.validateUsing(eventProductValidator)
+
+    const product = await Product.find(payload.productId)
+    if (!product) {
+      throw new ApiException('E_PRODUCT_NOT_FOUND', "Cette recette n'existe pas.", 404)
+    }
+
+    if (event.products.some((entry) => entry.id === product.id)) {
+      throw new ApiException(
+        'E_MENU_LINE_EXISTS',
+        'Cette recette est déjà au menu de la soirée.',
+        409
+      )
+    }
+
+    const price = payload.price ?? (await lastSalePrice(product.id))
+    await event.related('products').attach({
+      [product.id]: { quantity: payload.quantity, price },
+    })
+
+    return serialize(await reloadLine(params.id, product.id))
+  }
+
+  /**
+   * Change la quantité de production ou le prix de vente d'une ligne.
+   *
+   * `sync(..., false)` et non `attach()` : le second insérerait un doublon.
+   * Le `false` désactive le détachement, sinon la synchronisation d'une seule
+   * ligne effacerait tout le reste du menu.
+   */
+  async update({ params, request, serialize }: HttpContext) {
+    const event = await loadEventWithMenu(params.id)
+    const productId = Number(params.productId)
+
+    const current = event.products.find((entry) => entry.id === productId)
+    if (!current) {
+      throw new ApiException(
+        'E_PRODUCT_NOT_FOUND',
+        "Cette recette n'est pas au menu de cette soirée.",
+        404
+      )
+    }
+
+    const payload = await request.validateUsing(eventProductUpdateValidator)
+    await event.related('products').sync(
+      {
+        [productId]: {
+          quantity: payload.quantity ?? Number(current.$extras.pivot_quantity),
+          price: payload.price ?? Number(current.$extras.pivot_price),
+        },
+      },
+      false
+    )
+
+    return serialize(await reloadLine(params.id, productId))
+  }
+
+  /** Retire une recette du menu. */
+  async destroy({ params, response }: HttpContext) {
+    const event = await loadEventWithMenu(params.id)
+    const productId = Number(params.productId)
+
+    if (!event.products.some((entry) => entry.id === productId)) {
+      throw new ApiException(
+        'E_PRODUCT_NOT_FOUND',
+        "Cette recette n'est pas au menu de cette soirée.",
+        404
+      )
+    }
+
+    await event.related('products').detach([productId])
+    return response.noContent()
   }
 }
