@@ -11,6 +11,9 @@ import { grantPermissions } from '#tests/helpers/permissions'
  * est un objet **au porteur** : sa valeur est dans sa lecture. C'est la seule
  * exigence de sécurité formulée explicitement par le cahier des charges.
  */
+/** Le client typé n'expose que la forme de succès ; un corps d'erreur se relit. */
+type ErrorBody = { error: { code: string; message: string } }
+
 test.group('Vouchers authorization', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
@@ -34,8 +37,9 @@ test.group('Vouchers authorization', (group) => {
     response.assertStatus(403)
     // Asserter le corps et pas seulement le statut : une `Exception` nue
     // conserverait le statut mais son corps deviendrait E_INTERNAL_SERVER_ERROR.
-    assert.equal(response.body().error.code, 'E_FORBIDDEN')
-    assert.include(response.body().error.message, 'voucher:read')
+    const body = response.body() as unknown as ErrorBody
+    assert.equal(body.error.code, 'E_FORBIDDEN')
+    assert.include(body.error.message, 'voucher:read')
   })
 
   test('lists vouchers with voucher:read', async ({ client }) => {
@@ -58,7 +62,7 @@ test.group('Vouchers authorization', (group) => {
     // Lire n'autorise pas à écrire : c'est tout l'intérêt d'avoir deux
     // permissions plutôt qu'une.
     response.assertStatus(403)
-    assert.include(response.body().error.message, 'voucher:write')
+    assert.include((response.body() as unknown as ErrorBody).error.message, 'voucher:write')
   })
 
   test('creates a voucher with voucher:write', async ({ client }) => {

@@ -58,7 +58,7 @@ function toPlain(value: unknown): unknown {
 }
 
 const serialize = Object.assign(
-  (data: unknown) => {
+  (data: unknown): Promise<{ data: any }> => {
     const normalized = toPlain(data)
     if (Array.isArray(normalized)) {
       return Promise.resolve({ [serializer.wrap]: normalized })
