@@ -4,6 +4,7 @@ import FurnitureSeeder from './furniture_seeder.js'
 import ProductSeeder from './product_seeder.js'
 import ProductGoodSeeder from './product_good_seeder.js'
 import ProductFurnitureSeeder from './product_furniture_seeder.js'
+import EventProductSeeder from './event_product_seeder.js'
 import SupplierSeeder from './supplier_seeder.js'
 import GoodSupplierSeeder from './good_supplier_seeder.js'
 import MemberSeeder from './member_seeder.js'
@@ -50,6 +51,7 @@ export default class extends BaseSeeder {
     await this.runSeeder(SubscriptionSeeder)
     await this.runSeeder(ProductGoodSeeder)
     await this.runSeeder(ProductFurnitureSeeder)
+    await this.runSeeder(EventProductSeeder)
     await this.runSeeder(GoodSupplierSeeder)
     await this.runSeeder(StockBatchSeeder)
 

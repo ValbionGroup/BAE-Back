@@ -1,39 +1,63 @@
+import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import Good from '#models/good'
 import Product from '#models/product'
-import { BaseSeeder } from '@adonisjs/lucid/seeders'
+
+/**
+ * Composition explicite au lieu de 2-3 denrées tirées au hasard.
+ *
+ * L'aléatoire rendait la liste de courses ininterprétable — et surtout, il ne
+ * produisait jamais d'ingrédient **partagé** entre deux recettes, qui est
+ * précisément le cas que le calcul doit traiter correctement. Ici le pain et la
+ * moutarde le sont, entre les deux hot-dogs.
+ *
+ * `rank` porte l'ordre d'assemblage, `instruction` l'étape correspondante :
+ * c'est ce que la page d'accueil lira pour dire quoi assembler ce soir.
+ */
+const COMPOSITION: Record<string, readonly [string, number, string | null][]> = {
+  'Hot-dog classique': [
+    ['Pain hot-dog x12', 1, 'Fendre sans séparer'],
+    ['Saucisses Strasbourg x10', 1, 'Chauffer 3 min'],
+    ['Moutarde 270g', 1, 'Un trait dans la fente'],
+    ['Oignons frits 100g', 1, 'Une pincée par dessus'],
+  ],
+  'Hot-dog végétarien': [
+    ['Pain hot-dog x12', 1, 'Fendre sans séparer'],
+    ['Steak végétal x8', 1, 'Poêler 4 min par face'],
+    ['Moutarde 270g', 1, 'Un trait dans la fente'],
+  ],
+  'Frites portion': [
+    ['Frites surgelées', 1, 'Friture 170 °C, 4 min'],
+    ['Huile de friture', 1, 'Renouveler toutes les 20 portions'],
+  ],
+  'Crêpe Nutella': [
+    ['Farine T55', 1, 'Pâte reposée 30 min'],
+    ['Pâte à tartiner 400g', 1, 'Garnir hors du feu'],
+  ],
+  'Bière pression 25cl': [['Bière blonde 25cl x24', 1, 'Verre incliné 45°']],
+}
 
 export default class extends BaseSeeder {
   async run() {
-    const goods = await Good.all()
+    const allGoods = await Good.all()
+    const goods = new Map(allGoods.map((good) => [good.name, good.id]))
     const products = await Product.all()
 
-    console.log(`Found ${goods.length} goods and ${products.length} products`)
-
-    if (goods.length < 2) {
-      throw new Error('Not enough goods in database. Run good_seeder first!')
-    }
-
-    if (products.length === 0) {
-      throw new Error('Not enough products in database. Run product_seeder first!')
-    }
-
-    // Pour chaque product, attacher plusieurs goods avec des quantités
     for (const product of products) {
-      // Sélectionner 2-3 goods aléatoires pour chaque product
-      const randomGoodsCount = Math.floor(Math.random() * 2) + 2 // 2 ou 3 goods
-      const selectedGoods = goods
-        .sort(() => 0.5 - Math.random()) // Mélanger
-        .slice(0, randomGoodsCount)
+      const lines = COMPOSITION[product.name]
+      if (!lines) continue
 
-      const pivotData: Record<number, { quantity: number }> = {}
-
-      for (const good of selectedGoods) {
-        pivotData[good.id] = {
-          quantity: Math.floor(Math.random() * 10) + 1, // quantité entre 1 et 10
-        }
+      const pivot: Record<number, { quantity: number; rank: number; instruction: string | null }> =
+        {}
+      let rank = 1
+      for (const [goodName, quantity, instruction] of lines) {
+        const goodId = goods.get(goodName)
+        if (goodId === undefined) continue
+        pivot[goodId] = { quantity, rank: rank++, instruction }
       }
 
-      await product.related('goods').sync(pivotData)
+      // `sync` et non `attach` : le seeder doit être rejouable, et `attach` sur
+      // une paire existante viole la clé primaire composite du pivot.
+      await product.related('goods').sync(pivot)
     }
   }
 }
