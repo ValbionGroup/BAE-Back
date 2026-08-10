@@ -75,6 +75,7 @@ export type ScannedRoutes = {
     'events.get_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.settle': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
@@ -196,6 +197,7 @@ export type ScannedRoutes = {
     'events.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.get_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
     'jobs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.index': { paramsTuple?: []; params?: {} }
@@ -244,6 +246,7 @@ export type ScannedRoutes = {
     'events.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.get_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
     'jobs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.index': { paramsTuple?: []; params?: {} }

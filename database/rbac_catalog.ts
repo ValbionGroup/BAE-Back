@@ -35,6 +35,8 @@ export const PERMISSIONS = [
   'role:write',
   'voucher:read',
   'voucher:write',
+  'menu:read',
+  'menu:write',
 ] as const
 
 export type PermissionName = (typeof PERMISSIONS)[number]
@@ -60,8 +62,18 @@ export type RoleName = (typeof ROLES)[number]
  * `member:read` y figure parce que `GET /v1/members` n'est pas une route
  * d'administration : `CoordinationService.loadAll()` et `MemberAssignmentsStore`
  * l'appellent, donc la restreindre coupe l'accueil de tout membre ordinaire.
+ *
+ * `menu:read` y figure pour la même raison : le membre qui vient cuisiner doit
+ * voir le menu du soir (exigence « page d'accueil », P3 du cahier des charges).
+ * La garde reste utile — elle rend l'accès explicite et révocable — mais elle
+ * n'est pas là pour restreindre.
  */
-const BASE: readonly PermissionName[] = ['presence:read', 'presence:write', 'member:read']
+const BASE: readonly PermissionName[] = [
+  'presence:read',
+  'presence:write',
+  'member:read',
+  'menu:read',
+]
 
 /** Permissions propres à chaque rôle, hors socle. */
 const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
@@ -80,7 +92,13 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'voucher:read',
     'voucher:write',
   ],
-  'Coordinateur': ['event:matching', 'event:settle', 'assignment:write', 'stock:read'],
+  'Coordinateur': [
+    'event:matching',
+    'event:settle',
+    'assignment:write',
+    'stock:read',
+    'menu:write',
+  ],
   'Secretaire': ['log:read', 'role:read'],
   'Pole Log': [
     'stock:read',
@@ -98,6 +116,7 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'supplier:read',
     'voucher:read',
     'voucher:write',
+    'menu:write',
   ],
   'Pole BBQ': ['stock:read', 'stock:update', 'product:read', 'restock:read', 'restock:create'],
   'Membre': [],

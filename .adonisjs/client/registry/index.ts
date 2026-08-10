@@ -432,6 +432,12 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/roster","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/roster","type":0,"val":"events","end":""},{"old":"/v1/events/:id/roster","type":1,"val":"id","end":""},{"old":"/v1/events/:id/roster","type":0,"val":"roster","end":""}],
     types: placeholder as Registry['events.roster']['types'],
   },
+  'event_products.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/products',
+    tokens: [{"old":"/v1/events/:id/products","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/products","type":0,"val":"events","end":""},{"old":"/v1/events/:id/products","type":1,"val":"id","end":""},{"old":"/v1/events/:id/products","type":0,"val":"products","end":""}],
+    types: placeholder as Registry['event_products.index']['types'],
+  },
   'events.run_matching': {
     methods: ["POST"],
     pattern: '/v1/events/:id/matching',

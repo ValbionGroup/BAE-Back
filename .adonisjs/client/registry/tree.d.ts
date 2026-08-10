@@ -111,6 +111,9 @@ export interface ApiDefinition {
     runMatching: typeof routes['events.run_matching']
     settle: typeof routes['events.settle']
   }
+  eventProducts: {
+    index: typeof routes['event_products.index']
+  }
   jobs: {
     index: typeof routes['jobs.index']
     store: typeof routes['jobs.store']

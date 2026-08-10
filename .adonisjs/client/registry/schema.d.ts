@@ -859,6 +859,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['roster']>>>
     }
   }
+  'event_products.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/products'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['index']>>>
+    }
+  }
   'events.run_matching': {
     methods: ["POST"]
     pattern: '/v1/events/:id/matching'

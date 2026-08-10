@@ -30,6 +30,21 @@ router
     router.get('/events/:id/roster', [controllers.Events, 'roster'])
 
     /**
+     * Menu d'une soirée — le pivot `event_products`.
+     *
+     * Ressource imbriquée et non `/event-products/:id` : le pivot n'a pas d'id
+     * propre, sa clé est `(event_id, product_id)`. Le second membre est un
+     * identifiant que le client possède déjà, ce qui rend chaque écriture
+     * idempotente sans relecture.
+     *
+     * La lecture est gardée aussi, par une permission de socle : l'accès reste
+     * ouvert à tout membre en pratique, mais il devient explicite et révocable.
+     */
+    router
+      .get('/events/:id/products', [controllers.EventProducts, 'index'])
+      .use(middleware.can('menu:read'))
+
+    /**
      * Running the matching rewrites every unlocked assignment of the evening,
      * so it is coordination work, not something any member may trigger.
      */

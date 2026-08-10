@@ -8,6 +8,7 @@ export const controllers = {
   Assignments: () => import('#controllers/assignments_controller'),
   Categories: () => import('#controllers/categories_controller'),
   EventJobs: () => import('#controllers/event_jobs_controller'),
+  EventProducts: () => import('#controllers/event_products_controller'),
   Events: () => import('#controllers/events_controller'),
   FastPasses: () => import('#controllers/fast_passes_controller'),
   Furnitures: () => import('#controllers/furnitures_controller'),
