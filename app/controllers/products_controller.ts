@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Product from '#models/product'
+import Good from '#models/good'
 import db from '@adonisjs/lucid/services/db'
+import ApiException from '#exceptions/api_exception'
 import { loadBatchesWithRemaining } from '#services/stock_service'
 import { minSupplierPrice } from '#services/pricing_service'
 
@@ -20,6 +22,97 @@ function primaryCategoryName(product: Product): string | null {
   return primary?.category?.name ?? null
 }
 
+/**
+ * Every pivot pointing at `products` is `ON DELETE CASCADE`. Deleting a product
+ * therefore does not orphan its sales — it erases them. These are the tables
+ * whose rows are history, and whose presence forbids the deletion.
+ */
+const PRODUCT_USAGES = [
+  { table: 'order_products', singular: 'commande', plural: 'commandes' },
+  { table: 'event_products', singular: 'menu de soirée', plural: 'menus de soirée' },
+  { table: 'pre_order_items', singular: 'précommande', plural: 'précommandes' },
+] as const
+
+async function usageLabels(productId: number): Promise<string[]> {
+  const counts = await Promise.all(
+    PRODUCT_USAGES.map(async ({ table, singular, plural }) => {
+      const row = await db.from(table).where('product_id', productId).count('* as total').first()
+      return { singular, plural, total: Number(row?.total ?? 0) }
+    })
+  )
+  return counts
+    .filter((usage) => usage.total > 0)
+    .map((usage) => `${usage.total} ${usage.total > 1 ? usage.plural : usage.singular}`)
+}
+
+interface IngredientInput {
+  goodId: number
+  quantity: number
+  instruction: string | null
+}
+
+function badRequest(message: string): never {
+  throw new ApiException('E_PRODUCT_INVALID', message, 400)
+}
+
+function normalizeText(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed === '' ? null : trimmed
+}
+
+/**
+ * The array order *is* the assembly order: `rank` is derived from the index
+ * rather than read from the payload, so it can never arrive duplicated or with
+ * a hole. Reordering a recipe means resending the whole array.
+ *
+ * `product_goods.quantity` is an unsigned integer column, so a fractional
+ * quantity is refused here rather than truncated by the driver — and a repeated
+ * good is refused rather than surfacing as a primary-key violation.
+ */
+function parseIngredients(raw: unknown): IngredientInput[] {
+  if (!Array.isArray(raw)) badRequest('La liste des ingrédients doit être un tableau.')
+
+  const seen = new Set<number>()
+  return raw.map((entry) => {
+    const line = entry as Record<string, unknown> | null
+    const goodId = Number(line?.goodId)
+    if (!Number.isInteger(goodId) || goodId <= 0) {
+      badRequest('Chaque ingrédient doit désigner un produit du catalogue.')
+    }
+    if (seen.has(goodId)) {
+      badRequest('Un même produit ne peut pas figurer deux fois dans une recette.')
+    }
+    seen.add(goodId)
+
+    const quantity = Number(line?.quantity)
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      badRequest("La quantité d'un ingrédient doit être un entier supérieur à zéro.")
+    }
+
+    return { goodId, quantity, instruction: normalizeText(line?.instruction) }
+  })
+}
+
+/** Refuses an unknown good up front, so the pivot's foreign key surfaces as a
+ *  correctable mistake instead of a 500. */
+async function assertGoodsExist(ingredients: IngredientInput[]): Promise<void> {
+  if (ingredients.length === 0) return
+  const ids = ingredients.map((line) => line.goodId)
+  const found = await Good.query().whereIn('id', ids).select('id')
+  const missing = ids.filter((id) => !found.some((good) => good.id === id))
+  if (missing.length > 0) badRequest(`Produit introuvable au catalogue : ${missing.join(', ')}.`)
+}
+
+function pivotPayload(ingredients: IngredientInput[]) {
+  return Object.fromEntries(
+    ingredients.map((line, index) => [
+      line.goodId,
+      { quantity: line.quantity, rank: index + 1, instruction: line.instruction },
+    ])
+  )
+}
+
 export default class ProductsController {
   /**
    * Display a list of resource
@@ -32,13 +125,25 @@ export default class ProductsController {
    * Handle form submission for the create action
    */
   async store({ request, serialize }: HttpContext) {
-    const { name, isVegetarian, description, recipe } = request.all()
-    const product = new Product()
-    product.name = name
-    product.isVegetarian = isVegetarian
-    product.description = description
-    product.recipe = recipe
-    await product.save()
+    const payload = request.all()
+    const name = normalizeText(payload.name)
+    if (name === null) badRequest('Le nom de la recette est obligatoire.')
+
+    const ingredients = 'goods' in payload ? parseIngredients(payload.goods) : []
+    await assertGoodsExist(ingredients)
+
+    const product = await db.transaction(async (trx) => {
+      const created = new Product()
+      created.useTransaction(trx)
+      created.name = name
+      created.isVegetarian = payload.isVegetarian ?? false
+      created.description = normalizeText(payload.description)
+      created.recipe = normalizeText(payload.recipe)
+      await created.save()
+      if (ingredients.length > 0) await created.related('goods').sync(pivotPayload(ingredients))
+      return created
+    })
+
     return serialize(product)
   }
 
@@ -59,30 +164,46 @@ export default class ProductsController {
    * Handle form submission for the edit action
    */
   async update({ params, request, serialize }: HttpContext) {
-    const product = await Product.query()
-      .preload('furnitures')
-      .preload('goods')
-      .where('id', params.id)
-      .firstOrFail() // We get our product by id
-    const { name, isVegetarian, description, recipe } = request.all() // We transfer the new data from the request to constants
-    product.name = name // Assigning the data
-    product.isVegetarian = isVegetarian // Assigning the data
-    product.description = description // Assigning the data
-    product.recipe = recipe // Assigning the data
-    await product.save() // We save the product to the database
+    const product = await Product.findOrFail(params.id)
+    const payload = request.all()
+
+    const name = normalizeText(payload.name)
+    if (name === null) badRequest('Le nom de la recette est obligatoire.')
+
+    // An absent `goods` key leaves the composition alone; an empty array is an
+    // explicit order to strip it. Without the distinction, editing only the
+    // name would silently empty the recipe.
+    const ingredients = 'goods' in payload ? parseIngredients(payload.goods) : null
+    if (ingredients !== null) await assertGoodsExist(ingredients)
+
+    await db.transaction(async (trx) => {
+      product.useTransaction(trx)
+      product.name = name
+      product.isVegetarian = payload.isVegetarian ?? false
+      product.description = normalizeText(payload.description)
+      product.recipe = normalizeText(payload.recipe)
+      await product.save()
+      if (ingredients !== null) await product.related('goods').sync(pivotPayload(ingredients))
+    })
+
     return serialize(product)
   }
 
   /**
    * Delete record
    */
-  async destroy({ params }: HttpContext) {
-    const product = await Product.query()
-      .preload('furnitures')
-      .preload('goods')
-      .where('id', params.id)
-      .firstOrFail() // Get the product by id
+  async destroy({ params, response }: HttpContext) {
+    const product = await Product.findOrFail(params.id)
+    const usages = await usageLabels(product.id)
+    if (usages.length > 0) {
+      throw new ApiException(
+        'E_PRODUCT_IN_USE',
+        `Cette recette est utilisée par ${usages.join(', ')} : la supprimer effacerait cet historique.`,
+        409
+      )
+    }
     await product.delete()
+    return response.noContent()
   }
 
   async summary({ serialize }: HttpContext) {
