@@ -4,6 +4,7 @@ import Event from '#models/event'
 import Product from '#models/product'
 import ApiException from '#exceptions/api_exception'
 import { minSupplierPrice } from '#services/pricing_service'
+import { primaryCategoryName } from '#services/product_category_service'
 import { eventProductValidator, eventProductUpdateValidator } from '#validators/event_product'
 import { buildShoppingList } from '#services/shopping_list_service'
 
@@ -20,6 +21,10 @@ import { buildShoppingList } from '#services/shopping_list_service'
  * `product_goods.quantity × minSupplierPrice(good)`. Il vaut `null` — et non 0 —
  * dès qu'une denrée de la recette n'a aucun fournisseur : un coût partiel serait
  * plus trompeur qu'un coût absent.
+ *
+ * `category` est **dérivée**, pas stockée : `products` n'a pas de colonne de
+ * catégorie. Elle est exposée ici parce que la caisse en fait ses onglets, et
+ * que c'est sa seule source — voir `product_category_service`.
  */
 interface MenuLinePayload {
   productId: number
@@ -29,6 +34,7 @@ interface MenuLinePayload {
   price: number
   unitCost: number | null
   totalCost: number | null
+  category: string | null
 }
 
 /**
@@ -65,11 +71,18 @@ function toMenuLine(product: Product): MenuLinePayload {
     price: Number(product.$extras.pivot_price),
     unitCost,
     totalCost: unitCost === null ? null : unitCost * quantity,
+    category: primaryCategoryName(product),
   }
 }
 
 /**
- * Charge une soirée avec son menu complet — recettes, denrées, fournisseurs.
+ * Charge une soirée avec son menu complet — recettes, denrées, fournisseurs,
+ * catégories.
+ *
+ * `category` est préchargée en plus des fournisseurs parce que
+ * `primaryCategoryName` la lit sur la denrée de plus bas rang : sans ce
+ * préchargement la relation est absente et toute recette ressortirait sans
+ * catégorie, silencieusement.
  *
  * Un 404 explicite plutôt que `firstOrFail()` : le contrat de l'API porte le
  * code, et `ApiException` est la seule exception que le gestionnaire d'erreurs
@@ -79,7 +92,10 @@ async function loadEventWithMenu(id: string): Promise<Event> {
   const event = await Event.query()
     .where('id', id)
     .preload('products', (products) => {
-      products.preload('goods', (goods) => goods.preload('suppliers'))
+      products.preload('goods', (goods) => {
+        goods.preload('suppliers')
+        goods.preload('category')
+      })
       products.orderBy('name')
     })
     .first()

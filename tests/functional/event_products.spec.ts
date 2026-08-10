@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 import testUtils from '@adonisjs/core/services/test_utils'
+import Category from '#models/category'
 import Event from '#models/event'
 import Good from '#models/good'
 import Product from '#models/product'
@@ -129,6 +130,63 @@ test.group('Event products — lecture du menu', (group) => {
 
     response.assertStatus(403)
     assert.equal(response.body().error.code, 'E_FORBIDDEN')
+  })
+
+  /**
+   * `products` n'a pas de colonne de catégorie : celle d'une recette se dérive
+   * de son ingrédient de plus bas `rank`. La caisse en a besoin pour ses
+   * onglets, et c'est la seule source disponible.
+   *
+   * Deux denrées de catégories différentes, à deux rangs différents : le test
+   * échouerait aussi bien si la dérivation prenait la dernière, la première par
+   * ordre alphabétique, ou n'importe laquelle.
+   */
+  test('derives the recipe category from its lowest-rank ingredient', async ({
+    client,
+    assert,
+  }) => {
+    const { event, product, good } = await seedMenuFixture()
+
+    const frais = await Category.create({ name: 'Frais' })
+    const sec = await Category.create({ name: 'Sec' })
+
+    good.categoryId = frais.id
+    await good.save()
+
+    const bun = await Good.create({
+      name: 'Pain hot-dog x12',
+      unit: 'pcs',
+      brand: 'Harrys',
+      categoryId: sec.id,
+    })
+    await product.related('goods').attach({
+      [bun.id]: { quantity: 1, rank: 2, instruction: null },
+    })
+    await event.related('products').attach({ [product.id]: { quantity: 10, price: 0 } })
+
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['menu:read'])
+
+    const response = await client.get(`/v1/events/${event.id}/products`).loginAs(user)
+
+    response.assertStatus(200)
+    // « Frais », la catégorie du rang 1 — et non « Sec », celle du rang 2.
+    assert.equal(response.body().data[0].category, 'Frais')
+  })
+
+  test('reports a null category when no ingredient is categorised', async ({ client, assert }) => {
+    const { event, product } = await seedMenuFixture()
+    await event.related('products').attach({ [product.id]: { quantity: 10, price: 0 } })
+
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['menu:read'])
+
+    const response = await client.get(`/v1/events/${event.id}/products`).loginAs(user)
+
+    response.assertStatus(200)
+    // `null` et non la chaîne vide : l'écran doit pouvoir distinguer « pas de
+    // catégorie » d'une catégorie nommée.
+    assert.isNull(response.body().data[0].category)
   })
 })
 
