@@ -5,6 +5,7 @@ import Product from '#models/product'
 import ApiException from '#exceptions/api_exception'
 import { minSupplierPrice } from '#services/pricing_service'
 import { eventProductValidator, eventProductUpdateValidator } from '#validators/event_product'
+import { buildShoppingList } from '#services/shopping_list_service'
 
 /**
  * Une ligne du menu d'une soirée, c'est-à-dire une ligne du pivot
@@ -213,5 +214,17 @@ export default class EventProductsController {
 
     await event.related('products').detach([productId])
     return response.noContent()
+  }
+
+  /**
+   * La liste de courses de la soirée : ce qui manque, et où l'acheter.
+   *
+   * Gardée par `menu:read` **et** `stock:read` : la réponse expose les
+   * quantités en stock denrée par denrée. `menu:read` est au socle, donc c'est
+   * `stock:read` qui restreint réellement — la liste de courses est un document
+   * de logistique.
+   */
+  async shoppingList({ params, serialize }: HttpContext) {
+    return serialize(await buildShoppingList(params.id))
   }
 }

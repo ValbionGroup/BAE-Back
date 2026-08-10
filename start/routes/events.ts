@@ -54,6 +54,14 @@ router
       .use(middleware.can('menu:write'))
 
     /**
+     * `middleware.can` accepte `string | string[]` et exige alors la totalité :
+     * les deux permissions se combinent en ET, pas en OU.
+     */
+    router
+      .get('/events/:id/shopping-list', [controllers.EventProducts, 'shoppingList'])
+      .use(middleware.can(['menu:read', 'stock:read']))
+
+    /**
      * Running the matching rewrites every unlocked assignment of the evening,
      * so it is coordination work, not something any member may trigger.
      */

@@ -9,6 +9,8 @@ import StockBatch from '#models/stock_batch'
 import StockMovement from '#models/stock_movement'
 import Supplier from '#models/supplier'
 import { buildShoppingList } from '#services/shopping_list_service'
+import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 
 async function makeEvent(name = 'Soirée test') {
   return Event.create({
@@ -283,5 +285,61 @@ test.group('Shopping list — arithmétique', (group) => {
     // 100 entrés − 70 sortis = 30 disponibles, pas 100.
     assert.strictEqual(list.lines[0].stockQty, 30)
     assert.strictEqual(list.lines[0].missingQty, 70)
+  })
+})
+
+test.group('Shopping list — endpoint', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('serves the list to a member holding menu:read and stock:read', async ({
+    client,
+    assert,
+  }) => {
+    const event = await makeEvent('Soirée Hivernale')
+    const good = await makeGood('Pain')
+    const leclerc = await Supplier.create({ name: 'Leclerc' })
+    await leclerc.related('goods').attach({ [good.id]: { price: 2 } })
+    const recipe = await makeRecipe('Hot-dog', [[good, 1]])
+    await event.related('products').attach({ [recipe.id]: { quantity: 10, price: 0 } })
+
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['menu:read', 'stock:read'])
+
+    const response = await client.get(`/v1/events/${event.id}/shopping-list`).loginAs(user)
+
+    response.assertStatus(200)
+    const body = response.body().data
+    assert.equal(body.event_name, 'Soirée Hivernale')
+    assert.strictEqual(body.line_count, 1)
+    assert.strictEqual(body.optimum_total, 20)
+    assert.strictEqual(body.lines[0].missing_qty, 10)
+    assert.strictEqual(body.lines[0].kind, 'good')
+  })
+
+  /**
+   * Le test qui démontre que la garde à deux permissions est un ET logique.
+   * `menu:read` est au socle, donc tout membre l'a ; c'est `stock:read` qui
+   * restreint réellement, parce que la liste expose les quantités en stock.
+   */
+  test('refuses a member holding menu:read but not stock:read', async ({ client, assert }) => {
+    const event = await makeEvent()
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['menu:read'])
+
+    const response = await client.get(`/v1/events/${event.id}/shopping-list`).loginAs(user)
+
+    response.assertStatus(403)
+    assert.equal(response.body().error.code, 'E_FORBIDDEN')
+    assert.include(response.body().error.message, 'stock:read')
+  })
+
+  test('refuses an unknown evening with an explicit 404', async ({ client, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['menu:read', 'stock:read'])
+
+    const response = await client.get('/v1/events/999999/shopping-list').loginAs(user)
+
+    response.assertStatus(404)
+    assert.equal(response.body().error.code, 'E_EVENT_NOT_FOUND')
   })
 })
