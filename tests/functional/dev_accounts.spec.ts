@@ -1,0 +1,63 @@
+import { test } from '@japa/runner'
+import testUtils from '@adonisjs/core/services/test_utils'
+import db from '@adonisjs/lucid/services/db'
+import Member from '#models/member'
+import User from '#models/user'
+import DevAccountSeeder, { DEV_ACCOUNTS, DEV_PASSWORD } from '#database/seeders/dev_account_seeder'
+import RoleSeeder from '#database/seeders/role_seeder'
+
+/**
+ * Le seeder de comptes de développement est le seul dont la promesse soit
+ * vérifiable : « ces quatre comptes se connectent ». Un seeder qui crée des
+ * lignes sans que `verifyCredentials` les accepte est un seeder inutile, et
+ * l'échec ne se verrait qu'à l'écran de connexion.
+ */
+test.group('Dev accounts seeder', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('creates four accounts that actually authenticate, each with its role', async ({
+    assert,
+  }) => {
+    const client = db.connection()
+    await new RoleSeeder(client).run()
+    await new DevAccountSeeder(client).run()
+
+    for (const account of DEV_ACCOUNTS) {
+      // `verifyCredentials` est le chemin réel de la connexion
+      // (`AccessTokenController.store` l'appelle) : le tester, c'est tester le
+      // hachage du mot de passe, pas seulement la présence de la ligne.
+      const user = await User.verifyCredentials(account.email, DEV_PASSWORD)
+      assert.equal(user.email, account.email)
+
+      // Un membre est un `users` PLUS une ligne `members` de même clé primaire.
+      // Sans elle, `ProfileController.show` déréférence `user.member` et le
+      // dashboard répond 500 au démarrage — le compte serait inutilisable.
+      const member = await Member.query().where('id', user.id).preload('role').first()
+      assert.isNotNull(member, `${account.email} devrait porter une ligne members`)
+      assert.equal(member!.role.name, account.role)
+    }
+  })
+
+  test('is idempotent — a second run creates nothing new', async ({ assert }) => {
+    const client = db.connection()
+    await new RoleSeeder(client).run()
+    await new DevAccountSeeder(client).run()
+    const afterFirst = await User.query().count('* as total')
+
+    await new DevAccountSeeder(client).run()
+    const afterSecond = await User.query().count('* as total')
+
+    // `db:seed` est rejoué à chaque déploiement et à chaque reset : un seeder qui
+    // duplique fabrique la décharge que ce lot vient de vider.
+    assert.equal(Number(afterSecond[0].$extras.total), Number(afterFirst[0].$extras.total))
+  })
+
+  test('never runs outside development and testing', ({ assert }) => {
+    // La garde qui compte. Le déploiement lance `db:seed` pour installer les
+    // permissions RBAC (cf. HANDOFF §0 bis) : sans cette liste, quatre comptes à
+    // identifiants connus — dont un Administrateur — seraient créés en
+    // production. Un commentaire ne suffirait pas, c'est le runner d'Adonis qui
+    // doit refuser.
+    assert.deepEqual(DevAccountSeeder.environment, ['development', 'testing'])
+  })
+})

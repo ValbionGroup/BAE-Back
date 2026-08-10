@@ -8,6 +8,7 @@ import EventProductSeeder from './event_product_seeder.js'
 import SupplierSeeder from './supplier_seeder.js'
 import GoodSupplierSeeder from './good_supplier_seeder.js'
 import MemberSeeder from './member_seeder.js'
+import DevAccountSeeder from './dev_account_seeder.js'
 import RestockSeeder from './restock_seeder.js'
 import StockBatchSeeder from './stock_batch_seeder.js'
 import StockMovementSeeder from './stock_movement_seeder.js'
@@ -36,6 +37,10 @@ export default class extends BaseSeeder {
     // 2. Seeders dépendants (depends on step 1)
     await this.runSeeder(RolePermissionSeeder)
     await this.runSeeder(MemberSeeder)
+    // Comptes de développement connectables. Sûr ici malgré l'appel manuel —
+    // qui court-circuite `static environment` — parce que le seeder porte aussi
+    // une garde `app.inProduction` dans son `run()`.
+    await this.runSeeder(DevAccountSeeder)
     await this.runSeeder(GoodSeeder)
     await this.runSeeder(FurnitureSeeder)
     await this.runSeeder(SupplierSeeder)
