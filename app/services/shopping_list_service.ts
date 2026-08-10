@@ -212,6 +212,17 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
   const complete = supplierTotals.filter((entry) => entry.fullCoverage)
   const cheapestSingle = complete.length > 0 ? Math.min(...complete.map((e) => e.total)) : null
 
+  // `optimumTotal` (affiché comme « coût estimé ») porte le panier complet,
+  // denrées + non-alimentaire : c'est le vrai coût de la soirée. Mais
+  // `savings` compare des enseignes, et une enseigne ne vend que des denrées
+  // — comparer contre le panier complet retrancherait le coût des barquettes
+  // d'une économie qui ne parle que du pain et des saucisses. On recalcule
+  // donc un optimum denrées-seules, purement local à cette comparaison.
+  const optimumGoodsTotal = goodLines.reduce(
+    (sum, line) => sum + (line.bestPrice === null ? 0 : line.missingQty * line.bestPrice),
+    0
+  )
+
   return {
     eventId: event.id,
     eventName: event.name,
@@ -219,7 +230,7 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
     lineCount: lines.length,
     optimumTotal,
     supplierTotals,
-    savings: cheapestSingle === null ? null : cheapestSingle - optimumTotal,
+    savings: cheapestSingle === null ? null : cheapestSingle - optimumGoodsTotal,
     unpricedCount,
   }
 }

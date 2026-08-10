@@ -89,6 +89,14 @@ test.group('Shopping list — arithmétique', (group) => {
     const event = await makeEvent()
     const bun = await makeGood('Pain')
     const sausage = await makeGood('Saucisses')
+    // Du stock sur le pain est indispensable ici : à 0, une implémentation qui
+    // retrancherait le stock recette par recette (100−0) + (40−0) = 140
+    // donnerait le même total que la bonne agrégation, et le test ne
+    // prouverait rien. Avec 100 en stock, l'agrégation correcte donne
+    // 140 − 100 = 40 de manque, alors qu'une soustraction par recette donnerait
+    // max(0,100−100) + max(0,40−100) = 0 et ferait disparaître la ligne : les
+    // deux implémentations divergent, donc le test tranche.
+    await stock(bun, 100)
     const hotdog = await makeRecipe('Hot-dog', [
       [bun, 1],
       [sausage, 2],
@@ -107,7 +115,10 @@ test.group('Shopping list — arithmétique', (group) => {
     // qui interdit d'attribuer un manque à une recette : deux recettes se
     // partagent la même denrée, et un chiffre par ligne double-compterait.
     assert.strictEqual(bunLine.needQty, 140)
-    assert.strictEqual(bunLine.missingQty, 140)
+    assert.strictEqual(bunLine.missingQty, 40)
+    // Une ligne par denrée à acheter : le pain (manque 40) et les saucisses
+    // (aucun stock, manque 200) — jamais de doublon.
+    assert.lengthOf(list.lines, 2)
   })
 
   test('reads furniture stock from the row, not from batches', async ({ assert }) => {
@@ -182,6 +193,52 @@ test.group('Shopping list — arithmétique', (group) => {
     // Économie = meilleure enseigne à couverture complète (70) − optimum (60).
     // Une enseigne incomplète est exclue, sinon son total plus bas — parce
     // qu'elle compte moins de lignes — passerait pour le meilleur choix.
+    assert.strictEqual(list.savings, 10)
+  })
+
+  test('keeps savings goods-only even when a furniture line inflates optimumTotal', async ({
+    assert,
+  }) => {
+    const event = await makeEvent()
+    const bun = await makeGood('Pain')
+    const sausage = await makeGood('Saucisses')
+
+    const leclerc = await Supplier.create({ name: 'Leclerc' })
+    const auchan = await Supplier.create({ name: 'Auchan' })
+    await leclerc.related('goods').attach({ [bun.id]: { price: 2 }, [sausage.id]: { price: 5 } })
+    await auchan.related('goods').attach({ [bun.id]: { price: 1 } })
+
+    const recipe = await makeRecipe('Hot-dog', [
+      [bun, 1],
+      [sausage, 1],
+    ])
+
+    // Une ligne non alimentaire sans rapport avec les fournisseurs : elle
+    // gonfle `optimumTotal` (le coût affiché) mais ne doit pas polluer
+    // `savings`, qui ne compare que ce qu'une enseigne peut effectivement
+    // vendre.
+    const tray = await Furniture.create({ name: 'Barquettes', quantity: 0, price: '0.12' })
+    const friesRecipe = await Product.create({
+      name: 'Frites portion',
+      isVegetarian: true,
+      description: null,
+      recipe: null,
+    })
+    await friesRecipe.related('furnitures').attach({ [tray.id]: { quantity: 1 } })
+
+    await event.related('products').attach({
+      [recipe.id]: { quantity: 10, price: 0 },
+      [friesRecipe.id]: { quantity: 200, price: 0 },
+    })
+
+    const list = await buildShoppingList(String(event.id))
+
+    // Panier complet affiché : 60 (denrées, optimum ligne par ligne) + 200 ×
+    // 0,12 (barquettes) = 84.
+    assert.strictEqual(list.optimumTotal, 84)
+    // Économie inchangée : 70 (Leclerc, seule enseigne à couverture complète
+    // des DENRÉES) − 60 (optimum denrées) = 10. Le coût des barquettes ne doit
+    // pas s'y mêler : aucune enseigne ne les vend.
     assert.strictEqual(list.savings, 10)
   })
 
