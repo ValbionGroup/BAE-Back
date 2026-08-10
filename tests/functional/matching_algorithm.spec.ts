@@ -1,12 +1,21 @@
 import { test } from '@japa/runner'
 import {
+  type Rng,
+  backfillUnmatched,
   buildEffectivePreferences,
   computePointsDelta,
+  makeTieBreaker,
   rankCost,
   rankingKey,
   sortByJobRanking,
   stableMatch,
 } from '#services/matching_service'
+
+/** Two frozen draws — real randomness would make the assertions flaky, and
+ *  what is under test is that the permutation is read, not that it is uniform.
+ *  `lowDraw` swaps on every round, `highDraw` never does. */
+const lowDraw: Rng = () => 0
+const highDraw: Rng = () => 0.999
 
 test.group('Matching algorithm (pure functions)', () => {
   test('rankingKey divides points by historical attendance, floored at 1', ({ assert }) => {
@@ -29,6 +38,105 @@ test.group('Matching algorithm (pure functions)', () => {
       { memberId: 2, points: 10, historicalAttendanceCount: 1 },
     ])
     assert.deepEqual(order, [2, 5])
+  })
+
+  test('sortByJobRanking follows the drawn permutation on ties instead of the member ids', ({
+    assert,
+  }) => {
+    const memberIds = [1, 2, 3, 4]
+    const tied = memberIds.map((memberId) => ({
+      memberId,
+      points: 10,
+      historicalAttendanceCount: 1,
+    }))
+
+    const firstDraw = sortByJobRanking(tied, makeTieBreaker(memberIds, lowDraw))
+    const secondDraw = sortByJobRanking(tied, makeTieBreaker(memberIds, highDraw))
+
+    assert.notDeepEqual(firstDraw, secondDraw)
+    assert.sameMembers(firstDraw, memberIds)
+    assert.sameMembers(secondDraw, memberIds)
+  })
+
+  test('makeTieBreaker stays a total order once ids outside the draw are thrown in', ({
+    assert,
+  }) => {
+    const tieBreak = makeTieBreaker([3, 1], lowDraw)
+
+    // A comparator returning 0 on unknown ids would still agree with itself
+    // but depend on the input order — which is what these two starting
+    // permutations detect.
+    const fromOneOrder = [9, 1, 7, 3].sort(tieBreak)
+    const fromAnother = [7, 3, 9, 1].sort(tieBreak)
+
+    assert.deepEqual(fromOneOrder, fromAnother)
+    assert.deepEqual(fromOneOrder.slice(2), [7, 9], 'ids outside the draw come last, by id')
+  })
+
+  test('backfillUnmatched serves the before period first, whatever the job ids', ({ assert }) => {
+    const backfilled = backfillUnmatched(
+      [{ memberId: 7, expressedRankByJobId: { 30: 2 } }],
+      [
+        { jobId: 10, period: 'during', remainingCount: 1, eligibleMemberIds: null },
+        { jobId: 20, period: 'after', remainingCount: 1, eligibleMemberIds: null },
+        { jobId: 30, period: 'before', remainingCount: 1, eligibleMemberIds: null },
+      ]
+    )
+
+    assert.deepEqual(backfilled, [{ memberId: 7, jobId: 30, period: 'before', rankAchieved: 2 }])
+  })
+
+  test('backfillUnmatched leaves a member at zero rather than overfilling a job', ({ assert }) => {
+    const cases = [
+      {
+        label: 'full job',
+        jobs: [
+          { jobId: 10, period: 'before' as const, remainingCount: 0, eligibleMemberIds: null },
+        ],
+      },
+      {
+        label: 'job restricted to somebody else',
+        jobs: [
+          {
+            jobId: 10,
+            period: 'before' as const,
+            remainingCount: 1,
+            eligibleMemberIds: new Set([8]),
+          },
+        ],
+      },
+    ]
+
+    for (const { label, jobs } of cases) {
+      const backfilled = backfillUnmatched([{ memberId: 7, expressedRankByJobId: {} }], jobs)
+      assert.deepEqual(backfilled, [], label)
+    }
+  })
+
+  /**
+   * Member 1 can hold both jobs, member 2 only job 10. Served first, member 1
+   * takes job 10 (lowest id within the period) and first-fit would stop there,
+   * leaving member 2 at zero although a seat was free. Placing both requires
+   * moving member 1 to job 20 — what an augmenting path does.
+   */
+  test('backfillUnmatched places as many members as capacity allows, not as many as first-fit', ({
+    assert,
+  }) => {
+    const backfilled = backfillUnmatched(
+      [
+        { memberId: 1, expressedRankByJobId: {} },
+        { memberId: 2, expressedRankByJobId: {} },
+      ],
+      [
+        { jobId: 10, period: 'during', remainingCount: 1, eligibleMemberIds: null },
+        { jobId: 20, period: 'during', remainingCount: 1, eligibleMemberIds: new Set([1]) },
+      ]
+    )
+
+    assert.deepEqual(backfilled, [
+      { memberId: 1, jobId: 20, period: 'during', rankAchieved: null },
+      { memberId: 2, jobId: 10, period: 'during', rankAchieved: null },
+    ])
   })
 
   test('buildEffectivePreferences places the expressed ranking before the ex-aequo block', ({

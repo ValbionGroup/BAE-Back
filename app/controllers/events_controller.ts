@@ -7,13 +7,16 @@ import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import { availabilityValidator } from '#validators/event'
 import {
+  type BackfillJobInput,
   type CandidateInput,
   type JobCapacityInput,
   type JobPeriod,
   type RankedCandidate,
   JOB_PERIODS,
+  backfillUnmatched,
   buildEffectivePreferences,
   computePointsDelta,
+  makeTieBreaker,
   sortByJobRanking,
   stableMatch,
 } from '#services/matching_service'
@@ -157,6 +160,10 @@ export default class EventsController {
    * member out of the pool *for that job's period* (D9 concerns the evening,
    * the matching pool does not).
    *
+   * Ties are settled by lot, from one permutation drawn here and shared by
+   * every step. A catch-up pass closes the run: it places the members left
+   * without any job on the capacity nobody took, dislodging no one.
+   *
    * `members.points` is never written here (D7): each delta lives on its
    * assignment row until the evening is closed.
    */
@@ -164,11 +171,6 @@ export default class EventsController {
     const event = await Event.findOrFail(params.id)
 
     const summary = await db.transaction(async (trx) => {
-      // Every assignment row of the event, locked `FOR UPDATE` for the whole
-      // transaction. The lock is what makes the settled check below a real
-      // guard: without it a `settle` could consolidate a row between the check
-      // and the deletion at the end, and that credit would become
-      // unrefundable — the row carrying it would be gone.
       const existingRows = await MemberEventAssignedJob.query({ client: trx })
         .where('eventId', event.id)
         .forUpdate()
@@ -187,14 +189,11 @@ export default class EventsController {
 
       const lockedRows = existingRows.filter((row) => row.locked)
 
-      // Locked rows may point at a job the event no longer offers, so the
-      // period lookup covers their jobs too — the response reports it.
       const periodJobIds = new Set<number>([
         ...capacityByJob.keys(),
         ...lockedRows.map((row) => row.jobId),
       ])
-      const jobDetails = await Job.query()
-        .useTransaction(trx)
+      const jobDetails = await Job.query({ client: trx })
         .whereIn('id', [...periodJobIds])
         .preload('eligibleMembers')
       const periodByJob = new Map<number, JobPeriod>(
@@ -215,9 +214,6 @@ export default class EventsController {
         }
       }
 
-      // One pool for the whole evening: `member_responses.is_available` is a
-      // single boolean, and that is deliberate — saying yes means being
-      // available for all three moments.
       const respondingMembers = await event
         .related('members')
         .query()
@@ -233,23 +229,6 @@ export default class EventsController {
         ])
       )
 
-      // Attendance history means *other* evenings: counting this event's own
-      // rows would make a second run rank people differently from the first.
-      //
-      // `countDistinct` on the event, never `count('*')`: since D1 one evening
-      // yields up to three rows for the same member (before/during/after), and
-      // `rankingKey` divides points by *evenings worked*. Counting rows would
-      // rank somebody who covered all three periods of a single evening below
-      // somebody who did one `during` on two evenings — penalising precisely
-      // the thankless shifts the D5 credits reward, and which the member does
-      // not even choose to take on.
-      //
-      // SETTLED evenings only. `rankingKey` divides points by evenings worked,
-      // and since D7 the numerator moves at the close and nowhere else — so an
-      // evening counted in the denominator before its close removes priority
-      // for work the member has not been credited for yet. The heavier the
-      // shift, the worse the penalty: exactly backwards. `whereNotNull` puts
-      // the two halves of the ratio back in step.
       const attendanceRows = await db
         .from('member_event_assigned_jobs')
         .select('member_id')
@@ -280,7 +259,11 @@ export default class EventsController {
         })
       }
 
-      const jobRankingOrder = sortByJobRanking(rankedCandidates)
+      // ONE draw for the whole run: the job-side ranking, the three periods and
+      // the catch-up pass must settle the same ties the same way, or two steps
+      // contradict each other.
+      const memberTieBreak = makeTieBreaker(respondingMembers.map((member) => member.id))
+      const jobRankingOrder = sortByJobRanking(rankedCandidates, memberTieBreak)
 
       const matched: {
         memberId: number
@@ -333,8 +316,51 @@ export default class EventsController {
         }
       }
 
+      const zeroAssignmentMemberIds = respondingMembers
+        .map((member) => member.id)
+        .filter((memberId) => !matchedMemberIds.has(memberId) && !lockedMemberIds.has(memberId))
+
+      if (zeroAssignmentMemberIds.length > 0) {
+        const takenByJob = new Map<number, number>()
+        for (const match of matched) {
+          takenByJob.set(match.jobId, (takenByJob.get(match.jobId) ?? 0) + 1)
+        }
+
+        const backfillJobs: BackfillJobInput[] = []
+        for (const [jobId, capacity] of capacityByJob) {
+          const period = periodByJob.get(jobId)
+          if (!period) {
+            continue
+          }
+          backfillJobs.push({
+            jobId,
+            period,
+            remainingCount: Math.max(0, capacity) - (takenByJob.get(jobId) ?? 0),
+            eligibleMemberIds: eligibilityByJob.get(jobId) ?? null,
+          })
+        }
+
+        const backfilled = backfillUnmatched(
+          zeroAssignmentMemberIds.map((memberId) => ({
+            memberId,
+            expressedRankByJobId: expressedRankByMember.get(memberId) ?? {},
+          })),
+          backfillJobs,
+          memberTieBreak
+        )
+
+        for (const match of backfilled) {
+          matched.push({
+            ...match,
+            pointsDelta: computePointsDelta(match.period, match.rankAchieved),
+          })
+          matchedMemberIds.add(match.memberId)
+        }
+      }
+
       // Being passed over on one period is not "unassigned": only a member who
-      // ends the evening with nothing at all — no match, no lock — counts.
+      // ends the evening with nothing at all — no match, no lock, and nothing
+      // the backfill could find — counts.
       const unmatchedMemberIds = respondingMembers
         .map((member) => member.id)
         .filter((memberId) => !matchedMemberIds.has(memberId) && !lockedMemberIds.has(memberId))
