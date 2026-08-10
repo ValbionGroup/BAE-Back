@@ -6,18 +6,26 @@ on:
     branches:
       - main
 
+concurrency:
+  group: version-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   preview:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout pull request branch
         uses: actions/checkout@v4
         with:
+          # The default merge ref is detached; the bump has to land on the
+          # branch the pull request will merge from.
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Get next version (dry run)
         id: tag
@@ -27,6 +35,38 @@ jobs:
           dry_run: true
           default_bump: patch
           release_branches: main
+
+      - name: Bump package.json on the pull request branch
+        # Fork pull requests only get a read-only token, so the bump has to be
+        # made in the fork before opening the pull request.
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          NEW_TAG: ${{ steps.tag.outputs.new_tag }}
+          NEW_VERSION: ${{ steps.tag.outputs.new_version }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$NEW_VERSION" ]; then
+            echo "::error::No version could be computed for this pull request."
+            exit 1
+          fi
+
+          npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add package.json
+          # Re-running on every synchronize would otherwise loop: this is what
+          # makes the bump converge instead of stacking commits.
+          if git diff --cached --quiet; then
+            echo "package.json already at $NEW_VERSION."
+            exit 0
+          fi
+
+          git commit -m "chore(release): $NEW_TAG"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
 
       - name: Comment PR with next version
         uses: marocchino/sticky-pull-request-comment@v2
@@ -42,3 +82,5 @@ jobs:
 
             > To override the bump type, add a label: `major`, `minor`, or `patch`
             > Or use conventional commits: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE` → major
+
+            > `package.json` is bumped to the next version by a `chore(release)` commit on this branch, and the tag is created from it on merge.

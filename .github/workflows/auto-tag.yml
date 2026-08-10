@@ -15,14 +15,31 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout merge commit
         uses: actions/checkout@v4
         with:
+          # Tag the exact commit this pull request produced, not whatever main
+          # points at by the time this job starts.
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - name: Bump version and create tag
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: patch
-          release_branches: main
+      - name: Tag the version carried by package.json
+        run: |
+          set -euo pipefail
+
+          # package.json is the source of truth: the pull request already bumped
+          # it, so the tag follows it rather than being recomputed here.
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v$VERSION"
+
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::$TAG already exists. The merged package.json was not bumped for this release."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
