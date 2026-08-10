@@ -107,12 +107,12 @@ export interface Registry {
     methods: ["PUT","PATCH"]
     pattern: '/v1/members/:id'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/member').updateMemberValidator)>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/member').updateMemberValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/members_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/members_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'members.destroy': {
