@@ -50,7 +50,9 @@ async function makeRecipe(name: string, ingredients: [Good, number][]) {
   return product
 }
 
-async function countOf(query: { count(c: string): Promise<{ $extras: Record<string, string> }[]> }) {
+async function countOf(query: {
+  count(c: string): Promise<{ $extras: Record<string, string> }[]>
+}) {
   const [row] = await query.count('* as total')
   return Number(row.$extras.total)
 }

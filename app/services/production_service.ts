@@ -290,7 +290,9 @@ export async function loadReturnState(eventId: number): Promise<ReturnableGood[]
     const byGood = await tallyByGood(eventId, trx)
     if (byGood.size === 0) return []
 
-    const goods = await Good.query({ client: trx }).whereIn('id', [...byGood.keys()]).orderBy('name')
+    const goods = await Good.query({ client: trx })
+      .whereIn('id', [...byGood.keys()])
+      .orderBy('name')
 
     return goods.map((good) => {
       const tallies = byGood.get(good.id) ?? []
@@ -351,10 +353,8 @@ export async function commitReturns(
         )
       }
 
-      // The same tally the listing serves, so the form and the write can never
-      // disagree on what is returnable. Newest movement first — the reverse of
-      // the pick order.
-      const tallies = (await tallyByGood(eventId, trx, line.goodId)).get(line.goodId) ?? []
+      const talliesByGood = await tallyByGood(eventId, trx, line.goodId)
+      const tallies = talliesByGood.get(line.goodId) ?? []
       const takenByBatch = new Map(
         tallies.map((tally) => [tally.batchId, tally.taken - tally.returned])
       )
