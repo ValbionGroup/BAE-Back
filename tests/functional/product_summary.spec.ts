@@ -8,11 +8,6 @@ import { CategoryFactory } from '#database/factories/category_factory'
 test.group('Product summary', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  /**
-   * `products/summary` used to be unreachable: `router.resource('products')`
-   * registered `products/:id` first, so this URL resolved to `show()` with
-   * `id = 'summary'`. Explicit route ordering fixed it — this pins the fix.
-   */
   test('is reachable and not shadowed by products/:id', async ({ client }) => {
     const user = await UserFactory.create()
     const product = await ProductFactory.create()
@@ -23,11 +18,6 @@ test.group('Product summary', (group) => {
     response.assertBodyContains({ data: [{ id: product.id, name: product.name }] })
   })
 
-  /**
-   * A product has no category column of its own — it is labelled with the
-   * category of its primary ingredient (lowest `rank` in `product_goods`).
-   * The frontend's recipe filter tabs are built from this field.
-   */
   test('labels a product with its lowest-rank ingredient category', async ({ client, assert }) => {
     const user = await UserFactory.create()
     const product = await ProductFactory.create()
@@ -37,7 +27,6 @@ test.group('Product summary', (group) => {
     const mainGood = await GoodFactory.merge({ categoryId: mainCategory.id }).create()
     const sideGood = await GoodFactory.merge({ categoryId: sideCategory.id }).create()
 
-    // Attach the dessert good at a HIGHER rank so it must lose to the drink.
     await product.related('goods').attach({
       [sideGood.id]: { quantity: 1, rank: 2, instruction: null },
       [mainGood.id]: { quantity: 1, rank: 1, instruction: null },

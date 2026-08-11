@@ -7,15 +7,7 @@ import {
   eventJobValidator,
 } from '#validators/coordination'
 
-/**
- * Event jobs are the `event_jobs` pivot rows: how many members are needed on a
- * given job for a given event. The composite key (`event_id` + `job_id`) has no
- * surrogate id, so `update` and `destroy` read it from the query string.
- */
 export default class EventJobsController {
-  /**
-   * Display a list of resource
-   */
   async index({ serialize }: HttpContext) {
     const events = await Event.query().preload('jobs').orderBy('id')
     const eventJobs = events.flatMap((event) =>
@@ -28,9 +20,6 @@ export default class EventJobsController {
     return serialize(eventJobs)
   }
 
-  /**
-   * Handle form submission for the create action
-   */
   async store({ request, serialize }: HttpContext) {
     const { eventId, jobId, count } = await request.validateUsing(eventJobValidator)
     const event = await Event.findOrFail(eventId)
@@ -39,9 +28,6 @@ export default class EventJobsController {
     return serialize({ eventId, jobId, count })
   }
 
-  /**
-   * Handle form submission for the edit action
-   */
   async update({ request, serialize }: HttpContext) {
     const { eventId, jobId } = await eventJobKeyValidator.validate(request.qs())
     const { count } = await request.validateUsing(eventJobCountValidator)
@@ -51,9 +37,6 @@ export default class EventJobsController {
     return serialize({ eventId, jobId, count })
   }
 
-  /**
-   * Delete record
-   */
   async destroy({ request, response }: HttpContext) {
     const { eventId, jobId } = await eventJobKeyValidator.validate(request.qs())
     const event = await Event.findOrFail(eventId)

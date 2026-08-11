@@ -8,7 +8,7 @@ export const GoodFactory = factory
       name: faker.commerce.productName(),
       unit: faker.helpers.arrayElement(['pcs', 'kg', 'liter']),
       brand: faker.company.name(),
-      categoryId: null, // Will be set by relation
+      categoryId: null,
     }
   })
   .relation('category', () => CategoryFactory)

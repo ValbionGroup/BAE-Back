@@ -1,17 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import StockBatch from '#models/stock_batch'
 
-/**
- * Numéro de lot lisible : `L25-4` est le 4ᵉ lot de ce produit.
- *
- * `stock_batches.label` est `NOT NULL` sans défaut, et c'est lui qui porte le
- * « prends le lot n°4 » attendu au sol. La numérotation est donc **par
- * produit** — un numéro global ne voudrait rien dire devant une étagère.
- *
- * Pas de garantie d'unicité : deux entrées simultanées sur le même produit
- * peuvent produire le même numéro. Aucune contrainte ne s'y oppose, et la
- * conséquence est un doublon d'affichage, pas une perte.
- */
+// Numbering is PER good: `L25-4` is the 4th batch of that product, which is what
+// one reads in front of a shelf — a global number would mean nothing there. No
+// uniqueness guarantee: two simultaneous entries on the same good can draw the
+// same number, which costs a display duplicate, not a loss.
 async function nextLabel(goodId: number): Promise<string> {
   const [row] = await StockBatch.query().where('goodId', goodId).count('* as total')
   const total = Number((row as unknown as { $extras: { total: string } }).$extras.total)
@@ -19,17 +12,11 @@ async function nextLabel(goodId: number): Promise<string> {
 }
 
 export default class StockBatchesController {
-  /**
-   * Display a list of resource
-   */
   async index({ serialize }: HttpContext) {
     const stockBatches = await StockBatch.query().preload('good').preload('restock')
     return serialize(stockBatches)
   }
 
-  /**
-   * Handle form submission for the create action
-   */
   async store({ request, serialize }: HttpContext) {
     const { expirationDate, label, quantity, restockId, goodId } = request.all()
     const stockBatch = await StockBatch.create({
@@ -42,9 +29,6 @@ export default class StockBatchesController {
     return serialize(stockBatch)
   }
 
-  /**
-   * Show individual record
-   */
   async show({ params, serialize }: HttpContext) {
     const stockBatch = await StockBatch.query()
       .where('id', params.id)
@@ -54,9 +38,6 @@ export default class StockBatchesController {
     return serialize(stockBatch)
   }
 
-  /**
-   * Handle form submission for the edit action
-   */
   async update({ params, request, serialize }: HttpContext) {
     const stockBatch = await StockBatch.query()
       .where('id', params.id)
@@ -76,9 +57,6 @@ export default class StockBatchesController {
     return serialize(stockBatch)
   }
 
-  /**
-   * Delete record
-   */
   async destroy({ params }: HttpContext) {
     const stockBatch = await StockBatch.query()
       .where('id', params.id)

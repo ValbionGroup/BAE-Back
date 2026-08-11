@@ -5,12 +5,6 @@ import Role from '#models/role'
 import { MemberFactory } from '#database/factories/members_factory'
 import MemberRole from '../../commands/member_role.js'
 
-/**
- * The console-only escape hatch for the two RBAC guards added in tasks 3 and
- * 4: a lone holder of a permission set who leaves without handing over would
- * otherwise be unreachable from the HTTP admin screens. This command writes
- * `member.role_id` directly and never calls the guards it exists to bypass.
- */
 test.group('member:role command', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
   group.each.setup(() => {

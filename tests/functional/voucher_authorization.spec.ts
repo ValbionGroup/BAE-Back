@@ -5,26 +5,15 @@ import { MemberFactory } from '#database/factories/members_factory'
 import { SupplierFactory } from '#database/factories/supplier_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 
-/**
- * Les routes `/v1/vouchers` n'étaient gardées que par `middleware.auth()`, donc
- * n'importe quel membre authentifié pouvait lire tous les bons d'achat. Un bon
- * est un objet **au porteur** : sa valeur est dans sa lecture. C'est la seule
- * exigence de sécurité formulée explicitement par le cahier des charges.
- */
-/** Le client typé n'expose que la forme de succès ; un corps d'erreur se relit. */
 type ErrorBody = { error: { code: string; message: string } }
 
 test.group('Vouchers authorization', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  /**
-   * Un utilisateur dont le rôle porte exactement les permissions demandées.
-   *
-   * ⚠️ Passer par `MemberFactory` et non `UserFactory` : le garde résout
-   * `user → member → role`, donc un utilisateur sans ligne `members` est refusé
-   * quoi qu'il porte — le cas « aucune permission » ne prouverait alors rien.
-   */
   async function userWith(permissions: string[]) {
+    // `MemberFactory` and not `UserFactory`: the guard resolves
+    // `user → member → role`, so a user with no `members` row is refused whatever
+    // they hold — the "no permission" case would then prove nothing.
     const member = await MemberFactory.create()
     return grantPermissions(member, permissions)
   }
@@ -35,8 +24,6 @@ test.group('Vouchers authorization', (group) => {
     const response = await client.get('/v1/vouchers').loginAs(user)
 
     response.assertStatus(403)
-    // Asserter le corps et pas seulement le statut : une `Exception` nue
-    // conserverait le statut mais son corps deviendrait E_INTERNAL_SERVER_ERROR.
     const body = response.body() as unknown as ErrorBody
     assert.equal(body.error.code, 'E_FORBIDDEN')
     assert.include(body.error.message, 'voucher:read')
@@ -59,8 +46,6 @@ test.group('Vouchers authorization', (group) => {
       .json({ supplier_id: supplier.id, value: 10, expires_at: '2026-12-31', condition: null })
       .loginAs(user)
 
-    // Lire n'autorise pas à écrire : c'est tout l'intérêt d'avoir deux
-    // permissions plutôt qu'une.
     response.assertStatus(403)
     assert.include((response.body() as unknown as ErrorBody).error.message, 'voucher:write')
   })
@@ -84,8 +69,6 @@ test.group('Vouchers authorization', (group) => {
       .json({ used_at: DateTime.now().toISO() })
       .loginAs(user)
 
-    // Le garde passe **avant** le contrôleur : l'id inexistant n'est jamais
-    // atteint, donc c'est bien 403 et non 404 qu'on attend ici.
     response.assertStatus(403)
   })
 
@@ -93,8 +76,6 @@ test.group('Vouchers authorization', (group) => {
     const user = await userWith(['voucher:read'])
     const response = await client.delete('/v1/vouchers/1').loginAs(user)
 
-    // Même garde que pour PATCH : il passe avant le contrôleur, donc l'id
-    // inexistant n'est jamais atteint et c'est bien 403 et non 404 qu'on attend ici.
     response.assertStatus(403)
   })
 })

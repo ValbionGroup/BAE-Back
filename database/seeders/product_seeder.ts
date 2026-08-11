@@ -1,11 +1,6 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import Product from '#models/product'
 
-/**
- * ⚠️ `products` porte deux rôles : c'est la **recette** et l'**article vendu**
- * (`order_products`, `event_products`, `pre_order_items`). Ces noms servent donc
- * aussi d'intitulés de caisse.
- */
 const RECIPES: readonly { name: string; isVegetarian: boolean; recipe: string }[] = [
   {
     name: 'Hot-dog classique',

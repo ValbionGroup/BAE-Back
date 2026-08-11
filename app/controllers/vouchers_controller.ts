@@ -4,24 +4,10 @@ import Voucher from '#models/voucher'
 import ApiException from '#exceptions/api_exception'
 import { voucherValidator, voucherUpdateValidator } from '#validators/voucher'
 
-/**
- * A voucher within this many days of its expiry date is flagged `warn: true`.
- * Kept in sync with the "soon" threshold used for stock batches in
- * `#services/stock_service` so both panels mean the same thing by "urgent".
- */
+// Kept in sync with the "soon" threshold used for stock batches
+// (`#services/stock_service`) so both panels mean the same thing by "urgent".
 const WARN_WINDOW_DAYS = 7
 
-/**
- * Shape returned to the frontend for one voucher ("bon d'achat").
- *
- * `value` is a `decimal(10,2)` column, handed back as a string by `pg` and
- * therefore typed `string` on `VoucherSchema`. It is coerced to a number here
- * so the frontend can sum vouchers without parsing.
- *
- * The urgency flag is computed server-side rather than derived in the browser:
- * "expiring soon" is a business rule, and the browser clock is not trustworthy
- * for it. `expiresAt` is still exposed so the panel can render the date.
- */
 interface VoucherPayload {
   id: number
   supplierId: number | null
@@ -72,17 +58,11 @@ function toPayload(voucher: Voucher): VoucherPayload {
 }
 
 export default class VouchersController {
-  /**
-   * Display a list of resource, soonest expiry first.
-   */
   async index({ serialize }: HttpContext) {
     const vouchers = await Voucher.query().preload('supplier').orderBy('expiresAt', 'asc')
     return serialize(vouchers.map(toPayload))
   }
 
-  /**
-   * Handle form submission for the create action
-   */
   async store({ request, serialize }: HttpContext) {
     const payload = await request.validateUsing(voucherValidator)
     const voucher = new Voucher()
@@ -96,10 +76,6 @@ export default class VouchersController {
     return serialize(toPayload(voucher))
   }
 
-  /**
-   * Handle form submission for the edit action. Bound to both PUT and PATCH;
-   * every field is optional, so an absent key leaves the column untouched.
-   */
   async update({ params, request, serialize }: HttpContext) {
     const voucher = await Voucher.query().where('id', params.id).firstOrFail()
     const payload = await request.validateUsing(voucherUpdateValidator)
@@ -119,9 +95,6 @@ export default class VouchersController {
     return serialize(toPayload(voucher))
   }
 
-  /**
-   * Delete record
-   */
   async destroy({ params, response }: HttpContext) {
     const voucher = await Voucher.query().where('id', params.id).firstOrFail()
     await voucher.delete()

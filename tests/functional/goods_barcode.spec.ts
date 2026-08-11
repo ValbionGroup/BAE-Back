@@ -3,15 +3,9 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import Good from '#models/good'
 import { UserFactory } from '#database/factories/user_factory'
 
-/**
- * `goods.barcode` est ce qui rend le scanner utilisable : sans lui, un code lu
- * ne résout vers rien. La colonne est unique — un code doit désigner exactement
- * un produit, sinon « scanne et je te dis ce que c'est » n'a pas de réponse.
- */
 test.group('Goods barcode', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  /** `brand` est NOT NULL en base : la chaîne vide, jamais `null`. */
   async function makeGood(name: string, barcode: string | null) {
     return Good.create({ name, unit: 'pcs', brand: '', categoryId: null, barcode })
   }
@@ -35,8 +29,6 @@ test.group('Goods barcode', (group) => {
 
     const response = await client.get('/v1/goods?barcode=0000000000000').loginAs(user)
 
-    // Liste vide et non 404 : « ce code n'est rattaché à rien » est une réponse
-    // normale du scanner, celle qui déclenche la création du produit.
     response.assertStatus(200)
     assert.lengthOf(response.body().data, 0)
   })
@@ -49,9 +41,6 @@ test.group('Goods barcode', (group) => {
     const response = await client.get('/v1/goods').loginAs(user)
 
     response.assertStatus(200)
-    // Pas un compte exact : la base de test porte les produits du seeder. Ce
-    // qui compte est que le produit SANS code soit là — c'est lui que
-    // `?barcode=` écarte.
     const names = response.body().data.map((good: { name: string }) => good.name)
     assert.include(names, 'Moutarde ZZ')
     assert.include(names, 'Ketchup ZZ')
@@ -78,8 +67,6 @@ test.group('Goods barcode', (group) => {
       .loginAs(user)
 
     response.assertStatus(200)
-    // Une chaîne vide passerait la contrainte d'unicité une fois, puis
-    // collisionnerait avec le produit suivant créé sans code.
     assert.isNull(response.body().data.barcode)
   })
 
@@ -92,8 +79,6 @@ test.group('Goods barcode', (group) => {
       .json({ name: 'Sans code B', unit: 'pcs', brand: '' })
       .loginAs(user)
 
-    // Postgres autorise plusieurs NULL sous une contrainte UNIQUE : les produits
-    // non scannables ne se gênent donc pas entre eux.
     response.assertStatus(200)
     assert.isNull(response.body().data.barcode)
   })
@@ -124,8 +109,6 @@ test.group('Goods barcode', (group) => {
       .json({ name: 'Ketchup', unit: 'pcs', barcode: '3268754117904' })
       .loginAs(user)
 
-    // Le refus doit être lisible : c'est un geste ordinaire — on vient de
-    // scanner le mauvais paquet — pas une panne serveur.
     response.assertStatus(409)
     assert.equal(response.body().error.code, 'E_BARCODE_TAKEN')
   })

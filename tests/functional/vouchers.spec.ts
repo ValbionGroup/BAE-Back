@@ -6,11 +6,6 @@ import { MemberFactory } from '#database/factories/members_factory'
 import { SupplierFactory } from '#database/factories/supplier_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 
-/**
- * Crée un bon directement plutôt que par une factory : c'est le seul fichier
- * qui en a besoin, et une factory de plus pour trois tests coûterait plus à
- * lire qu'elle ne fait gagner.
- */
 async function makeVoucher(supplierId: number, usedAt: DateTime | null = null) {
   return Voucher.create({
     supplierId,
@@ -41,8 +36,6 @@ test.group('Vouchers', (group) => {
 
     response.assertStatus(200)
     const body = response.body().data
-    // `value` est une colonne decimal : le driver la rend en string, le
-    // contrôleur la renumérote. Le front somme les bons sans parser.
     assert.strictEqual(body.value, 25.5)
     assert.strictEqual(body.expires_at, '2026-12-31')
     assert.isFalse(body.used)
@@ -69,15 +62,6 @@ test.group('Vouchers', (group) => {
     assert.isNotNull(voucher.usedAt)
   })
 
-  /**
-   * Le test qui compte. `used_at: null` doit *effacer* la date, pas être traité
-   * comme une clé absente — le contrôleur teste `'usedAt' in payload`, donc
-   * tout repose sur ce que Vine fait d'un `null` explicite sur un champ
-   * `.nullable().optional()`.
-   *
-   * La relecture en base est indispensable : la réponse pourrait refléter un
-   * modèle en mémoire que la colonne n'a jamais reçu.
-   */
   test('clears the consumption date when used_at is explicitly null', async ({
     client,
     assert,

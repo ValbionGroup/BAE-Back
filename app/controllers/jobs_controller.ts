@@ -6,33 +6,21 @@ import { jobValidator } from '#validators/coordination'
 import { DEFAULT_JOB_PERIOD } from '#services/matching_service'
 
 export default class JobsController {
-  /**
-   * Display a list of resource
-   */
   async index({ serialize }: HttpContext) {
     return serialize(await Job.query().orderBy('id'))
   }
 
-  /**
-   * Handle form submission for the create action
-   */
   async store({ request, serialize }: HttpContext) {
     const payload = await request.validateUsing(jobValidator)
     const job = await Job.create({ type: DEFAULT_JOB_PERIOD, ...payload })
     return serialize(job)
   }
 
-  /**
-   * Show individual record
-   */
   async show({ params, serialize }: HttpContext) {
     const job = await Job.query().where('id', params.id).firstOrFail()
     return serialize(job)
   }
 
-  /**
-   * Handle form submission for the edit action
-   */
   async update({ params, request, serialize }: HttpContext) {
     const job = await Job.query().where('id', params.id).firstOrFail()
     const payload = await request.validateUsing(jobValidator)
@@ -41,14 +29,6 @@ export default class JobsController {
     return serialize(job)
   }
 
-  /**
-   * Delete record — unless a consolidated assignment still points at it.
-   *
-   * Same reasoning as `EventsController.destroy`: `members.points` is derived
-   * from the settled `points_delta`, so a settled row may not vanish or
-   * `points:recompute` would erase real credit. Unsettled rows are dropped by
-   * hand, the FK being `RESTRICT`.
-   */
   async destroy({ params, response }: HttpContext) {
     const job = await Job.query().where('id', params.id).firstOrFail()
 
@@ -68,8 +48,6 @@ export default class JobsController {
         return
       }
 
-      // Unsettled rows only — the FK `RESTRICT` stays the backstop if this
-      // guard is ever weakened.
       await MemberEventAssignedJob.query({ client: trx })
         .where('jobId', job.id)
         .whereNull('settledAt')

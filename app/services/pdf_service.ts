@@ -1,7 +1,3 @@
-/*
- * Copyright (c) 2026 - Groupe Valbion - Tous droits réservés.
- */
-
 import puppeteer, { type Browser } from 'puppeteer'
 import { readFile } from 'node:fs/promises'
 
@@ -16,9 +12,6 @@ export default class PdfService {
       <span>Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
     </div>`
 
-  /**
-   * Initialize Puppeteer browser instance
-   */
   private async getBrowser(): Promise<Browser> {
     if (!this.browser) {
       this.browser = await puppeteer.launch({
@@ -29,9 +22,6 @@ export default class PdfService {
     return this.browser
   }
 
-  /**
-   * Close the browser instance
-   */
   async closeBrowser(): Promise<void> {
     if (this.browser) {
       await this.browser.close()
@@ -39,9 +29,6 @@ export default class PdfService {
     }
   }
 
-  /**
-   * Simple template engine - replaces {{variable}} with values from data
-   */
   private compileTemplate(template: string, data: Record<string, any>): string {
     return template.replace(/\{\{([^}]+)\}\}/g, (_, key) => {
       const trimmedKey = key.trim()
@@ -49,12 +36,6 @@ export default class PdfService {
     })
   }
 
-  /**
-   * Generate PDF from HTML template file
-   * @param templatePath - Path to HTML template file (relative to resources/views/pdfs/)
-   * @param data - Data to inject into template
-   * @param options - PDF generation options
-   */
   async generateFromTemplate(
     templatePath: string,
     data: Record<string, any>,
@@ -71,21 +52,17 @@ export default class PdfService {
     const page = await browser.newPage()
 
     try {
-      // Read template file
       const templateContent = await readFile(
         app.makePath('resources/views/pdfs', templatePath),
         'utf-8'
       )
 
-      // Compile template with data
       const compiledHtml = this.compileTemplate(templateContent, data)
 
-      // Set content and generate PDF
       await page.setContent(compiledHtml, {
         waitUntil: 'load',
       })
 
-      // Default options
       const pdfOptions = {
         format: options.format || 'A4',
         landscape: options.landscape || false,
@@ -104,9 +81,6 @@ export default class PdfService {
     }
   }
 
-  /**
-   * Generate PDF from raw HTML string
-   */
   async generateFromHtml(
     html: string,
     options: {

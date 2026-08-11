@@ -2,18 +2,6 @@ import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 
-/**
- * Rebuilds `members.points` from the settled assignment rows.
- *
- * Since D7 the score is a DERIVED value: the sum of the `points_delta` of the
- * rows that were consolidated at close (`settled_at` not null). Anything else
- * in `members.points` is drift — left there by the old engine, which mutated
- * the total in place and lost track of it on every unassignment.
- *
- * Rows still awaiting a close are deliberately excluded: their delta has never
- * been applied, counting it here would consolidate an evening that nobody
- * closed.
- */
 export default class PointsRecompute extends BaseCommand {
   static commandName = 'points:recompute'
   static description =

@@ -3,13 +3,6 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import StockBatch from '#models/stock_batch'
 import StockMovement from '#models/stock_movement'
 
-/**
- * A stock batch enriched with its server-computed remaining quantity.
- *
- * There is no stored remaining quantity: it is always derived as
- * `max(0, batch.quantity - sum(OUT movements on the batch))`. `quantity`
- * columns are varchar in the database, so every value is coerced with Number().
- */
 export interface BatchWithRemaining {
   id: number
   goodId: number | null
@@ -28,11 +21,9 @@ export interface GoodStockSummary {
   soonBatchCount: number
 }
 
-/**
- * Load a good's batches with their computed remaining quantity, ordered FEFO
- * (expiration ascending; Postgres puts NULLs last for ASC). Empty batches are
- * excluded unless `showEmpty` is true.
- */
+// The remaining quantity is never stored: it is always derived as
+// `max(0, batch quantity − OUT movements)`. The `quantity` columns are varchar in
+// the database, hence the systematic coercion through `Number()`.
 export async function loadBatchesWithRemaining(
   goodId: number | string,
   showEmpty = false,
@@ -66,10 +57,6 @@ export async function loadBatchesWithRemaining(
     .filter((batch) => showEmpty || batch.remainingQty > 0)
 }
 
-/**
- * Aggregate a good's per-batch remaining quantities into a stock summary.
- * Only non-empty batches (remaining > 0) count toward every metric.
- */
 export function computeGoodStockSummary(batches: BatchWithRemaining[]): GoodStockSummary {
   const now = DateTime.now()
   const soonThreshold = now.plus({ days: 7 })
@@ -100,10 +87,6 @@ export function computeGoodStockSummary(batches: BatchWithRemaining[]): GoodStoc
   }
 }
 
-/**
- * Compute the remaining quantity of a single batch. Used by the discard flow so
- * the write-off quantity is derived server-side rather than trusted from the client.
- */
 export async function remainingForBatch(
   batch: StockBatch,
   trx?: TransactionClientContract

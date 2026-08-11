@@ -7,13 +7,11 @@ import {
   makeTieBreaker,
   rankCost,
   rankingKey,
+  seededRng,
   sortByJobRanking,
   stableMatch,
 } from '#services/matching_service'
 
-/** Two frozen draws — real randomness would make the assertions flaky, and
- *  what is under test is that the permutation is read, not that it is uniform.
- *  `lowDraw` swaps on every round, `highDraw` never does. */
 const lowDraw: Rng = () => 0
 const highDraw: Rng = () => 0.999
 
@@ -58,14 +56,31 @@ test.group('Matching algorithm (pure functions)', () => {
     assert.sameMembers(secondDraw, memberIds)
   })
 
+  // A seed that does not reach the draw would order tied members identically at
+  // every event, which is exactly the bias the draw exists to remove — and no
+  // reproducibility test can see it, since they all want a STABLE order.
+  test('seededRng makes the drawn permutation depend on the seed', ({ assert }) => {
+    const memberIds = [1, 2, 3, 4]
+    const tied = memberIds.map((memberId) => ({
+      memberId,
+      points: 10,
+      historicalAttendanceCount: 1,
+    }))
+
+    const orders = new Set(
+      [1, 2, 3, 4, 5, 6, 7, 8].map((seed) =>
+        sortByJobRanking(tied, makeTieBreaker(memberIds, seededRng(seed))).join(',')
+      )
+    )
+
+    assert.isAbove(orders.size, 1)
+  })
+
   test('makeTieBreaker stays a total order once ids outside the draw are thrown in', ({
     assert,
   }) => {
     const tieBreak = makeTieBreaker([3, 1], lowDraw)
 
-    // A comparator returning 0 on unknown ids would still agree with itself
-    // but depend on the input order — which is what these two starting
-    // permutations detect.
     const fromOneOrder = [9, 1, 7, 3].sort(tieBreak)
     const fromAnother = [7, 3, 9, 1].sort(tieBreak)
 
@@ -113,12 +128,6 @@ test.group('Matching algorithm (pure functions)', () => {
     }
   })
 
-  /**
-   * Member 1 can hold both jobs, member 2 only job 10. Served first, member 1
-   * takes job 10 (lowest id within the period) and first-fit would stop there,
-   * leaving member 2 at zero although a seat was free. Placing both requires
-   * moving member 1 to job 20 — what an augmenting path does.
-   */
   test('backfillUnmatched places as many members as capacity allows, not as many as first-fit', ({
     assert,
   }) => {
@@ -143,8 +152,6 @@ test.group('Matching algorithm (pure functions)', () => {
     assert,
   }) => {
     const result = buildEffectivePreferences({ 30: 2, 10: 1 }, [10, 20, 30])
-    // 10 (rank 1) then 30 (rank 2) — the expressed ranking, in rank order —
-    // then 20, unranked, alone in the ex-aequo block.
     assert.deepEqual(result, [10, 30, 20])
   })
 
@@ -168,8 +175,6 @@ test.group('Matching algorithm (pure functions)', () => {
   test('buildEffectivePreferences ignores an expressed rank for a job outside the period', ({
     assert,
   }) => {
-    // Job 99 is ranked by the member but not offered in this period/event —
-    // it must not leak into the result.
     const result = buildEffectivePreferences({ 99: 1, 10: 2 }, [10, 20])
     assert.deepEqual(result, [10, 20])
   })
@@ -184,7 +189,6 @@ test.group('Matching algorithm (pure functions)', () => {
   })
 
   test('computePointsDelta reproduces the D5 table in full', ({ assert }) => {
-    // rank | during | before/after
     assert.equal(computePointsDelta('during', 1), -4)
     assert.equal(computePointsDelta('before', 1), 0)
     assert.equal(computePointsDelta('after', 1), 0)
@@ -229,16 +233,6 @@ test.group('Matching algorithm (pure functions)', () => {
     ])
   })
 
-  /**
-   * Members 1, 2 and 3 all prefer job 10 first, job 20 second. Job 10 has
-   * capacity 1 and ranks members in job-ranking order [1, 2, 3] (1 is best).
-   * Member 2 proposes to job 10, gets provisionally held, then member 1
-   * proposes and evicts member 2 (member 1 outranks member 2). Member 2 must
-   * then propose to job 20 (capacity 1) and evict member 3, who is left
-   * unmatched since there is no third job. This is the unique stable outcome
-   * — a naive first-fit implementation would stop after the first eviction
-   * and leave member 2 unmatched instead of chaining their rejection.
-   */
   test('produces a stable matching via a genuine rejection chain', ({ assert }) => {
     const { matches, unmatchedMemberIds } = stableMatch(
       [
@@ -283,9 +277,6 @@ test.group('Matching algorithm (pure functions)', () => {
   test('stableMatch reports the global expressed rank, not the position in the period-restricted list', ({
     assert,
   }) => {
-    // Job 30 is first in this member's period-restricted orderedJobIds
-    // (position 1), but their globally expressed rank for job 30 is 5 —
-    // that global rank must be what comes out, not the position.
     const { matches } = stableMatch(
       [
         {

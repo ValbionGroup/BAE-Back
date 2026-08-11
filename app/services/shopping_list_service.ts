@@ -3,16 +3,6 @@ import ApiException from '#exceptions/api_exception'
 import { loadBatchesWithRemaining } from '#services/stock_service'
 import { bestSupplierPrice, supplierPrices, type SupplierPrice } from '#services/pricing_service'
 
-/**
- * Une ligne de la liste de courses : une denrée ou un article non alimentaire
- * qu'il faut acheter, et de combien.
- *
- * `kind` n'est pas décoratif. Le stock d'une **denrée** se dérive de ses lots
- * moins les mouvements sortants ; celui d'un **non-alimentaire** est stocké sur
- * sa propre ligne (`furnitures.quantity`). Et `furnitures` n'a aucune relation
- * fournisseur : `suppliers` est donc toujours vide pour ce genre, et `bestPrice`
- * porte son prix propre. Le comparatif d'enseignes ne s'applique qu'aux denrées.
- */
 export interface ShoppingListLine {
   kind: 'good' | 'furniture'
   id: number
@@ -28,60 +18,31 @@ export interface ShoppingListLine {
   bestPrice: number | null
 }
 
-/**
- * Ce que coûterait la liste si on achetait tout chez cette enseigne.
- *
- * `fullCoverage` est indispensable, pas informatif : sans lui, une enseigne qui
- * ne référence que trois denrées sur douze affiche le total le plus bas de la
- * table **parce qu'elle en compte moins**, et le comparatif dit exactement le
- * contraire de la vérité.
- */
 export interface SupplierTotal {
   id: number
   name: string
   total: number
-  /** Vrai quand l'enseigne price chacune des lignes à acheter. */
+  // Without this flag, a retailer stocking only 3 goods out of 12 shows the
+  // lowest total *because* it counts fewer of them, and the comparison says the
+  // exact opposite of the truth.
   fullCoverage: boolean
 }
 
 export interface ShoppingList {
   eventId: number
   eventName: string
-  /** Lignes à acheter, manque décroissant puis nom. Les lignes couvertes par le stock sont absentes. */
   lines: ShoppingListLine[]
   lineCount: number
-  /** Somme du manque au meilleur prix, ligne par ligne. Les lignes sans prix connu valent 0. */
   optimumTotal: number
   supplierTotals: SupplierTotal[]
-  /** Meilleure enseigne à couverture complète − optimum. `null` si aucune ne couvre tout. */
   savings: number | null
-  /** Lignes à acheter dont on ignore le prix. À annoncer, jamais à compter comme gratuites. */
   unpricedCount: number
 }
 
-/** Accumulateur interne : le besoin agrégé par denrée ou par article. */
 interface NeedAccumulator {
   needQty: number
 }
 
-/**
- * Calcule la liste de courses d'une soirée.
- *
- * ```
- * besoin(x)  = Σ ligneDeMenu.quantity × pivot.quantity   (sur tout le menu)
- * stock(x)   = lots restants (denrée)  |  furnitures.quantity (non-alimentaire)
- * manque(x)  = max(0, besoin(x) − stock(x))
- * ```
- *
- * Le besoin est agrégé **par denrée avant** qu'on retranche le stock. C'est ce
- * qui rend le calcul juste quand deux recettes du menu partagent un ingrédient,
- * et c'est aussi pourquoi il n'existe pas de manque « par recette » : on ne
- * saurait pas à laquelle attribuer le stock disponible.
- *
- * Vit côté back parce qu'il aura trois consommateurs — la liste de courses, le
- * coût d'une soirée et le bilan. Recalculé par écran, il donnerait trois
- * vérités divergentes.
- */
 export async function buildShoppingList(eventId: string): Promise<ShoppingList> {
   const event = await Event.query()
     .where('id', eventId)
@@ -103,6 +64,9 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
   const goodsById = new Map<number, (typeof event.products)[number]['goods'][number]>()
   const furnituresById = new Map<number, (typeof event.products)[number]['furnitures'][number]>()
 
+  // The need is aggregated per good BEFORE the stock is subtracted: that is what
+  // makes the computation right when two recipes share an ingredient, and why
+  // there can be no "per recipe" shortfall.
   for (const product of event.products) {
     const produced = Number(product.$extras.pivot_quantity)
 
@@ -111,8 +75,6 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
       const entry = goodNeeds.get(good.id) ?? { needQty: 0 }
       entry.needQty += produced * perUnit
       goodNeeds.set(good.id, entry)
-      // La première occurrence suffit : `preload` rend le même jeu de
-      // fournisseurs et de catégorie pour une denrée donnée.
       if (!goodsById.has(good.id)) goodsById.set(good.id, good)
     }
 
@@ -153,8 +115,6 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
 
   for (const [furnitureId, { needQty }] of furnitureNeeds) {
     const furniture = furnituresById.get(furnitureId)!
-    // Le stock est sur la ligne, pas dans des lots : le non-alimentaire n'est
-    // pas suivi par DLC.
     const stockQty = Number(furniture.quantity)
     const missingQty = Math.max(0, needQty - stockQty)
     if (missingQty === 0) continue
@@ -184,8 +144,6 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
   )
   const unpricedCount = lines.filter((line) => line.bestPrice === null).length
 
-  // Les totaux par enseigne ne concernent que les denrées : le non-alimentaire
-  // n'a pas de fournisseur, donc l'inclure fausserait la couverture.
   const goodLines = lines.filter((line) => line.kind === 'good')
   const supplierIds = new Map<number, string>()
   for (const line of goodLines) {
@@ -209,12 +167,6 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
   const complete = supplierTotals.filter((entry) => entry.fullCoverage)
   const cheapestSingle = complete.length > 0 ? Math.min(...complete.map((e) => e.total)) : null
 
-  // `optimumTotal` (affiché comme « coût estimé ») porte le panier complet,
-  // denrées + non-alimentaire : c'est le vrai coût de la soirée. Mais
-  // `savings` compare des enseignes, et une enseigne ne vend que des denrées
-  // — comparer contre le panier complet retrancherait le coût des barquettes
-  // d'une économie qui ne parle que du pain et des saucisses. On recalcule
-  // donc un optimum denrées-seules, purement local à cette comparaison.
   const optimumGoodsTotal = goodLines.reduce(
     (sum, line) => sum + (line.bestPrice === null ? 0 : line.missingQty * line.bestPrice),
     0

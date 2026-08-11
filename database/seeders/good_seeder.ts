@@ -2,17 +2,6 @@ import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import Category from '#models/category'
 import Good from '#models/good'
 
-/**
- * Des denrées lisibles à la place de `faker.commerce.productName()`.
- *
- * Avec des noms de catalogue aléatoires et des prix tirés entre 10 et 1000 €,
- * aucun nombre des écrans Logistique n'était jugeable à l'œil — donc aucune
- * vérification visuelle n'était possible.
- *
- * ⚠️ `brand` est `NOT NULL` et `unit` est un enum contraint par la base
- * (`pcs`, `kg`, `liter`) : toute autre valeur est refusée par Postgres, pas par
- * une validation applicative.
- */
 const CATEGORIES = ['Frais', 'Sec', 'Boissons'] as const
 
 const GOODS: readonly { name: string; unit: string; brand: string; category: string }[] = [

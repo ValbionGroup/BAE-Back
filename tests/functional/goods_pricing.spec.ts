@@ -7,11 +7,6 @@ import { SupplierFactory } from '#database/factories/supplier_factory'
 test.group('Goods supplier pricing', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  /**
-   * `good_suppliers.price` was preloaded but never reached the wire: Lucid does
-   * not serialize `$extras.pivot_*` unless asked. The logistique shopping list
-   * compares prices across retailers, so this is the field it lives on.
-   */
   test('exposes every supplier price, cheapest first', async ({ client, assert }) => {
     const user = await UserFactory.create()
     const good = await GoodFactory.create()
@@ -31,7 +26,6 @@ test.group('Goods supplier pricing', (group) => {
       row.suppliers.map((s: { name: string }) => s.name),
       ['Leclerc', 'Carrefour']
     )
-    // Numbers, not the strings the decimal driver hands back.
     assert.strictEqual(row.suppliers[0].price, 4.95)
     assert.strictEqual(row.best_price, 4.95)
     assert.equal(row.best_supplier.name, 'Leclerc')

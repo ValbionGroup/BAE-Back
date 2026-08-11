@@ -2,17 +2,6 @@ import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import Good from '#models/good'
 import Product from '#models/product'
 
-/**
- * Composition explicite au lieu de 2-3 denrées tirées au hasard.
- *
- * L'aléatoire rendait la liste de courses ininterprétable — et surtout, il ne
- * produisait jamais d'ingrédient **partagé** entre deux recettes, qui est
- * précisément le cas que le calcul doit traiter correctement. Ici le pain et la
- * moutarde le sont, entre les deux hot-dogs.
- *
- * `rank` porte l'ordre d'assemblage, `instruction` l'étape correspondante :
- * c'est ce que la page d'accueil lira pour dire quoi assembler ce soir.
- */
 const COMPOSITION: Record<string, readonly [string, number, string | null][]> = {
   'Hot-dog classique': [
     ['Pain hot-dog x12', 1, 'Fendre sans séparer'],
@@ -55,8 +44,6 @@ export default class extends BaseSeeder {
         pivot[goodId] = { quantity, rank: rank++, instruction }
       }
 
-      // `sync` et non `attach` : le seeder doit être rejouable, et `attach` sur
-      // une paire existante viole la clé primaire composite du pivot.
       await product.related('goods').sync(pivot)
     }
   }

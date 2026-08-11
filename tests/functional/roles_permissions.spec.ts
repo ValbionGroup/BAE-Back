@@ -82,9 +82,6 @@ test.group('Roles permissions exposure', (group) => {
   })
 
   test('refuses a sync that leaves nobody holding role:write', async ({ client, assert }) => {
-    // La base peut déjà contenir d'autres porteurs de role:write (comptes admin
-    // réels en dev, rôles seedés) : sans les retirer ici, le compte global ne
-    // retombe jamais à zéro et le test ne prouve rien, seedée ou non.
     await db.from('roles_permissions').where('permission_id', 'role:write').delete()
 
     const member = await MemberFactory.create()
@@ -112,8 +109,6 @@ test.group('Roles permissions exposure', (group) => {
   })
 
   test('refuses a sync that leaves nobody holding role:read', async ({ client, assert }) => {
-    // Same reasoning as the role:write case above: clear other holders first, or
-    // the global count never reaches zero and the test proves nothing.
     await db.from('roles_permissions').where('permission_id', 'role:read').delete()
 
     const member = await MemberFactory.create()
@@ -144,12 +139,6 @@ test.group('Roles permissions exposure', (group) => {
     client,
     assert,
   }) => {
-    // Same reasoning as the two lockout tests above: clear role:read down to zero
-    // holders first. Unlike those, this one exercises the OTHER side of the
-    // invariant — a permission already at zero before the mutation must not brick
-    // every future sync on every role, only the ones that would push a permission
-    // still held by someone down to zero. `role:write` is left alone, so the
-    // actor's own role keeps it and can call the route.
     await db.from('roles_permissions').where('permission_id', 'role:read').delete()
 
     const member = await MemberFactory.create()
@@ -201,8 +190,6 @@ test.group('Roles permissions exposure', (group) => {
     client,
     assert,
   }) => {
-    // Same reasoning as the sync lockout tests: clear other holders first, or
-    // the global count never reaches zero and the test proves nothing.
     await db.from('roles_permissions').where('permission_id', 'role:write').delete()
 
     const member = await MemberFactory.create()
@@ -306,8 +293,6 @@ test.group('Roles permissions exposure', (group) => {
   })
 
   test('GET /v1/members stays open to an ordinary member', async ({ client }) => {
-    // `member:read` est dans le socle : Coordination, Accueil et Mes présences
-    // appellent cette route. La restreindre casse l'accueil de tout le monde.
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['presence:read', 'member:read'])
 
@@ -318,19 +303,10 @@ test.group('Roles permissions exposure', (group) => {
 })
 
 test.group('Roles permissions — concurrent syncs', () => {
-  // Deliberately NOT `testUtils.db().withGlobalTransaction()`: that hook makes
-  // every `db.transaction()` opened during the test reuse the same wrapping
-  // transaction as a savepoint on ONE physical connection — a single Postgres
-  // session can't have two overlapping transactions, so the race this test
-  // exists to reproduce could never actually happen under it. Real, separate
-  // connections are required, so this group commits for real and cleans up by
-  // hand instead of relying on rollback.
   test('two concurrent syncs on different roles cannot both empty role:write', async ({
     client,
     assert,
   }) => {
-    // `created_at` is `notNullable` with no column default (see the migration),
-    // so restoring these rows later needs the original value, not a fresh one.
     const otherHolders = await db
       .from('roles_permissions')
       .where('permission_id', 'role:write')
@@ -338,9 +314,6 @@ test.group('Roles permissions — concurrent syncs', () => {
 
     await db.from('roles_permissions').where('permission_id', 'role:write').delete()
 
-    // Rien ne seede le catalogue pour les tests : sans cette ligne, les `sync`
-    // ci-dessous violent la clé étrangère sur `permissions` dès que la base ne
-    // contient pas déjà `role:write`.
     await Permission.firstOrCreate({ permission: 'role:write' })
 
     const roleA = await Role.create({ name: 'Pole Concurrent A' })
@@ -359,11 +332,6 @@ test.group('Roles permissions — concurrent syncs', () => {
     const userB = await User.findOrFail(memberB.id)
 
     try {
-      // Neither request is awaited individually before the other is issued: both
-      // hit the server, and therefore both open their own `db.transaction()` on
-      // their own connection, before either has a chance to commit. That is what
-      // makes this a genuine interleaving rather than two sequential calls that
-      // happen to be wrapped in the same `Promise.all`.
       const [responseA, responseB] = await Promise.all([
         client.put(`/v1/roles/${roleA.id}/permissions`).json({ permissions: [] }).loginAs(userA),
         client.put(`/v1/roles/${roleB.id}/permissions`).json({ permissions: [] }).loginAs(userB),
@@ -386,8 +354,6 @@ test.group('Roles permissions — concurrent syncs', () => {
         'the invariant must hold after the race: role:write still has exactly one living holder'
       )
     } finally {
-      // `members.id` cascades from `users.id`, so deleting the users is enough to
-      // remove the member rows too.
       await userA.delete()
       await userB.delete()
       await roleA.delete()

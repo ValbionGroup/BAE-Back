@@ -4,11 +4,6 @@ import User from '#models/user'
 import { MemberFactory } from '#database/factories/members_factory'
 import { JobFactory } from '#database/factories/job_factory'
 
-/**
- * A member ranks the jobs they want. The matching engine reads that ranking as
- * the proposer's preference list, so the ordering contract matters: rank comes
- * from the POSITION in the submitted array, never from a client-supplied number.
- */
 test.group('My job preferences', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
@@ -106,7 +101,6 @@ test.group('My job preferences', (group) => {
 
     response.assertStatus(422)
 
-    // The whole submission is rejected — no partial ranking is written.
     await member.load('preferences')
     assert.lengthOf(member.preferences, 0)
   })

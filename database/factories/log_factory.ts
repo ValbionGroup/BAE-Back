@@ -14,7 +14,7 @@ export const LogFactory = factory
         userAgent: faker.internet.userAgent(),
         referrer: faker.internet.url(),
       },
-      userId: null, // Will be set by relation if needed
+      userId: null,
     }
   })
   .relation('user', () => UserFactory)

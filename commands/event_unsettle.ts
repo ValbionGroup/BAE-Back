@@ -2,26 +2,10 @@ import { BaseCommand, args, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 
-/**
- * De-consolidates an evening: takes its settled deltas back out of
- * `members.points` and clears `settled_at`.
- *
- * The reverse gear of `POST /v1/events/:id/settle`, which the API deliberately
- * does not offer: a close is irreversible from the outside, and a settled
- * evening makes `runMatching` fail with 409. Without this command a mistaken
- * close would be a database incident — which is also why the close itself is
- * now gated behind `event:settle`.
- *
- * Deliberately an ace command, not a route: undoing a close is an operator
- * action, done knowingly, not something the coordination screens should offer
- * by accident.
- *
- * Idempotent: a row with `settled_at` null has never been applied, so a second
- * run finds nothing to give back.
- *
- *     node ace event:unsettle 42
- *     node ace event:unsettle 42 --dry-run
- */
+// The reverse gear of `POST /v1/events/:id/settle`, which the API does not offer:
+// a close is irreversible from the outside and a settled evening makes
+// `runMatching` fail with 409. Idempotent — a row with no `settled_at` was never
+// applied. Deliberately a command: un-closing is an operator action.
 export default class EventUnsettle extends BaseCommand {
   static commandName = 'event:unsettle'
   static description =
@@ -56,9 +40,6 @@ export default class EventUnsettle extends BaseCommand {
     }
 
     await db.transaction(async (trx) => {
-      // `forUpdate` closes the same window `settle` closes from the other side:
-      // without it a concurrent close could stamp a row between our read and
-      // our reversal, and its credit would survive un-refunded.
       const settledRows = await trx
         .from('member_event_assigned_jobs')
         .where('event_id', eventId)

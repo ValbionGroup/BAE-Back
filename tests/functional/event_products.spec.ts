@@ -9,11 +9,6 @@ import Supplier from '#models/supplier'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 
-/**
- * Une soirée, une recette d'une seule denrée, et une enseigne qui la price.
- * Monté à la main plutôt que par factories : le calcul de coût dépend de
- * valeurs précises, et une factory aléatoire rendrait les assertions illisibles.
- */
 async function seedMenuFixture() {
   const event = await Event.create({
     name: 'Soirée Hivernale',
@@ -39,7 +34,6 @@ async function seedMenuFixture() {
     description: null,
     recipe: null,
   })
-  // 2 saucisses par hot-dog.
   await product.related('goods').attach({
     [good.id]: { quantity: 2, rank: 1, instruction: 'Chauffer 3 min' },
   })
@@ -66,7 +60,6 @@ test.group('Event products — lecture du menu', (group) => {
     assert.equal(lines[0].name, 'Hot-dog classique')
     assert.strictEqual(lines[0].quantity, 220)
     assert.strictEqual(lines[0].price, 350)
-    // 2 saucisses × 4,95 € = 9,90 € la pièce.
     assert.strictEqual(lines[0].unit_cost, 9.9)
     assert.strictEqual(lines[0].total_cost, 2178)
   })
@@ -104,8 +97,6 @@ test.group('Event products — lecture du menu', (group) => {
     const response = await client.get(`/v1/events/${event.id}/products`).loginAs(user)
 
     response.assertStatus(200)
-    // Un coût partiel serait plus faux qu'un coût absent : on ne sait pas
-    // combien coûte cette recette, donc on ne prétend pas le savoir.
     assert.isNull(response.body().data[0].unit_cost)
     assert.isNull(response.body().data[0].total_cost)
   })
@@ -132,15 +123,6 @@ test.group('Event products — lecture du menu', (group) => {
     assert.equal(response.body().error.code, 'E_FORBIDDEN')
   })
 
-  /**
-   * `products` n'a pas de colonne de catégorie : celle d'une recette se dérive
-   * de son ingrédient de plus bas `rank`. La caisse en a besoin pour ses
-   * onglets, et c'est la seule source disponible.
-   *
-   * Deux denrées de catégories différentes, à deux rangs différents : le test
-   * échouerait aussi bien si la dérivation prenait la dernière, la première par
-   * ordre alphabétique, ou n'importe laquelle.
-   */
   test('derives the recipe category from its lowest-rank ingredient', async ({
     client,
     assert,
@@ -170,7 +152,6 @@ test.group('Event products — lecture du menu', (group) => {
     const response = await client.get(`/v1/events/${event.id}/products`).loginAs(user)
 
     response.assertStatus(200)
-    // « Frais », la catégorie du rang 1 — et non « Sec », celle du rang 2.
     assert.equal(response.body().data[0].category, 'Frais')
   })
 
@@ -184,8 +165,6 @@ test.group('Event products — lecture du menu', (group) => {
     const response = await client.get(`/v1/events/${event.id}/products`).loginAs(user)
 
     response.assertStatus(200)
-    // `null` et non la chaîne vide : l'écran doit pouvoir distinguer « pas de
-    // catégorie » d'une catégorie nommée.
     assert.isNull(response.body().data[0].category)
   })
 })
@@ -207,7 +186,6 @@ test.group('Event products — écriture du menu', (group) => {
     assert.strictEqual(response.body().data.quantity, 220)
     assert.strictEqual(response.body().data.product_id, product.id)
 
-    // Relecture en base : la réponse pourrait refléter un modèle en mémoire.
     await event.load('products')
     assert.lengthOf(event.products, 1)
     assert.strictEqual(Number(event.products[0].$extras.pivot_quantity), 220)
@@ -218,7 +196,6 @@ test.group('Event products — écriture du menu', (group) => {
     assert,
   }) => {
     const { event, product } = await seedMenuFixture()
-    // Une soirée antérieure où l'article se vendait 350 centimes.
     const past = await Event.create({
       name: 'Bienvenue 2026',
       description: null,
@@ -237,8 +214,6 @@ test.group('Event products — écriture du menu', (group) => {
       .loginAs(user)
 
     response.assertStatus(200)
-    // Reporté depuis la dernière soirée : sans ça, tout article repartirait à 0
-    // et la caisse vendrait gratuitement.
     assert.strictEqual(response.body().data.price, 350)
   })
 
@@ -256,7 +231,6 @@ test.group('Event products — écriture du menu', (group) => {
 
     response.assertStatus(200)
     assert.strictEqual(response.body().data.quantity, 240)
-    // Le prix de vente n'était pas dans le corps : il ne doit pas bouger.
     assert.strictEqual(response.body().data.price, 350)
 
     await event.load('products')
@@ -291,8 +265,6 @@ test.group('Event products — écriture du menu', (group) => {
       .json({ product_id: product.id, quantity: 50 })
       .loginAs(user)
 
-    // Sans ce refus explicite, la clé primaire composite renvoie une erreur SQL
-    // brute que le client ne peut pas interpréter.
     response.assertStatus(409)
     assert.equal(response.body().error.code, 'E_MENU_LINE_EXISTS')
     assert.equal(response.body().error.message, 'Cette recette est déjà au menu de la soirée.')
@@ -338,8 +310,6 @@ test.group('Event products — écriture du menu', (group) => {
       .json({ product_id: product.id, quantity: 0 })
       .loginAs(user)
 
-    // Une quantité nulle voudrait dire que la ligne ne devrait pas exister, et
-    // DELETE le dit déjà.
     response.assertStatus(422)
   })
 
@@ -348,7 +318,6 @@ test.group('Event products — écriture du menu', (group) => {
     await event.related('products').attach({ [product.id]: { quantity: 100, price: 0 } })
 
     const member = await MemberFactory.create()
-    // `menu:read` seule : le compte lit le menu mais ne l'écrit pas.
     const user = await grantPermissions(member, ['menu:read'])
 
     const post = await client

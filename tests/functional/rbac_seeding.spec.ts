@@ -44,7 +44,6 @@ test.group('RBAC seeding', (group) => {
     const held = (name: string) =>
       roles.find((role) => role.name === name)!.permissions.map((entry) => entry.permission)
 
-    // Socle : les huit rôles lisent le menu, `Membre` compris.
     for (const role of ROLES) {
       assert.include(held(role), 'menu:read', `${role} devrait porter menu:read`)
     }

@@ -10,8 +10,8 @@ export const StockBatchFactory = factory
       expirationDate: DateTime.fromJSDate(faker.date.future()),
       label: faker.commerce.productName(),
       quantity: faker.number.int({ min: 1, max: 100 }).toString(),
-      restockId: null, // Will be set by relation
-      goodId: null, // Will be set by relation
+      restockId: null,
+      goodId: null,
     }
   })
   .relation('restock', () => RestockFactory)

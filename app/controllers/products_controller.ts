@@ -6,13 +6,9 @@ import ApiException from '#exceptions/api_exception'
 import { loadBatchesWithRemaining } from '#services/stock_service'
 import { minSupplierPrice } from '#services/pricing_service'
 
-/**
- * A product has no category of its own — only its goods do. We label it with the
- * category of its primary ingredient, i.e. the good with the lowest `rank` in the
- * `product_goods` pivot, which is the same ordering `ingredients()` returns.
- *
- * Returns `null` for a product with no goods, or whose primary good is uncategorised.
- */
+// TODO: consume `#services/product_category_service`, of which this is an exact
+// copy — while both definitions coexist they can drift apart, and the same
+// product would change category depending on which screen looks at it.
 function primaryCategoryName(product: Product): string | null {
   const [primary] = [...product.goods].sort(
     (a, b) =>
@@ -22,11 +18,9 @@ function primaryCategoryName(product: Product): string | null {
   return primary?.category?.name ?? null
 }
 
-/**
- * Every pivot pointing at `products` is `ON DELETE CASCADE`. Deleting a product
- * therefore does not orphan its sales — it erases them. These are the tables
- * whose rows are history, and whose presence forbids the deletion.
- */
+// Every pivot pointing at `products` is `ON DELETE CASCADE`: deleting a recipe
+// does not orphan its sales, it erases them. These are the tables whose rows are
+// history, and whose presence therefore forbids the deletion.
 const PRODUCT_USAGES = [
   { table: 'order_products', singular: 'commande', plural: 'commandes' },
   { table: 'event_products', singular: 'menu de soirée', plural: 'menus de soirée' },
@@ -61,15 +55,6 @@ function normalizeText(value: unknown): string | null {
   return trimmed === '' ? null : trimmed
 }
 
-/**
- * The array order *is* the assembly order: `rank` is derived from the index
- * rather than read from the payload, so it can never arrive duplicated or with
- * a hole. Reordering a recipe means resending the whole array.
- *
- * `product_goods.quantity` is an unsigned integer column, so a fractional
- * quantity is refused here rather than truncated by the driver — and a repeated
- * good is refused rather than surfacing as a primary-key violation.
- */
 function parseIngredients(raw: unknown): IngredientInput[] {
   if (!Array.isArray(raw)) badRequest('La liste des ingrédients doit être un tableau.')
 
@@ -94,8 +79,6 @@ function parseIngredients(raw: unknown): IngredientInput[] {
   })
 }
 
-/** Refuses an unknown good up front, so the pivot's foreign key surfaces as a
- *  correctable mistake instead of a 500. */
 async function assertGoodsExist(ingredients: IngredientInput[]): Promise<void> {
   if (ingredients.length === 0) return
   const ids = ingredients.map((line) => line.goodId)
@@ -114,16 +97,10 @@ function pivotPayload(ingredients: IngredientInput[]) {
 }
 
 export default class ProductsController {
-  /**
-   * Display a list of resource
-   */
   async index({ serialize }: HttpContext) {
     return serialize(await Product.query().preload('furnitures').preload('goods'))
   }
 
-  /**
-   * Handle form submission for the create action
-   */
   async store({ request, serialize }: HttpContext) {
     const payload = request.all()
     const name = normalizeText(payload.name)
@@ -147,9 +124,6 @@ export default class ProductsController {
     return serialize(product)
   }
 
-  /**
-   * Show individual record
-   */
   async show({ params, serialize }: HttpContext) {
     return serialize(
       await Product.query()
@@ -160,9 +134,6 @@ export default class ProductsController {
     )
   }
 
-  /**
-   * Handle form submission for the edit action
-   */
   async update({ params, request, serialize }: HttpContext) {
     const product = await Product.findOrFail(params.id)
     const payload = request.all()
@@ -170,9 +141,6 @@ export default class ProductsController {
     const name = normalizeText(payload.name)
     if (name === null) badRequest('Le nom de la recette est obligatoire.')
 
-    // An absent `goods` key leaves the composition alone; an empty array is an
-    // explicit order to strip it. Without the distinction, editing only the
-    // name would silently empty the recipe.
     const ingredients = 'goods' in payload ? parseIngredients(payload.goods) : null
     if (ingredients !== null) await assertGoodsExist(ingredients)
 
@@ -189,9 +157,6 @@ export default class ProductsController {
     return serialize(product)
   }
 
-  /**
-   * Delete record
-   */
   async destroy({ params, response }: HttpContext) {
     const product = await Product.findOrFail(params.id)
     const usages = await usageLabels(product.id)

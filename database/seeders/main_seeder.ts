@@ -28,18 +28,13 @@ export default class extends BaseSeeder {
   }
 
   public async run() {
-    // 1. Seeders seuls (no dependencies)
     await this.runSeeder(RoleSeeder)
     await this.runSeeder(PermissionSeeder)
     await this.runSeeder(JobSeeder)
     await this.runSeeder(TransactionSeeder)
 
-    // 2. Seeders dépendants (depends on step 1)
     await this.runSeeder(RolePermissionSeeder)
     await this.runSeeder(MemberSeeder)
-    // Comptes de développement connectables. Sûr ici malgré l'appel manuel —
-    // qui court-circuite `static environment` — parce que le seeder porte aussi
-    // une garde `app.inProduction` dans son `run()`.
     await this.runSeeder(DevAccountSeeder)
     await this.runSeeder(GoodSeeder)
     await this.runSeeder(FurnitureSeeder)
@@ -47,12 +42,10 @@ export default class extends BaseSeeder {
     await this.runSeeder(EventSeeder)
     await this.runSeeder(FastPassSeeder)
 
-    // 3. Seeders dépendants des seeders précédents
     await this.runSeeder(ProductSeeder)
     await this.runSeeder(RestockSeeder)
     await this.runSeeder(LogSeeder)
 
-    // 4. Seeders dépendants des seeders précédents
     await this.runSeeder(SubscriptionSeeder)
     await this.runSeeder(ProductGoodSeeder)
     await this.runSeeder(ProductFurnitureSeeder)
@@ -60,7 +53,6 @@ export default class extends BaseSeeder {
     await this.runSeeder(GoodSupplierSeeder)
     await this.runSeeder(StockBatchSeeder)
 
-    // 5. Seeders dépendants des seeders précédents
     await this.runSeeder(StockMovementSeeder)
   }
 }

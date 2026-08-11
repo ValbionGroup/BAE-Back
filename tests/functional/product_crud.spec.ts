@@ -118,12 +118,6 @@ test.group('Product CRUD', (group) => {
     assert.equal(rows[0].quantity, 7)
   })
 
-  /**
-   * Each of these would otherwise reach the database and come back as a 500:
-   * the repeated good violates the pivot's composite primary key, the
-   * fractional quantity is truncated by the unsigned-integer column, and the
-   * unknown good violates the foreign key.
-   */
   test('refuses an unusable ingredient payload: {label}')
     .with([
       {

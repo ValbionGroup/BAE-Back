@@ -9,14 +9,6 @@ import { JobFactory } from '#database/factories/job_factory'
 import { asCoordinator } from '#tests/helpers/permissions'
 import EventUnsettle from '../../commands/event_unsettle.js'
 
-/**
- * The way back out of a close.
- *
- * `settle` is one-way from the API: a settled evening makes `runMatching` fail
- * with 409 and nothing un-marks the rows. Without a reverse gear a mistaken
- * close is a database incident, so the permission gate on `settle` would only
- * be half a fix.
- */
 test.group('event:unsettle', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
   group.each.setup(() => {
@@ -29,7 +21,6 @@ test.group('event:unsettle', (group) => {
     return member.points
   }
 
-  /** A closed evening: two members, three deltas, all consolidated. */
   async function closedEvening() {
     const event = await EventFactory.create()
     const beforeJob = await JobFactory.merge({ type: 'before' }).create()
