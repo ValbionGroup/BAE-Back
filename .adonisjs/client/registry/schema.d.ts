@@ -871,6 +871,54 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['index']>>>
     }
   }
+  'event_products.store': {
+    methods: ["POST"]
+    pattern: '/v1/events/:id/products'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/event_product').eventProductValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/event_product').eventProductValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'event_products.update': {
+    methods: ["PATCH"]
+    pattern: '/v1/events/:id/products/:productId'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/event_product').eventProductUpdateValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { id: ParamValue; productId: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/event_product').eventProductUpdateValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'event_products.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/events/:id/products/:productId'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { id: ParamValue; productId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['destroy']>>>
+    }
+  }
+  'event_products.shopping_list': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/shopping-list'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['shoppingList']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['shoppingList']>>>
+    }
+  }
   'events.run_matching': {
     methods: ["POST"]
     pattern: '/v1/events/:id/matching'
