@@ -29,9 +29,9 @@ const BASE_PRICES: Record<string, number> = {
 
 /** −4 %, référence, +6 % : Leclerc le moins cher en général, sans l'être partout. */
 const RETAILER_FACTORS: Record<string, number> = {
-  'Leclerc': 0.96,
-  'Auchan': 1.0,
-  'Carrefour': 1.06,
+  Leclerc: 0.96,
+  Auchan: 1.0,
+  Carrefour: 1.06,
 }
 
 /**
@@ -47,9 +47,7 @@ export default class extends BaseSeeder {
 
     for (const supplier of suppliers) {
       const factor = RETAILER_FACTORS[supplier.name] ?? 1.0
-      const retailerIndex = RETAILER_ORDER.indexOf(
-        supplier.name as (typeof RETAILER_ORDER)[number]
-      )
+      const retailerIndex = RETAILER_ORDER.indexOf(supplier.name as (typeof RETAILER_ORDER)[number])
       const pivot: Record<number, { price: number }> = {}
 
       for (const good of goods) {

@@ -101,10 +101,7 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
   const goodNeeds = new Map<number, NeedAccumulator>()
   const furnitureNeeds = new Map<number, NeedAccumulator>()
   const goodsById = new Map<number, (typeof event.products)[number]['goods'][number]>()
-  const furnituresById = new Map<
-    number,
-    (typeof event.products)[number]['furnitures'][number]
-  >()
+  const furnituresById = new Map<number, (typeof event.products)[number]['furnitures'][number]>()
 
   for (const product of event.products) {
     const produced = Number(product.$extras.pivot_quantity)

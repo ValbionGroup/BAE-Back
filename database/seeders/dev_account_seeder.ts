@@ -24,13 +24,17 @@ export const DEV_PASSWORD = 'bae-dev-password'
  * liste de courses ; `Membre` ne porte que le socle, donc lit le menu et se voit
  * refuser la liste de courses. `Administrateur` sert de passe-partout.
  */
-export const DEV_ACCOUNTS: readonly { email: string; firstName: string; lastName: string; role: RoleName }[] =
-  [
-    { email: 'admin@bae.test', firstName: 'Alex', lastName: 'Admin', role: 'Administrateur' },
-    { email: 'log@bae.test', firstName: 'Léa', lastName: 'Logistique', role: 'Pole Log' },
-    { email: 'coordo@bae.test', firstName: 'Camille', lastName: 'Coordo', role: 'Coordinateur' },
-    { email: 'membre@bae.test', firstName: 'Manon', lastName: 'Membre', role: 'Membre' },
-  ]
+export const DEV_ACCOUNTS: readonly {
+  email: string
+  firstName: string
+  lastName: string
+  role: RoleName
+}[] = [
+  { email: 'admin@bae.test', firstName: 'Alex', lastName: 'Admin', role: 'Administrateur' },
+  { email: 'log@bae.test', firstName: 'Léa', lastName: 'Logistique', role: 'Pole Log' },
+  { email: 'coordo@bae.test', firstName: 'Camille', lastName: 'Coordo', role: 'Coordinateur' },
+  { email: 'membre@bae.test', firstName: 'Manon', lastName: 'Membre', role: 'Membre' },
+]
 
 /**
  * Quatre comptes connectables, pour le développement uniquement.

@@ -325,10 +325,7 @@ test.group('Event products — écriture du menu', (group) => {
 
     response.assertStatus(404)
     assert.equal(response.body().error.code, 'E_PRODUCT_NOT_FOUND')
-    assert.equal(
-      response.body().error.message,
-      "Cette recette n'est pas au menu de cette soirée."
-    )
+    assert.equal(response.body().error.message, "Cette recette n'est pas au menu de cette soirée.")
   })
 
   test('refuses a quantity below one', async ({ client }) => {
@@ -362,9 +359,7 @@ test.group('Event products — écriture du menu', (group) => {
       .patch(`/v1/events/${event.id}/products/${product.id}`)
       .json({ quantity: 10 })
       .loginAs(user)
-    const del = await client
-      .delete(`/v1/events/${event.id}/products/${product.id}`)
-      .loginAs(user)
+    const del = await client.delete(`/v1/events/${event.id}/products/${product.id}`).loginAs(user)
 
     for (const response of [post, patch, del]) {
       response.assertStatus(403)
