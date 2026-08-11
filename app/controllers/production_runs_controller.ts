@@ -1,7 +1,17 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import ApiException from '#exceptions/api_exception'
+import Event from '#models/event'
 import Member from '#models/member'
+import ProductionRun from '#models/production_run'
 import { commitProduction, planProduction } from '#services/production_service'
+
+interface ProductionLine {
+  productId: number
+  productName: string
+  plannedQty: number
+  producedQty: number
+  runs: { id: number; quantity: number; createdAt: string | null }[]
+}
 
 function positiveInteger(raw: unknown, label: string): number {
   const value = Number(raw)
@@ -12,6 +22,56 @@ function positiveInteger(raw: unknown, label: string): number {
 }
 
 export default class ProductionRunsController {
+  async index({ params, serialize }: HttpContext) {
+    const event = await Event.query().where('id', params.id).preload('products').first()
+    if (!event) {
+      throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
+    }
+
+    const runs = await ProductionRun.query()
+      .where('eventId', event.id)
+      .preload('product')
+      .orderBy('createdAt', 'asc')
+
+    const byProduct = new Map<number, ProductionLine>()
+
+    for (const product of event.products) {
+      byProduct.set(product.id, {
+        productId: product.id,
+        productName: product.name,
+        plannedQty: Number(product.$extras.pivot_quantity),
+        producedQty: 0,
+        runs: [],
+      })
+    }
+
+    for (const run of runs) {
+      let line = byProduct.get(run.productId)
+      // A run is a fact: taking the recipe off the menu does not undo the food
+      // that was made, so its line survives with a planned quantity of zero.
+      if (!line) {
+        line = {
+          productId: run.productId,
+          productName: run.product?.name ?? '—',
+          plannedQty: 0,
+          producedQty: 0,
+          runs: [],
+        }
+        byProduct.set(run.productId, line)
+      }
+      line.producedQty += run.quantity
+      line.runs.push({
+        id: run.id,
+        quantity: run.quantity,
+        // `.toISO()` and never the raw Luxon DateTime: the case converter would
+        // recurse into its internals (`loc`, `c`, `_zone`).
+        createdAt: run.createdAt?.toISO() ?? null,
+      })
+    }
+
+    return serialize([...byProduct.values()])
+  }
+
   async store({ params, request, auth, serialize }: HttpContext) {
     const productId = positiveInteger(request.input('productId'), 'La recette')
     const quantity = positiveInteger(request.input('quantity'), 'La quantité')

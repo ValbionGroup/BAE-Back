@@ -32,6 +32,10 @@ router
       .use(middleware.can(['menu:read', 'stock:read']))
 
     router
+      .get('/events/:id/production-runs', [controllers.ProductionRuns, 'index'])
+      .use(middleware.can('stock:read'))
+
+    router
       .post('/events/:id/production-runs', [controllers.ProductionRuns, 'store'])
       .use(middleware.can('stock:update'))
 

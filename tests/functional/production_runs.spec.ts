@@ -205,3 +205,79 @@ test.group('Production runs — lancement', (group) => {
     assert.equal(response.body().error.code, 'E_BAD_REQUEST')
   })
 })
+
+test.group('Production runs — lecture', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('aggregates produced quantity against the planned menu quantity', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['stock:read'])
+    const event = await makeEvent()
+    const good = await makeGood('Saucisses')
+    const recipe = await makeRecipe('Hot-dog', [[good, 1]])
+    await event.related('products').attach({ [recipe.id]: { quantity: 200, price: 250 } })
+    await ProductionRun.create({
+      eventId: event.id,
+      productId: recipe.id,
+      quantity: 80,
+      memberId: member.id,
+    })
+    await ProductionRun.create({
+      eventId: event.id,
+      productId: recipe.id,
+      quantity: 40,
+      memberId: member.id,
+    })
+
+    const response = await client.get(`/v1/events/${event.id}/production-runs`).loginAs(user)
+
+    response.assertStatus(200)
+    const [line] = response.body().data
+    assert.equal(line.product_id, recipe.id)
+    assert.equal(line.planned_qty, 200)
+    assert.equal(line.produced_qty, 120)
+    assert.lengthOf(line.runs, 2)
+  })
+
+  /**
+   * A run is a fact. Taking the recipe off the menu does not undo the food that
+   * was made, so its line survives with a planned quantity of zero.
+   */
+  test('keeps a line for a recipe produced but no longer on the menu', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['stock:read'])
+    const event = await makeEvent()
+    const good = await makeGood('Saucisses')
+    const recipe = await makeRecipe('Hot-dog', [[good, 1]])
+    await ProductionRun.create({
+      eventId: event.id,
+      productId: recipe.id,
+      quantity: 50,
+      memberId: member.id,
+    })
+
+    const response = await client.get(`/v1/events/${event.id}/production-runs`).loginAs(user)
+
+    response.assertStatus(200)
+    const [line] = response.body().data
+    assert.equal(line.planned_qty, 0)
+    assert.equal(line.produced_qty, 50)
+    assert.equal(line.product_name, 'Hot-dog')
+  })
+
+  test('refuses a member without stock:read', async ({ client }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, [])
+    const event = await makeEvent()
+
+    const response = await client.get(`/v1/events/${event.id}/production-runs`).loginAs(user)
+
+    response.assertStatus(403)
+  })
+})
