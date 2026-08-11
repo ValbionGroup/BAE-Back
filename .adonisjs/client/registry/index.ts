@@ -462,11 +462,23 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/shopping-list","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/shopping-list","type":0,"val":"events","end":""},{"old":"/v1/events/:id/shopping-list","type":1,"val":"id","end":""},{"old":"/v1/events/:id/shopping-list","type":0,"val":"shopping-list","end":""}],
     types: placeholder as Registry['event_products.shopping_list']['types'],
   },
+  'production_runs.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/production-runs',
+    tokens: [{"old":"/v1/events/:id/production-runs","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/production-runs","type":0,"val":"events","end":""},{"old":"/v1/events/:id/production-runs","type":1,"val":"id","end":""},{"old":"/v1/events/:id/production-runs","type":0,"val":"production-runs","end":""}],
+    types: placeholder as Registry['production_runs.index']['types'],
+  },
   'production_runs.store': {
     methods: ["POST"],
     pattern: '/v1/events/:id/production-runs',
     tokens: [{"old":"/v1/events/:id/production-runs","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/production-runs","type":0,"val":"events","end":""},{"old":"/v1/events/:id/production-runs","type":1,"val":"id","end":""},{"old":"/v1/events/:id/production-runs","type":0,"val":"production-runs","end":""}],
     types: placeholder as Registry['production_runs.store']['types'],
+  },
+  'production_runs.returns': {
+    methods: ["POST"],
+    pattern: '/v1/events/:id/production-returns',
+    tokens: [{"old":"/v1/events/:id/production-returns","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/production-returns","type":0,"val":"events","end":""},{"old":"/v1/events/:id/production-returns","type":1,"val":"id","end":""},{"old":"/v1/events/:id/production-returns","type":0,"val":"production-returns","end":""}],
+    types: placeholder as Registry['production_runs.returns']['types'],
   },
   'events.run_matching': {
     methods: ["POST"],
