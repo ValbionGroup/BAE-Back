@@ -919,6 +919,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['shoppingList']>>>
     }
   }
+  'production_runs.store': {
+    methods: ["POST"]
+    pattern: '/v1/events/:id/production-runs'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['store']>>>
+    }
+  }
   'events.run_matching': {
     methods: ["POST"]
     pattern: '/v1/events/:id/matching'
