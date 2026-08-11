@@ -40,6 +40,10 @@ router
       .use(middleware.can('stock:update'))
 
     router
+      .get('/events/:id/production-returns', [controllers.ProductionRuns, 'returnState'])
+      .use(middleware.can('stock:read'))
+
+    router
       .post('/events/:id/production-returns', [controllers.ProductionRuns, 'returns'])
       .use(middleware.can('stock:update'))
 

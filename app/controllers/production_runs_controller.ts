@@ -3,7 +3,12 @@ import ApiException from '#exceptions/api_exception'
 import Event from '#models/event'
 import Member from '#models/member'
 import ProductionRun from '#models/production_run'
-import { commitProduction, commitReturns, planProduction } from '#services/production_service'
+import {
+  commitProduction,
+  commitReturns,
+  loadReturnState,
+  planProduction,
+} from '#services/production_service'
 
 interface ProductionLine {
   productId: number
@@ -98,6 +103,15 @@ export default class ProductionRunsController {
     // serialized row with a 200. Diverging would make the API answer two
     // different codes for the same kind of gesture.
     return serialize({ id: run.id, productId, quantity, lines })
+  }
+
+  /**
+   * Feeds the closing modal. Without it the screen would have to invent its list
+   * of goods: `index` answers per recipe, and the write only ever mentions the
+   * returnable amount inside a 400.
+   */
+  async returnState({ params, serialize }: HttpContext) {
+    return serialize(await loadReturnState(Number(params.id)))
   }
 
   /**

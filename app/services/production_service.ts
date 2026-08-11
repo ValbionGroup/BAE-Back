@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import Event from '#models/event'
+import Good from '#models/good'
 import Product from '#models/product'
 import ProductionRun from '#models/production_run'
 import StockBatch from '#models/stock_batch'
@@ -215,6 +216,103 @@ export interface ReturnCredit {
   qty: number
 }
 
+export interface ReturnableGood {
+  goodId: number
+  goodName: string
+  unit: string
+  takenQty: number
+  returnedQty: number
+  returnableQty: number
+}
+
+interface BatchTally {
+  batchId: number
+  taken: number
+  returned: number
+}
+
+/**
+ * What the evening took from each batch, and what it has already given back.
+ *
+ * The arrays come out newest-movement-first, which is the REVERSE of the order
+ * the picks were written in — that is the order a return credits them back.
+ * Shared by the listing and the write so the two can never disagree on what is
+ * returnable.
+ */
+async function tallyByGood(
+  eventId: number,
+  trx: TransactionClientContract,
+  goodId?: number
+): Promise<Map<number, BatchTally[]>> {
+  const runs = await ProductionRun.query({ client: trx }).where('eventId', eventId).select('id')
+  const runIds = runs.map((run) => run.id)
+  if (runIds.length === 0) return new Map()
+
+  const query = StockMovement.query({ client: trx })
+    .whereIn('productionRunId', runIds)
+    .orderBy('id', 'desc')
+  if (goodId !== undefined) query.where('goodId', goodId)
+
+  const movements = await query
+
+  const byGood = new Map<number, BatchTally[]>()
+  for (const movement of movements) {
+    const tallies = byGood.get(movement.goodId) ?? []
+    if (!byGood.has(movement.goodId)) byGood.set(movement.goodId, tallies)
+
+    let tally = tallies.find((entry) => entry.batchId === movement.stockBatchId)
+    if (!tally) {
+      tally = { batchId: movement.stockBatchId, taken: 0, returned: 0 }
+      tallies.push(tally)
+    }
+    if (movement.movementType === 'out') tally.taken += Number(movement.quantity)
+    else tally.returned += Number(movement.quantity)
+  }
+
+  return byGood
+}
+
+/**
+ * Feeds the closing modal: per good, what the evening took, what already went
+ * back, and what may still go back.
+ *
+ * Nothing else answers this. `GET production-runs` replies per RECIPE, and
+ * `commitReturns` computes the returnable amount without exposing it — a screen
+ * cannot build a form out of a 400's message.
+ */
+export async function loadReturnState(eventId: number): Promise<ReturnableGood[]> {
+  return db.transaction(async (trx) => {
+    const event = await Event.query({ client: trx }).where('id', eventId).first()
+    if (!event) {
+      throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
+    }
+
+    const byGood = await tallyByGood(eventId, trx)
+    if (byGood.size === 0) return []
+
+    const goods = await Good.query({ client: trx }).whereIn('id', [...byGood.keys()]).orderBy('name')
+
+    return goods.map((good) => {
+      const tallies = byGood.get(good.id) ?? []
+      const takenQty = tallies.reduce((sum, tally) => sum + tally.taken, 0)
+      const returnedQty = tallies.reduce((sum, tally) => sum + tally.returned, 0)
+      return {
+        goodId: good.id,
+        goodName: good.name,
+        unit: good.unit,
+        takenQty,
+        returnedQty,
+        // Capped per batch, exactly as the write caps it: a batch that gave back
+        // everything must not lend its slack to another.
+        returnableQty: tallies.reduce(
+          (sum, tally) => sum + Math.max(0, tally.taken - tally.returned),
+          0
+        ),
+      }
+    })
+  })
+}
+
 /**
  * Puts back what did not get used, at the scale of the EVENING and not of one
  * run: an operator counts what is left on the bench, not run by run.
@@ -253,28 +351,14 @@ export async function commitReturns(
         )
       }
 
-      // Ordered by id descending: the newest movement first, which is the
-      // reverse of the order the picks were written in.
-      const movements =
-        runIds.length === 0
-          ? []
-          : await StockMovement.query({ client: trx })
-              .whereIn('productionRunId', runIds)
-              .where('goodId', line.goodId)
-              .orderBy('id', 'desc')
-
-      // Per batch: what the evening took, minus what it has already given back.
-      const takenByBatch = new Map<number, number>()
-      const order: number[] = []
-      for (const movement of movements) {
-        const batchId = movement.stockBatchId
-        if (!takenByBatch.has(batchId)) {
-          takenByBatch.set(batchId, 0)
-          order.push(batchId)
-        }
-        const signed = movement.movementType === 'out' ? 1 : -1
-        takenByBatch.set(batchId, takenByBatch.get(batchId)! + signed * Number(movement.quantity))
-      }
+      // The same tally the listing serves, so the form and the write can never
+      // disagree on what is returnable. Newest movement first — the reverse of
+      // the pick order.
+      const tallies = (await tallyByGood(eventId, trx, line.goodId)).get(line.goodId) ?? []
+      const takenByBatch = new Map(
+        tallies.map((tally) => [tally.batchId, tally.taken - tally.returned])
+      )
+      const order = tallies.map((tally) => tally.batchId)
 
       const returnable = [...takenByBatch.values()].reduce((sum, qty) => sum + Math.max(0, qty), 0)
       if (line.quantity > returnable) {

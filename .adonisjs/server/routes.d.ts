@@ -82,6 +82,7 @@ export type ScannedRoutes = {
     'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'production_runs.return_state': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.returns': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.settle': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -211,6 +212,7 @@ export type ScannedRoutes = {
     'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'production_runs.return_state': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
     'jobs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.index': { paramsTuple?: []; params?: {} }
@@ -262,6 +264,7 @@ export type ScannedRoutes = {
     'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'production_runs.return_state': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
     'jobs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.index': { paramsTuple?: []; params?: {} }

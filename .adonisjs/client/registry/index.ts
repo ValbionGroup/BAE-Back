@@ -474,6 +474,12 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/production-runs","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/production-runs","type":0,"val":"events","end":""},{"old":"/v1/events/:id/production-runs","type":1,"val":"id","end":""},{"old":"/v1/events/:id/production-runs","type":0,"val":"production-runs","end":""}],
     types: placeholder as Registry['production_runs.store']['types'],
   },
+  'production_runs.return_state': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/production-returns',
+    tokens: [{"old":"/v1/events/:id/production-returns","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/production-returns","type":0,"val":"events","end":""},{"old":"/v1/events/:id/production-returns","type":1,"val":"id","end":""},{"old":"/v1/events/:id/production-returns","type":0,"val":"production-returns","end":""}],
+    types: placeholder as Registry['production_runs.return_state']['types'],
+  },
   'production_runs.returns': {
     methods: ["POST"],
     pattern: '/v1/events/:id/production-returns',

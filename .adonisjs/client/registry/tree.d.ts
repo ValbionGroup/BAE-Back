@@ -121,6 +121,7 @@ export interface ApiDefinition {
   productionRuns: {
     index: typeof routes['production_runs.index']
     store: typeof routes['production_runs.store']
+    returnState: typeof routes['production_runs.return_state']
     returns: typeof routes['production_runs.returns']
   }
   jobs: {

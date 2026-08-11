@@ -146,6 +146,64 @@ test.group('Production returns', (group) => {
     assert.equal(batches.find((b) => b.id === only.id)!.remainingQty, 45)
   })
 
+  /**
+   * The closing modal has to ask "you took 24 sausages, how many come back?".
+   * Nothing else answers that: GET production-runs replies per RECIPE, and
+   * commitReturns computes the returnable amount without ever exposing it.
+   */
+  test('lists what the evening took, per good', async ({ client, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['stock:read', 'stock:update'])
+    const event = await makeEvent()
+    const good = await makeGood('Saucisses')
+    await batch(good, 'L26-1', 50, 30)
+    const recipe = await makeRecipe(good)
+    await commitProduction(event.id, recipe.id, 12, member.id)
+
+    const before = await client.get(`/v1/events/${event.id}/production-returns`).loginAs(user)
+
+    before.assertStatus(200)
+    const [line] = before.body().data
+    assert.equal(line.good_id, good.id)
+    assert.equal(line.good_name, 'Saucisses')
+    assert.equal(line.unit, 'pcs')
+    assert.equal(line.taken_qty, 12)
+    assert.equal(line.returned_qty, 0)
+    assert.equal(line.returnable_qty, 12)
+
+    await client
+      .post(`/v1/events/${event.id}/production-returns`)
+      .loginAs(user)
+      .json({ lines: [{ goodId: good.id, quantity: 5 }] })
+
+    const after = await client.get(`/v1/events/${event.id}/production-returns`).loginAs(user)
+    const [line2] = after.body().data
+    assert.equal(line2.taken_qty, 12)
+    assert.equal(line2.returned_qty, 5)
+    assert.equal(line2.returnable_qty, 7)
+  })
+
+  test('lists nothing for an evening that produced nothing', async ({ client, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['stock:read'])
+    const event = await makeEvent()
+
+    const response = await client.get(`/v1/events/${event.id}/production-returns`).loginAs(user)
+
+    response.assertStatus(200)
+    assert.deepEqual(response.body().data, [])
+  })
+
+  test('refuses the listing to a member without stock:read', async ({ client }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, [])
+    const event = await makeEvent()
+
+    const response = await client.get(`/v1/events/${event.id}/production-returns`).loginAs(user)
+
+    response.assertStatus(403)
+  })
+
   test('refuses a member without stock:update', async ({ client }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['stock:read'])
