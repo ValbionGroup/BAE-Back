@@ -104,4 +104,26 @@ test.group('Stock summary and discard', (group) => {
     // A return does not un-open a packet: `openedAt` only ever looks at OUT.
     assert.isNull(batches.body().data[0].opened_at)
   })
+
+  /**
+   * `stock_batches.label` has existed since the very first migration and
+   * `nextLabel()` already produced `L26-4`, but `BatchWithRemaining` did not
+   * carry it: the number existed in the database and was visible nowhere.
+   * "Take lot number 4" needs the human-readable number, not the primary key.
+   */
+  test('exposes the human-readable lot number', async ({ client, assert }) => {
+    const user = await UserFactory.create()
+    const good = await GoodFactory.create()
+    await StockBatchFactory.merge({
+      goodId: good.id,
+      quantity: '10',
+      restockId: null,
+      label: 'L26-4',
+    }).create()
+
+    const batches = await client.get(`/v1/stocks/${good.id}/batches`).loginAs(user)
+
+    batches.assertStatus(200)
+    assert.equal(batches.body().data[0].label, 'L26-4')
+  })
 })
