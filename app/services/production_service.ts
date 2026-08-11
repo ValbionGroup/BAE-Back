@@ -208,3 +208,110 @@ export async function commitProduction(
     return { run, lines }
   })
 }
+
+export interface ReturnCredit {
+  batchId: number
+  label: string
+  qty: number
+}
+
+/**
+ * Puts back what did not get used, at the scale of the EVENING and not of one
+ * run: an operator counts what is left on the bench, not run by run.
+ *
+ * Credits travel in reverse order of the pick — last taken, first given back.
+ * The short-DLC batches were opened and started first, so what comes back is
+ * what was not touched. The per-batch cap is what keeps `remainingQty` from ever
+ * exceeding the batch's initial quantity.
+ *
+ * Discarding writes NOTHING: the stock left at the run, throwing away is simply
+ * not crediting it back. The waste is therefore not counted, but it is not lost
+ * either — `Σ out − Σ in` is what did not come back, and once `orders` exists,
+ * `production_runs.quantity − Σ order_products` is the real figure.
+ */
+export async function commitReturns(
+  eventId: number,
+  lines: { goodId: number; quantity: number }[]
+): Promise<{ goodId: number; credits: ReturnCredit[] }[]> {
+  return db.transaction(async (trx) => {
+    const event = await Event.query({ client: trx }).where('id', eventId).first()
+    if (!event) {
+      throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
+    }
+
+    const runs = await ProductionRun.query({ client: trx }).where('eventId', eventId).select('id')
+    const runIds = runs.map((run) => run.id)
+
+    const result: { goodId: number; credits: ReturnCredit[] }[] = []
+
+    for (const line of lines) {
+      if (!Number.isInteger(line.quantity) || line.quantity <= 0) {
+        throw new ApiException(
+          'E_BAD_REQUEST',
+          'Une quantité de retour doit être un entier supérieur à zéro.',
+          400
+        )
+      }
+
+      // Ordered by id descending: the newest movement first, which is the
+      // reverse of the order the picks were written in.
+      const movements =
+        runIds.length === 0
+          ? []
+          : await StockMovement.query({ client: trx })
+              .whereIn('productionRunId', runIds)
+              .where('goodId', line.goodId)
+              .orderBy('id', 'desc')
+
+      // Per batch: what the evening took, minus what it has already given back.
+      const takenByBatch = new Map<number, number>()
+      const order: number[] = []
+      for (const movement of movements) {
+        const batchId = movement.stockBatchId
+        if (!takenByBatch.has(batchId)) {
+          takenByBatch.set(batchId, 0)
+          order.push(batchId)
+        }
+        const signed = movement.movementType === 'out' ? 1 : -1
+        takenByBatch.set(batchId, takenByBatch.get(batchId)! + signed * Number(movement.quantity))
+      }
+
+      const returnable = [...takenByBatch.values()].reduce((sum, qty) => sum + Math.max(0, qty), 0)
+      if (line.quantity > returnable) {
+        throw new ApiException(
+          'E_RETURN_EXCEEDS_PICKED',
+          `On ne peut pas remettre en stock plus que ce que la soirée a prélevé (${returnable}).`,
+          400
+        )
+      }
+
+      const batches = await StockBatch.query({ client: trx }).whereIn('id', order)
+      const labelById = new Map(batches.map((batch) => [batch.id, batch.label]))
+
+      const credits: ReturnCredit[] = []
+      let left = line.quantity
+      for (const batchId of order) {
+        if (left <= 0) break
+        const room = Math.max(0, takenByBatch.get(batchId)!)
+        if (room === 0) continue
+        const qty = Math.min(left, room)
+        await StockMovement.create(
+          {
+            goodId: line.goodId,
+            stockBatchId: batchId,
+            quantity: String(qty),
+            movementType: 'in',
+            productionRunId: runIds[runIds.length - 1] ?? null,
+          },
+          { client: trx }
+        )
+        credits.push({ batchId, label: labelById.get(batchId) ?? '—', qty })
+        left -= qty
+      }
+
+      result.push({ goodId: line.goodId, credits })
+    }
+
+    return result
+  })
+}

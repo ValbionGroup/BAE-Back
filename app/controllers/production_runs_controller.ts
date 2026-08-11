@@ -3,7 +3,7 @@ import ApiException from '#exceptions/api_exception'
 import Event from '#models/event'
 import Member from '#models/member'
 import ProductionRun from '#models/production_run'
-import { commitProduction, planProduction } from '#services/production_service'
+import { commitProduction, commitReturns, planProduction } from '#services/production_service'
 
 interface ProductionLine {
   productId: number
@@ -98,5 +98,24 @@ export default class ProductionRunsController {
     // serialized row with a 200. Diverging would make the API answer two
     // different codes for the same kind of gesture.
     return serialize({ id: run.id, productId, quantity, lines })
+  }
+
+  /**
+   * Only the lines to credit back travel in the body. Discarding writes nothing
+   * — the stock already left at the run — so the screen simply omits the goods
+   * the operator throws away.
+   */
+  async returns({ params, request, serialize }: HttpContext) {
+    const raw = request.input('lines')
+    if (!Array.isArray(raw)) {
+      throw new ApiException('E_BAD_REQUEST', 'Le corps doit porter un tableau `lines`.', 400)
+    }
+
+    const lines = raw.map((entry) => ({
+      goodId: positiveInteger((entry as Record<string, unknown>)?.goodId, 'La denrée'),
+      quantity: Number((entry as Record<string, unknown>)?.quantity),
+    }))
+
+    return serialize(await commitReturns(Number(params.id), lines))
   }
 }

@@ -40,6 +40,10 @@ router
       .use(middleware.can('stock:update'))
 
     router
+      .post('/events/:id/production-returns', [controllers.ProductionRuns, 'returns'])
+      .use(middleware.can('stock:update'))
+
+    router
       .post('/events/:id/matching', [controllers.Events, 'runMatching'])
       .use(middleware.can('event:matching'))
 
