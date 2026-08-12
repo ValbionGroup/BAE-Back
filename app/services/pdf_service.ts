@@ -17,6 +17,12 @@ export default class PdfService {
       this.browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        // Alpine's node:*-alpine images are musl libc: Puppeteer's own
+        // downloaded Chrome build is glibc-only and cannot run there at all.
+        // The Docker images install Alpine's native `chromium` package and
+        // point here via this env var; left unset, Puppeteer falls back to
+        // its own bundled browser — what local, non-containerized dev uses.
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       })
     }
     return this.browser

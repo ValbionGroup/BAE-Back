@@ -6,6 +6,11 @@ FROM node:24-alpine AS dependencies
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Puppeteer's postinstall downloads a glibc-only Chrome build that cannot run
+# on this musl-libc image — skip it here, the production stage installs
+# Alpine's native chromium package instead.
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
 WORKDIR /app
 
 # Copy package files
@@ -18,6 +23,8 @@ RUN pnpm install --frozen-lockfile
 FROM node:24-alpine AS build
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
+
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 WORKDIR /app
 
@@ -36,8 +43,11 @@ RUN pnpm install --prod --frozen-lockfile
 # Stage 3: Production
 FROM node:24-alpine AS production
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# dumb-init for signal handling; chromium because node:*-alpine is musl libc
+# and Puppeteer's own downloaded Chrome build (glibc-only) cannot run here.
+RUN apk add --no-cache dumb-init chromium
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Create app user
 RUN addgroup -g 1001 -S nodejs && \
