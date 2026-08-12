@@ -87,6 +87,9 @@ export default class PdfService {
       format?: 'A4' | 'Letter'
       landscape?: boolean
       margin?: { top?: string; right?: string; bottom?: string; left?: string }
+      displayHeaderFooter?: boolean
+      headerTemplate?: string
+      footerTemplate?: string
     } = {}
   ): Promise<Buffer> {
     const browser = await this.getBrowser()
@@ -101,9 +104,9 @@ export default class PdfService {
         format: options.format || 'A4',
         landscape: options.landscape || false,
         margin: options.margin || { top: '0', right: '0', bottom: '16mm', left: '0' },
-        displayHeaderFooter: true,
-        headerTemplate: '<span></span>',
-        footerTemplate: this.footerTemplate,
+        displayHeaderFooter: options.displayHeaderFooter ?? true,
+        headerTemplate: options.headerTemplate || '<span></span>',
+        footerTemplate: options.footerTemplate || this.footerTemplate,
         printBackground: true,
       }
 
@@ -115,3 +118,5 @@ export default class PdfService {
     }
   }
 }
+
+export const pdfService = new PdfService()
