@@ -79,6 +79,12 @@ router
     router
       .post('/events/:id/settle', [controllers.Events, 'settle'])
       .use(middleware.can('event:settle'))
+
+    // job:read explicite : contrairement à /assignments (GET), qui n'en porte
+    // aucune, ce trou n'est pas reproduit sur la route PDF.
+    router
+      .get('/events/:id/assignments/pdf', [controllers.Assignments, 'pdf'])
+      .use(middleware.can('job:read'))
   })
   .prefix('/v1')
   .use(middleware.auth())

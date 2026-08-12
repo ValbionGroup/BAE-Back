@@ -6,6 +6,15 @@ import MemberEventAssignedJob from '#models/member_event_assigned_job'
 import db from '@adonisjs/lucid/services/db'
 import { assignmentLockValidator, assignmentValidator } from '#validators/coordination'
 import { type JobPeriod, computePointsDelta } from '#services/matching_service'
+import { buildAssignmentsHtml, type AssignmentPeriod } from '#services/print/print_assignments'
+import { printFooterTemplate } from '#services/print/print_layout'
+import { pdfService } from '#services/pdf_service'
+
+const PERIOD_LABELS: Record<JobPeriod, string> = {
+  before: 'Avant · Préparation',
+  during: 'Pendant · Service',
+  after: 'Après · Nettoyage',
+}
 
 function toWire(assignment: MemberEventAssignedJob) {
   return {
@@ -171,5 +180,49 @@ export default class AssignmentsController {
     })
 
     return response.noContent()
+  }
+
+  async pdf({ params, response }: HttpContext) {
+    const event = await Event.query().where('id', params.id).preload('jobs').firstOrFail()
+    const assignments = await MemberEventAssignedJob.query()
+      .where('eventId', params.id)
+      .preload('member')
+      .preload('job')
+
+    const byJobId = new Map<number, { memberFullName: string; locked: boolean }[]>()
+    for (const assignment of assignments) {
+      const list = byJobId.get(assignment.jobId) ?? []
+      list.push({
+        memberFullName: `${assignment.member.firstName} ${assignment.member.lastName}`,
+        locked: assignment.locked,
+      })
+      byJobId.set(assignment.jobId, list)
+    }
+
+    const periods: AssignmentPeriod[] = (['before', 'during', 'after'] as const).map((type) => ({
+      label: PERIOD_LABELS[type],
+      jobs: event.jobs
+        .filter((job) => job.type === type)
+        .map((job) => {
+          const requiredCount = Number(job.$extras.pivot_count)
+          const filled = byJobId.get(job.id) ?? []
+          const slots = Array.from({ length: Math.max(requiredCount, filled.length) }, (_, i) =>
+            filled[i]
+              ? { name: filled[i].memberFullName, locked: filled[i].locked }
+              : { name: null, locked: false }
+          )
+          return { jobName: job.name, requiredCount, slots }
+        }),
+    }))
+
+    const buffer = await pdfService.generateFromHtml(buildAssignmentsHtml(event.name, periods), {
+      landscape: true,
+      footerTemplate: printFooterTemplate(
+        'Instantané généré automatiquement — non mis à jour après impression.'
+      ),
+    })
+    response.header('Content-Type', 'application/pdf')
+    response.header('Content-Disposition', `inline; filename="affectation-${params.id}.pdf"`)
+    return response.send(buffer)
   }
 }
