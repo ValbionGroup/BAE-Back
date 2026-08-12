@@ -27,6 +27,7 @@ test.group('Étiquettes de lot PDF', (group) => {
 
     response.assertStatus(200)
     assert.isTrue(response.header('content-type')?.startsWith('application/pdf'))
+    assert.equal(Buffer.from(response.body()).subarray(0, 4).toString('latin1'), '%PDF')
   }).timeout(20_000)
 
   test('without ids, prints every batch with remaining stock, capped at 12', async ({

@@ -63,6 +63,7 @@ test.group('Inventaire PDF — endpoint', (group) => {
 
     response.assertStatus(200)
     assert.isTrue(response.header('content-type')?.startsWith('application/pdf'))
+    assert.equal(Buffer.from(response.body()).subarray(0, 4).toString('latin1'), '%PDF')
   }).timeout(20_000)
 
   test('refuses a member without stock:read', async ({ client }) => {

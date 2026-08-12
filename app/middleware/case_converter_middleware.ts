@@ -27,6 +27,14 @@ function convertKeys(obj: unknown, converter: (key: string) => string): unknown 
     return obj.toISO()
   }
 
+  // A Buffer is a Uint8Array: its byte indices are own enumerable
+  // properties, so without this guard Object.entries() would read it as a
+  // plain object — `{"0":37,"1":80,...}` — and JSON-serialize every byte.
+  // The seven printed PDFs all send a raw Buffer as their response body.
+  if (Buffer.isBuffer(obj)) {
+    return obj
+  }
+
   if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
     const converted: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(obj)) {

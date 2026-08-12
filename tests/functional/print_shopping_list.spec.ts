@@ -49,6 +49,11 @@ test.group('Fiche logistique PDF', (group) => {
     response.assertStatus(200)
     assert.isTrue(response.header('content-type')?.startsWith('application/pdf'))
     assert.isAbove(Number(response.header('content-length')), 1000)
+    // Headers alone don't prove the body is real bytes: CaseConverterMiddleware
+    // once JSON-serialized every byte of the Buffer into `{"0":37,"1":80,...}`
+    // (a Buffer's indices are own enumerable properties) while every header
+    // stayed correct. Only reading the body catches that class of bug.
+    assert.equal(Buffer.from(response.body()).subarray(0, 4).toString('latin1'), '%PDF')
   }).timeout(20_000)
 
   test('refuses a member holding menu:read but not stock:read', async ({ client, assert }) => {
