@@ -42,6 +42,10 @@ router
       .use(middleware.can(['menu:read', 'stock:read']))
 
     router
+      .get('/events/:id/shopping-list/pdf', [controllers.EventProducts, 'shoppingListPdf'])
+      .use(middleware.can(['menu:read', 'stock:read']))
+
+    router
       .get('/events/:id/production-runs', [controllers.ProductionRuns, 'index'])
       .use(middleware.can('stock:read'))
 
