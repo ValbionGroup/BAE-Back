@@ -24,6 +24,9 @@ router
     router
       .get('/stock-batches/inventory/pdf', [controllers.StockBatches, 'inventoryPdf'])
       .use(middleware.can('stock:read'))
+    router
+      .get('/stock-batches/labels/pdf', [controllers.StockBatches, 'labelsPdf'])
+      .use(middleware.can('stock:read'))
 
     router
       .get('/stock-batches/:id', [controllers.StockBatches, 'show'])
