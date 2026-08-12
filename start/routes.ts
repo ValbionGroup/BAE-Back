@@ -8,12 +8,45 @@
 */
 
 import router from '@adonisjs/core/services/router'
+import app from '@adonisjs/core/services/app'
 import { middleware } from '#start/kernel'
-
+import { healthChecks } from '#start/health'
+import { readFileSync } from 'node:fs'
 import '#start/routes/auth'
 
-router.get('/', () => {
-  return { hello: 'world' }
+const appVersion = (() => {
+  const fromEnv = process.env.APP_VERSION
+  if (fromEnv) return fromEnv
+
+  try {
+    const pkg = JSON.parse(readFileSync(app.makePath('package.json'), 'utf-8'))
+    return typeof pkg.version === 'string' ? pkg.version : null
+  } catch {
+    return null
+  }
+})()
+
+router.get('/', async ({ response }) => {
+  const report = await healthChecks.run()
+
+  const problems = report.checks
+    .filter((check) => check.status !== 'ok')
+    .map((check) => ({
+      name: check.name,
+      message: check.message,
+      status: check.status,
+    }))
+
+  const body = {
+    infos: "BUREAU DES ALTERNANTS DE L'ENSEIRB-MATMECA API - (c) Valbion Group",
+    version: appVersion,
+    uptime: process.uptime(),
+    health: report.isHealthy,
+    status: report.status,
+    problems: problems.length ? problems : null,
+  }
+
+  return report.isHealthy ? response.ok(body) : response.serviceUnavailable(body)
 })
 
 router
