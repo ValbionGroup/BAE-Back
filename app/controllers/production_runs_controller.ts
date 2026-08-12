@@ -8,7 +8,11 @@ import {
   commitReturns,
   loadReturnState,
   planProduction,
+  planProductionForEvent,
 } from '#services/production_service'
+import { buildProductionPlanHtml } from '#services/print/print_production_plan'
+import { printFooterTemplate } from '#services/print/print_layout'
+import { pdfService } from '#services/pdf_service'
 
 interface ProductionLine {
   productId: number
@@ -131,5 +135,18 @@ export default class ProductionRunsController {
     }))
 
     return serialize(await commitReturns(Number(params.id), lines))
+  }
+
+  async productionPlanPdf({ params, response }: HttpContext) {
+    const event = await Event.findOrFail(params.id)
+    const { lines } = await planProductionForEvent(Number(params.id))
+    const buffer = await pdfService.generateFromHtml(buildProductionPlanHtml(event.name, lines), {
+      footerTemplate: printFooterTemplate(
+        'Instantané généré automatiquement — non mis à jour après impression.'
+      ),
+    })
+    response.header('Content-Type', 'application/pdf')
+    response.header('Content-Disposition', `inline; filename="plan-fefo-${params.id}.pdf"`)
+    return response.send(buffer)
   }
 }

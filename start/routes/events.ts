@@ -54,6 +54,10 @@ router
       .use(middleware.can('stock:write'))
 
     router
+      .get('/events/:id/production-plan/pdf', [controllers.ProductionRuns, 'productionPlanPdf'])
+      .use(middleware.can('stock:read'))
+
+    router
       .get('/events/:id/production-returns', [controllers.ProductionRuns, 'returnState'])
       .use(middleware.can('stock:read'))
 
