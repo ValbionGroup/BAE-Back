@@ -66,6 +66,13 @@ router
       .use(middleware.can('stock:write'))
 
     router
+      .get('/events/:id/production-returns/pdf', [
+        controllers.ProductionRuns,
+        'productionReturnsPdf',
+      ])
+      .use(middleware.can('stock:read'))
+
+    router
       .post('/events/:id/matching', [controllers.Events, 'runMatching'])
       .use(middleware.can('event:matching'))
 
