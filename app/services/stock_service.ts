@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import Good from '#models/good'
 import StockBatch from '#models/stock_batch'
 import StockMovement from '#models/stock_movement'
 
@@ -115,4 +116,34 @@ export async function remainingForBatch(
     .reduce((sum, m) => sum + Number(m.quantity), 0)
 
   return Math.max(0, Number(batch.quantity) - outQty + inQty)
+}
+
+export interface InventoryRow {
+  categoryName: string
+  goodName: string
+  unit: string
+  batches: BatchWithRemaining[]
+}
+
+/**
+ * Every batch of every good, grouped for the printed inventory (doc 5, §17).
+ * One `loadBatchesWithRemaining` call per good — an N+1, deliberately: BAE's
+ * catalogue is a few dozen goods, this runs once per print click, and the
+ * alternative is a hand-rolled aggregate query duplicating the remaining-qty
+ * formula outside the one place it is defined.
+ */
+export async function loadFullInventory(): Promise<InventoryRow[]> {
+  const goods = await Good.query().preload('category').orderBy('name')
+  const rows: InventoryRow[] = []
+  for (const good of goods) {
+    const batches = await loadBatchesWithRemaining(good.id, false)
+    if (batches.length === 0) continue
+    rows.push({
+      categoryName: good.category?.name ?? 'Sans catégorie',
+      goodName: good.name,
+      unit: good.unit,
+      batches,
+    })
+  }
+  return rows
 }

@@ -1,5 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import StockBatch from '#models/stock_batch'
+import { loadFullInventory } from '#services/stock_service'
+import { buildInventoryHtml } from '#services/print/print_inventory'
+import { printFooterTemplate } from '#services/print/print_layout'
+import { pdfService } from '#services/pdf_service'
 
 // Numbering is PER good: `L25-4` is the 4th batch of that product, which is what
 // one reads in front of a shelf — a global number would mean nothing there. No
@@ -15,6 +19,19 @@ export default class StockBatchesController {
   async index({ serialize }: HttpContext) {
     const stockBatches = await StockBatch.query().preload('good').preload('restock')
     return serialize(stockBatches)
+  }
+
+  async inventoryPdf({ response }: HttpContext) {
+    const rows = await loadFullInventory()
+    const buffer = await pdfService.generateFromHtml(buildInventoryHtml(rows), {
+      landscape: true,
+      footerTemplate: printFooterTemplate(
+        'Instantané généré automatiquement — non mis à jour après impression.'
+      ),
+    })
+    response.header('Content-Type', 'application/pdf')
+    response.header('Content-Disposition', 'inline; filename="inventaire-stock.pdf"')
+    return response.send(buffer)
   }
 
   async store({ request, serialize }: HttpContext) {

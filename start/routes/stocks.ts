@@ -18,6 +18,13 @@ router
     router
       .post('/stock-batches', [controllers.StockBatches, 'store'])
       .use(middleware.can('stock:write'))
+
+    // Déclarées AVANT /stock-batches/:id : sinon "inventory"/"labels" seraient
+    // avalés comme un :id.
+    router
+      .get('/stock-batches/inventory/pdf', [controllers.StockBatches, 'inventoryPdf'])
+      .use(middleware.can('stock:read'))
+
     router
       .get('/stock-batches/:id', [controllers.StockBatches, 'show'])
       .use(middleware.can('stock:read'))
