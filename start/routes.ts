@@ -9,7 +9,6 @@
 
 import router from '@adonisjs/core/services/router'
 import app from '@adonisjs/core/services/app'
-import { middleware } from '#start/kernel'
 import { healthChecks } from '#start/health'
 import { readFileSync } from 'node:fs'
 
