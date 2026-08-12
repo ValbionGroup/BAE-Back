@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import User from '#models/user'
+import { grantPermissions } from '#tests/helpers/permissions'
 import { MemberFactory } from '#database/factories/members_factory'
 import { JobFactory } from '#database/factories/job_factory'
 
@@ -14,7 +14,7 @@ test.group('Job eligible members', (group) => {
 
   test('adds and lists an eligible member for a job', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['job:read', 'job:write', 'job:delete'])
     const job = await JobFactory.create()
 
     const created = await client
@@ -30,7 +30,7 @@ test.group('Job eligible members', (group) => {
 
   test('removes an eligible member for a job', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['job:read', 'job:write', 'job:delete'])
     const job = await JobFactory.create()
     await client
       .post('/v1/job-eligible-members')

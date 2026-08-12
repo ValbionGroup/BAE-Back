@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import User from '#models/user'
+import { grantPermissions } from '#tests/helpers/permissions'
 import { MemberFactory } from '#database/factories/members_factory'
 import { JobFactory } from '#database/factories/job_factory'
 import { DEFAULT_JOB_PERIOD } from '#services/matching_service'
@@ -10,7 +10,7 @@ test.group('Job periods', (group) => {
 
   test('GET /v1/jobs exposes the type of each job', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['job:read', 'job:write'])
     const job = await JobFactory.merge({ type: 'before' }).create()
 
     const index = await client.get('/v1/jobs').loginAs(user)
@@ -21,7 +21,7 @@ test.group('Job periods', (group) => {
 
   test('POST /v1/jobs accepts an explicit type and persists it', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['job:read', 'job:write'])
 
     const created = await client
       .post('/v1/jobs')
@@ -41,7 +41,7 @@ test.group('Job periods', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['job:read', 'job:write'])
 
     const created = await client.post('/v1/jobs').loginAs(user).json({ name: 'Service' })
     created.assertStatus(200)
@@ -51,7 +51,7 @@ test.group('Job periods', (group) => {
 
   test('PUT /v1/jobs/:id changes the type', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['job:read', 'job:write'])
     const job = await JobFactory.create()
     assert.equal(job.type, DEFAULT_JOB_PERIOD)
 
@@ -68,7 +68,7 @@ test.group('Job periods', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['job:read', 'job:write'])
     const job = await JobFactory.merge({ type: 'before' }).create()
 
     const updated = await client
@@ -84,7 +84,7 @@ test.group('Job periods', (group) => {
 
   test('an unknown type is rejected with 422', async ({ client }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['job:read', 'job:write'])
 
     const created = await client
       .post('/v1/jobs')

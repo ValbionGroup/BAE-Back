@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import { UserFactory } from '#database/factories/user_factory'
+import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 import { GoodFactory } from '#database/factories/good_factory'
 import { StockBatchFactory } from '#database/factories/stock_batch_factory'
 import { StockMovementFactory } from '#database/factories/stock_movement_factory'
@@ -8,8 +9,13 @@ import { StockMovementFactory } from '#database/factories/stock_movement_factory
 test.group('Stock summary and discard', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
+  async function asStockManager() {
+    const member = await MemberFactory.create()
+    return grantPermissions(member, ['stock:read', 'stock:write'])
+  }
+
   test('computes remaining quantity from OUT movements', async ({ client }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const good = await GoodFactory.create()
     const batch = await StockBatchFactory.merge({
       goodId: good.id,
@@ -29,7 +35,7 @@ test.group('Stock summary and discard', (group) => {
   })
 
   test('discard writes off the remaining quantity of a batch', async ({ client }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const good = await GoodFactory.create()
     const batch = await StockBatchFactory.merge({
       goodId: good.id,
@@ -56,7 +62,7 @@ test.group('Stock summary and discard', (group) => {
    * would have been perfectly recorded and perfectly without effect.
    */
   test('credits an IN movement back onto the batch', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const good = await GoodFactory.create()
     const batch = await StockBatchFactory.merge({
       goodId: good.id,
@@ -85,7 +91,7 @@ test.group('Stock summary and discard', (group) => {
   })
 
   test('an IN movement does not mark the batch as opened', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const good = await GoodFactory.create()
     const batch = await StockBatchFactory.merge({
       goodId: good.id,
@@ -112,7 +118,7 @@ test.group('Stock summary and discard', (group) => {
    * "Take lot number 4" needs the human-readable number, not the primary key.
    */
   test('exposes the human-readable lot number', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const good = await GoodFactory.create()
     await StockBatchFactory.merge({
       goodId: good.id,
