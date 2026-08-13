@@ -1,11 +1,11 @@
-import { escapeHtml, printPage, PW } from '#services/print/print_layout'
+import { callout, checkbox, escapeHtml, printPage, PW } from '#services/print/print_layout'
 import type { GoodNeed } from '#services/production_service'
 
 function goodBlock(line: GoodNeed): string {
   const rows = line.picks
     .map(
       (pick, i) => `<tr>
-      <td></td>
+      <td>${checkbox()}</td>
       <td class="pp-mono" style="font-weight:700;font-size:15px">${escapeHtml(pick.label)}</td>
       <td class="pp-mono">${pick.expirationDate ?? '—'}</td>
       <td class="pp-mono" style="text-align:right;font-weight:700">${pick.takeQty} ${escapeHtml(line.unit)}</td>
@@ -28,6 +28,8 @@ function goodBlock(line: GoodNeed): string {
 }
 
 export function buildProductionPlanHtml(eventName: string, lines: GoodNeed[]): string {
-  const body = lines.map(goodBlock).join('')
+  const body =
+    lines.map(goodBlock).join('') +
+    callout("Le non-alimentaire (barquettes, couverts) n'est pas prélevé par ce plan.")
   return printPage('Plan de prélèvement FEFO', eventName, body)
 }
