@@ -1,4 +1,4 @@
-import { escapeHtml, printPage, PW } from '#services/print/print_layout'
+import { callout, escapeHtml, printPage, PW } from '#services/print/print_layout'
 import type { ReturnableGood } from '#services/production_service'
 
 function row(good: ReturnableGood): string {
@@ -22,6 +22,7 @@ export function buildProductionClosingHtml(eventName: string, goods: ReturnableG
       <tbody>${goods.map(row).join('')}</tbody>
     </table>`
     }
+    ${callout("Le rebut n'écrit rien en base : jeter, c'est simplement ne pas recréditer la quantité en stock.")}
     <div style="margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:40px">
       <div><div style="font-size:11.5px;color:${PW.mid};margin-bottom:26px">Rempli par · signature</div><div style="border-top:1.4px solid ${PW.ink}"></div></div>
       <div><div style="font-size:11.5px;color:${PW.mid};margin-bottom:26px">Vérifié par · signature</div><div style="border-top:1.4px solid ${PW.ink}"></div></div>
