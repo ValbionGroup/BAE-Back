@@ -1,4 +1,11 @@
-import { checkbox, callout, escapeHtml, printPage, sectionLabel, PW } from '#services/print/print_layout'
+import {
+  checkbox,
+  callout,
+  escapeHtml,
+  printPage,
+  sectionLabel,
+  PW,
+} from '#services/print/print_layout'
 import type { ShoppingList, ShoppingListLine } from '#services/shopping_list_service'
 
 const eur = (n: number) => `${n.toFixed(2).replace('.', ',')} €`
@@ -39,7 +46,7 @@ function goodsTable(lines: ShoppingListLine[], columns: RetailerColumn[]): strin
       const cells = columns
         .map((col) => {
           const price = byId.get(col.id)
-          return `<td class="pp-mono" style="text-align:right;color:${price == null ? PW.faint : PW.ink}">${price == null ? '—' : eur(price)}</td>`
+          return `<td class="pp-mono" style="text-align:right;color:${price === undefined ? PW.faint : PW.ink}">${price === undefined ? '—' : eur(price)}</td>`
         })
         .join('')
       return `<tr>

@@ -42,7 +42,12 @@ test.group('Feuille de clôture PDF', (group) => {
 
   test('serves a PDF with a produced good listed', async ({ client, assert }) => {
     const event = await makeEvent()
-    const good = await Good.create({ name: 'Saucisses', unit: 'pcs', brand: 'Marque', categoryId: null })
+    const good = await Good.create({
+      name: 'Saucisses',
+      unit: 'pcs',
+      brand: 'Marque',
+      categoryId: null,
+    })
     const batch = await StockBatch.create({
       goodId: good.id,
       restockId: null,

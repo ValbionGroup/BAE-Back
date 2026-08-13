@@ -12,7 +12,12 @@ test.group('Étiquettes de lot PDF', (group) => {
   group.teardown(() => pdfService.closeBrowser())
 
   test('serves a PDF for the requested batch ids', async ({ client, assert }) => {
-    const good = await Good.create({ name: 'Saucisses', unit: 'pcs', brand: 'Marque', categoryId: null })
+    const good = await Good.create({
+      name: 'Saucisses',
+      unit: 'pcs',
+      brand: 'Marque',
+      categoryId: null,
+    })
     const batch = await StockBatch.create({
       goodId: good.id,
       restockId: null,
@@ -34,7 +39,12 @@ test.group('Étiquettes de lot PDF', (group) => {
     client,
     assert,
   }) => {
-    const good = await Good.create({ name: 'Saucisses', unit: 'pcs', brand: 'Marque', categoryId: null })
+    const good = await Good.create({
+      name: 'Saucisses',
+      unit: 'pcs',
+      brand: 'Marque',
+      categoryId: null,
+    })
     await StockBatch.create({
       goodId: good.id,
       restockId: null,

@@ -48,7 +48,12 @@ test.group('Inventaire PDF — endpoint', (group) => {
   group.teardown(() => pdfService.closeBrowser())
 
   test('serves a PDF to a member holding stock:read', async ({ client, assert }) => {
-    const good = await Good.create({ name: 'Saucisses', unit: 'pcs', brand: 'Marque', categoryId: null })
+    const good = await Good.create({
+      name: 'Saucisses',
+      unit: 'pcs',
+      brand: 'Marque',
+      categoryId: null,
+    })
     await StockBatch.create({
       goodId: good.id,
       restockId: null,

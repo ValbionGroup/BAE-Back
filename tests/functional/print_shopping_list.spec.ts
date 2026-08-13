@@ -24,10 +24,7 @@ test.group('Fiche logistique PDF', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
   group.teardown(() => pdfService.closeBrowser())
 
-  test('serves a PDF to a member holding menu:read and stock:read', async ({
-    client,
-    assert,
-  }) => {
+  test('serves a PDF to a member holding menu:read and stock:read', async ({ client, assert }) => {
     const event = await makeEvent()
     const good = await Good.create({ name: 'Pain', unit: 'pcs', brand: 'Marque', categoryId: null })
     const leclerc = await Supplier.create({ name: 'Leclerc' })

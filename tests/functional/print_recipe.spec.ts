@@ -13,7 +13,12 @@ test.group('Fiche recette PDF', (group) => {
   group.teardown(() => pdfService.closeBrowser())
 
   test('serves a PDF to a member holding product:read', async ({ client, assert }) => {
-    const good = await Good.create({ name: 'Saucisse', unit: 'pcs', brand: 'Marque', categoryId: null })
+    const good = await Good.create({
+      name: 'Saucisse',
+      unit: 'pcs',
+      brand: 'Marque',
+      categoryId: null,
+    })
     const recipe = await Product.create({
       name: 'Hot-dog',
       isVegetarian: false,
@@ -38,7 +43,12 @@ test.group('Fiche recette PDF', (group) => {
     client,
     assert,
   }) => {
-    const good = await Good.create({ name: 'Saucisse', unit: 'pcs', brand: 'Marque', categoryId: null })
+    const good = await Good.create({
+      name: 'Saucisse',
+      unit: 'pcs',
+      brand: 'Marque',
+      categoryId: null,
+    })
     const recipe = await Product.create({
       name: 'Hot-dog',
       isVegetarian: false,

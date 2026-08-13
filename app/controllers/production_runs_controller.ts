@@ -154,11 +154,14 @@ export default class ProductionRunsController {
   async productionReturnsPdf({ params, response }: HttpContext) {
     const event = await Event.findOrFail(params.id)
     const goods = await loadReturnState(Number(params.id))
-    const buffer = await pdfService.generateFromHtml(buildProductionClosingHtml(event.name, goods), {
-      footerTemplate: printFooterTemplate(
-        'Instantané généré automatiquement — non mis à jour après impression.'
-      ),
-    })
+    const buffer = await pdfService.generateFromHtml(
+      buildProductionClosingHtml(event.name, goods),
+      {
+        footerTemplate: printFooterTemplate(
+          'Instantané généré automatiquement — non mis à jour après impression.'
+        ),
+      }
+    )
     response.header('Content-Type', 'application/pdf')
     response.header('Content-Disposition', `inline; filename="cloture-production-${params.id}.pdf"`)
     return response.send(buffer)
