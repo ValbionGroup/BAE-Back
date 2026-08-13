@@ -1,4 +1,4 @@
-import { escapeHtml, printPage, PW } from '#services/print/print_layout'
+import { callout, escapeHtml, printPage, sectionLabel, PW } from '#services/print/print_layout'
 
 export interface AssignmentSlot {
   name: string | null
@@ -42,11 +42,12 @@ export function buildAssignmentsHtml(eventName: string, periods: AssignmentPerio
     ${periods
       .map(
         (p) => `<div>
-      <div style="font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid ${PW.ink};padding-bottom:5px;margin-bottom:8px">${escapeHtml(p.label)}</div>
+      ${sectionLabel(p.label)}
       ${p.jobs.map(jobBlock).join('')}
     </div>`
       )
       .join('')}
-  </div>`
+  </div>
+  ${callout("Les affectations marquées « VERROU. » ont été posées à la main par le coordo : l'algorithme ne les réécrit pas.")}`
   return printPage("Feuille d'affectation de soirée", eventName, body)
 }
