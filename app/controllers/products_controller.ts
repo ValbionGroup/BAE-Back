@@ -66,9 +66,13 @@ export interface IngredientLine {
  * Shared by `ingredients()` (JSON, layers on category/price/stock) and
  * `recipePdf()` (only needs the assembly order and quantities).
  */
-async function loadIngredientLines(
-  productId: string
-): Promise<{ productName: string; isVegetarian: boolean; lines: IngredientLine[] }> {
+async function loadIngredientLines(productId: string): Promise<{
+  productName: string
+  isVegetarian: boolean
+  description: string | null
+  recipe: string | null
+  lines: IngredientLine[]
+}> {
   const product = await Product.query()
     .where('id', productId)
     .preload('goods', (goodsQuery) => {
@@ -87,7 +91,13 @@ async function loadIngredientLines(
   }))
   lines.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name))
 
-  return { productName: product.name, isVegetarian: product.isVegetarian ?? false, lines }
+  return {
+    productName: product.name,
+    isVegetarian: product.isVegetarian ?? false,
+    description: product.description,
+    recipe: product.recipe,
+    lines,
+  }
 }
 
 function normalizeText(value: unknown): string | null {
@@ -272,7 +282,9 @@ export default class ProductsController {
   }
 
   async recipePdf({ params, request, response }: HttpContext) {
-    const { productName, isVegetarian, lines } = await loadIngredientLines(params.id)
+    const { productName, isVegetarian, description, recipe, lines } = await loadIngredientLines(
+      params.id
+    )
     const eventId = request.qs().eventId as string | undefined
     let plannedQty: number | null = null
     if (eventId) {
@@ -285,7 +297,7 @@ export default class ProductsController {
       plannedQty = row ? Number(row.quantity) : null
     }
     const buffer = await pdfService.generateFromHtml(
-      buildRecipeHtml(productName, isVegetarian, lines, plannedQty),
+      buildRecipeHtml({ productName, isVegetarian, description, recipe, lines, plannedQty }),
       {
         footerTemplate: printFooterTemplate(
           'Instantané généré automatiquement — non mis à jour après impression.'
