@@ -4,27 +4,36 @@ import type { InventoryRow } from '#services/stock_service'
 function statusOf(
   batch: InventoryRow['batches'][number],
   now: Date
-): { label: string; bold: boolean } {
-  if (batch.remainingQty <= 0) return { label: '—', bold: false }
+): { label: string; bold: boolean; isSoon: boolean; isExpired: boolean } {
+  if (batch.remainingQty <= 0) return { label: '—', bold: false, isSoon: false, isExpired: false }
   const expired = batch.expirationDate ? batch.expirationDate.toJSDate() < now : false
-  if (expired) return { label: 'PÉRIMÉ', bold: true }
+  if (expired) return { label: 'PÉRIMÉ', bold: true, isSoon: false, isExpired: true }
   const soon = batch.expirationDate
     ? batch.expirationDate.toJSDate() < new Date(now.getTime() + 7 * 86_400_000)
     : false
-  return { label: soon ? 'PROCHE PÉREMPTION' : 'OK', bold: false }
+  return { label: soon ? 'PROCHE PÉREMPTION' : 'OK', bold: false, isSoon: soon, isExpired: false }
 }
 
 export function buildInventoryHtml(rows: InventoryRow[]): string {
   const now = new Date()
-  const totalBatches = rows.reduce((sum, r) => sum + r.batches.length, 0)
+  const allBatches = rows.flatMap((r) => r.batches)
+  const statuses = allBatches.map((b) => statusOf(b, now))
+  const nbPerimes = statuses.filter((s) => s.isExpired).length
+  const nbProches = statuses.filter((s) => s.isSoon).length
 
   const body = `
     <div style="display:flex;gap:22px;margin-bottom:12px;font-size:12.5px">
       <span><b class="pp-mono">${rows.length}</b> produits</span>
-      <span><b class="pp-mono">${totalBatches}</b> lots</span>
+      <span><b class="pp-mono">${allBatches.length}</b> lots</span>
+      <span>dont <b class="pp-mono">${nbPerimes}</b> périmés</span>
+      <span>dont <b class="pp-mono">${nbProches}</b> proches</span>
     </div>
     <table class="pp-table">
-      <thead><tr><th>Catégorie</th><th>Produit</th><th>N° de lot</th><th style="text-align:right">Qté restante</th><th>DLC</th><th>Statut</th></tr></thead>
+      <thead><tr>
+        <th>Catégorie</th><th>Produit</th><th>N° de lot</th>
+        <th style="text-align:right">Qté restante</th><th>DLC</th><th>Statut</th><th>Ouvert le</th>
+        <th style="width:90px">Compté</th><th style="width:90px">Écart</th>
+      </tr></thead>
       <tbody>
         ${rows
           .map((row) =>
@@ -38,6 +47,9 @@ export function buildInventoryHtml(rows: InventoryRow[]): string {
               <td class="pp-mono" style="text-align:right">${batch.remainingQty} ${escapeHtml(row.unit)}</td>
               <td class="pp-mono">${batch.expirationDate ? batch.expirationDate.toFormat('dd/MM/yyyy') : '—'}</td>
               <td style="font-weight:${status.bold ? 700 : 500}">${status.label}</td>
+              <td class="pp-mono" style="color:${PW.mid}">${batch.openedAt ? batch.openedAt.toFormat('dd/MM/yyyy') : '—'}</td>
+              <td><div style="border-bottom:1.4px solid ${PW.ink};height:16px"></div></td>
+              <td><div style="border-bottom:1.4px solid ${PW.ink};height:16px"></div></td>
             </tr>`
               })
               .join('')
