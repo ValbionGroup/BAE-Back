@@ -53,6 +53,19 @@ export function printHead(doc: string, event?: string): string {
   `
 }
 
+/** Un carré à cocher à la main sur le papier — jamais interactif. */
+export function checkbox(): string {
+  return `<span style="display:inline-block;width:19px;height:19px;border:2px solid ${PW.ink};border-radius:2px"></span>`
+}
+
+export function sectionLabel(text: string): string {
+  return `<div style="font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;border-bottom:1.5px solid ${PW.ink};padding-bottom:5px;margin:16px 0 8px">${escapeHtml(text)}</div>`
+}
+
+export function callout(text: string): string {
+  return `<div style="display:flex;gap:8px;align-items:flex-start;padding:9px 12px;border:1.4px solid ${PW.ink};margin-top:12px;font-size:12.5px;line-height:1.5">${escapeHtml(text)}</div>`
+}
+
 export function printFooterTemplate(note: string): string {
   return `<div style="width:100%;font-size:8pt;color:${PW.faint};font-family:'Geist',system-ui,sans-serif;padding:4px 24px 0;display:flex;justify-content:space-between">
     <span>${note}</span>
