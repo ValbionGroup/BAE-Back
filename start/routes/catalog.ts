@@ -26,6 +26,9 @@ router
     router
       .get('/products/:id/ingredients', [controllers.Products, 'ingredients'])
       .use(middleware.can('product:read'))
+    router
+      .get('/products/:id/recipe/pdf', [controllers.Products, 'recipePdf'])
+      .use(middleware.can('product:read'))
     router.get('/products', [controllers.Products, 'index']).use(middleware.can('product:read'))
     router.post('/products', [controllers.Products, 'store']).use(middleware.can('product:write'))
     router.get('/products/:id', [controllers.Products, 'show']).use(middleware.can('product:read'))

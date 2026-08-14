@@ -5,6 +5,9 @@ import db from '@adonisjs/lucid/services/db'
 import ApiException from '#exceptions/api_exception'
 import { loadBatchesWithRemaining } from '#services/stock_service'
 import { minSupplierPrice } from '#services/pricing_service'
+import { buildRecipeHtml } from '#services/print/print_recipe'
+import { printFooterTemplate } from '#services/print/print_layout'
+import { pdfService } from '#services/pdf_service'
 
 // TODO: consume `#services/product_category_service`, of which this is an exact
 // copy — while both definitions coexist they can drift apart, and the same
@@ -25,9 +28,6 @@ const PRODUCT_USAGES = [
   { table: 'order_products', singular: 'commande', plural: 'commandes' },
   { table: 'event_products', singular: 'menu de soirée', plural: 'menus de soirée' },
   { table: 'pre_order_items', singular: 'précommande', plural: 'précommandes' },
-  // The RESTRICT foreign key on production_runs.product_id already refuses the
-  // delete — but as an unhandled 500. This entry is what turns that refusal into
-  // a 409 that says why.
   { table: 'production_runs', singular: 'production', plural: 'productions' },
 ] as const
 
@@ -51,6 +51,53 @@ interface IngredientInput {
 
 function badRequest(message: string): never {
   throw new ApiException('E_PRODUCT_INVALID', message, 400)
+}
+
+export interface IngredientLine {
+  id: number
+  name: string
+  unit: string
+  rank: number
+  quantity: number
+  instruction: string | null
+}
+
+/**
+ * Shared by `ingredients()` (JSON, layers on category/price/stock) and
+ * `recipePdf()` (only needs the assembly order and quantities).
+ */
+async function loadIngredientLines(productId: string): Promise<{
+  productName: string
+  isVegetarian: boolean
+  description: string | null
+  recipe: string | null
+  lines: IngredientLine[]
+}> {
+  const product = await Product.query()
+    .where('id', productId)
+    .preload('goods', (goodsQuery) => {
+      goodsQuery.preload('category')
+      goodsQuery.preload('suppliers')
+    })
+    .firstOrFail()
+
+  const lines: IngredientLine[] = product.goods.map((good) => ({
+    id: good.id,
+    name: good.name,
+    unit: good.unit,
+    rank: Number(good.$extras.pivot_rank),
+    quantity: Number(good.$extras.pivot_quantity),
+    instruction: good.$extras.pivot_instruction,
+  }))
+  lines.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name))
+
+  return {
+    productName: product.name,
+    isVegetarian: product.isVegetarian ?? false,
+    description: product.description,
+    recipe: product.recipe,
+    lines,
+  }
 }
 
 function normalizeText(value: unknown): string | null {
@@ -211,33 +258,54 @@ export default class ProductsController {
   }
 
   async ingredients({ params, serialize }: HttpContext) {
-    const product = await Product.query()
-      .where('id', params.id)
-      .preload('goods', (goodsQuery) => {
-        goodsQuery.preload('category')
-        goodsQuery.preload('suppliers')
-      })
-      .firstOrFail()
+    const { lines } = await loadIngredientLines(params.id)
 
-    const lines = await Promise.all(
-      product.goods.map(async (good) => {
+    const withPrices = await Promise.all(
+      lines.map(async (line) => {
+        const good = await Good.query()
+          .where('id', line.id)
+          .preload('suppliers')
+          .preload('category')
+          .firstOrFail()
         const batches = await loadBatchesWithRemaining(good.id, true)
         const stockQty = batches.reduce((sum, b) => sum + b.remainingQty, 0)
         return {
-          id: good.id,
-          name: good.name,
-          unit: good.unit,
+          ...line,
           brand: good.brand,
           category: good.category?.name ?? null,
-          rank: good.$extras.pivot_rank,
-          quantity: good.$extras.pivot_quantity,
-          instruction: good.$extras.pivot_instruction,
           unitPrice: minSupplierPrice(good),
           stockQty,
         }
       })
     )
-    lines.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name))
-    return serialize(lines)
+    return serialize(withPrices)
+  }
+
+  async recipePdf({ params, request, response }: HttpContext) {
+    const { productName, isVegetarian, description, recipe, lines } = await loadIngredientLines(
+      params.id
+    )
+    const eventId = request.qs().eventId as string | undefined
+    let plannedQty: number | null = null
+    if (eventId) {
+      const row = await db
+        .from('event_products')
+        .where('event_id', eventId)
+        .where('product_id', params.id)
+        .select('quantity')
+        .first()
+      plannedQty = row ? Number(row.quantity) : null
+    }
+    const buffer = await pdfService.generateFromHtml(
+      buildRecipeHtml({ productName, isVegetarian, description, recipe, lines, plannedQty }),
+      {
+        footerTemplate: printFooterTemplate(
+          'Instantané généré automatiquement — non mis à jour après impression.'
+        ),
+      }
+    )
+    response.header('Content-Type', 'application/pdf')
+    response.header('Content-Disposition', `inline; filename="fiche-recette-${params.id}.pdf"`)
+    return response.send(buffer)
   }
 }

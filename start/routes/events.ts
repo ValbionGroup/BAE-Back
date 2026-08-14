@@ -42,12 +42,20 @@ router
       .use(middleware.can(['menu:read', 'stock:read']))
 
     router
+      .get('/events/:id/shopping-list/pdf', [controllers.EventProducts, 'shoppingListPdf'])
+      .use(middleware.can(['menu:read', 'stock:read']))
+
+    router
       .get('/events/:id/production-runs', [controllers.ProductionRuns, 'index'])
       .use(middleware.can('stock:read'))
 
     router
       .post('/events/:id/production-runs', [controllers.ProductionRuns, 'store'])
       .use(middleware.can('stock:write'))
+
+    router
+      .get('/events/:id/production-plan/pdf', [controllers.ProductionRuns, 'productionPlanPdf'])
+      .use(middleware.can('stock:read'))
 
     router
       .get('/events/:id/production-returns', [controllers.ProductionRuns, 'returnState'])
@@ -58,12 +66,25 @@ router
       .use(middleware.can('stock:write'))
 
     router
+      .get('/events/:id/production-returns/pdf', [
+        controllers.ProductionRuns,
+        'productionReturnsPdf',
+      ])
+      .use(middleware.can('stock:read'))
+
+    router
       .post('/events/:id/matching', [controllers.Events, 'runMatching'])
       .use(middleware.can('event:matching'))
 
     router
       .post('/events/:id/settle', [controllers.Events, 'settle'])
       .use(middleware.can('event:settle'))
+
+    // job:read explicite : contrairement à /assignments (GET), qui n'en porte
+    // aucune, ce trou n'est pas reproduit sur la route PDF.
+    router
+      .get('/events/:id/assignments/pdf', [controllers.Assignments, 'pdf'])
+      .use(middleware.can('job:read'))
   })
   .prefix('/v1')
   .use(middleware.auth())

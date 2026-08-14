@@ -134,6 +134,62 @@ export async function planProduction(
 }
 
 /**
+ * The event-wide counterpart to `planProduction`. Needs are summed PER GOOD
+ * across every recipe on the menu FIRST — exactly like `buildShoppingList`
+ * does — and only then walked through FEFO once per good. Looping
+ * `planProduction()` once per recipe would let two recipes sharing a good
+ * each plan against the same un-decremented `remainingQty`.
+ */
+export async function planProductionForEvent(eventId: number): Promise<{ lines: GoodNeed[] }> {
+  const event = await Event.query()
+    .where('id', eventId)
+    .preload('products', (products) => products.preload('goods'))
+    .first()
+
+  if (!event) {
+    throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
+  }
+
+  const now = DateTime.now()
+  const needByGood = new Map<number, { name: string; unit: string; needQty: number }>()
+
+  for (const product of event.products) {
+    const produced = Number(product.$extras.pivot_quantity)
+    for (const good of product.goods) {
+      const perUnit = Number(good.$extras.pivot_quantity)
+      const entry = needByGood.get(good.id) ?? { name: good.name, unit: good.unit, needQty: 0 }
+      entry.needQty += produced * perUnit
+      needByGood.set(good.id, entry)
+    }
+  }
+
+  const lines: GoodNeed[] = []
+  for (const [goodId, { name, unit, needQty }] of needByGood) {
+    const batches = await loadBatchesWithRemaining(goodId, false)
+    const { picks, availableQty } = planPickForGood(batches, needQty, now)
+    const byId = new Map(batches.map((batch) => [batch.id, batch]))
+    lines.push({
+      goodId,
+      goodName: name,
+      unit,
+      needQty,
+      availableQty,
+      picks: picks.map((pick) => {
+        const batch = byId.get(pick.batchId)!
+        return {
+          batchId: pick.batchId,
+          label: batch.label,
+          expirationDate: batch.expirationDate?.toISO() ?? null,
+          takeQty: pick.takeQty,
+        }
+      }),
+    })
+  }
+
+  return { lines }
+}
+
+/**
  * Commits a production run inside one transaction.
  *
  * The plan is RECOMPUTED here and never trusted from the caller: a dry run seen
