@@ -184,8 +184,19 @@ export class GoodSupplierSchema extends BaseModel {
 }
 
 export class GoodSchema extends BaseModel {
-  static $columns = ['brand', 'categoryId', 'createdAt', 'id', 'name', 'unit', 'updatedAt'] as const
+  static $columns = [
+    'barcode',
+    'brand',
+    'categoryId',
+    'createdAt',
+    'id',
+    'name',
+    'unit',
+    'updatedAt',
+  ] as const
   $columns = GoodSchema.$columns
+  @column()
+  declare barcode: string | null
   @column()
   declare brand: string
   @column()

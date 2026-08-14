@@ -33,6 +33,8 @@ export const PERMISSIONS = [
   'member:write',
   'role:read',
   'role:write',
+  'voucher:read',
+  'voucher:write',
 ] as const
 
 export type PermissionName = (typeof PERMISSIONS)[number]
@@ -75,6 +77,8 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'product:read',
     'stock:read',
     'log:read',
+    'voucher:read',
+    'voucher:write',
   ],
   'Coordinateur': ['event:matching', 'event:settle', 'assignment:write', 'stock:read'],
   'Secretaire': ['log:read', 'role:read'],
@@ -92,6 +96,8 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'restock:create',
     'restock:delete',
     'supplier:read',
+    'voucher:read',
+    'voucher:write',
   ],
   'Pole BBQ': ['stock:read', 'stock:update', 'product:read', 'restock:read', 'restock:create'],
   'Membre': [],

@@ -12,8 +12,11 @@ import vine from '@vinejs/vine'
  * Validator for creating or updating a job.
  */
 export const jobValidator = vine.create({
-  name: vine.string().trim().minLength(1),
-  description: vine.string().trim().nullable().optional(),
+  // `jobs.name` and `jobs.description` are both `varchar(255)`; without these
+  // caps an over-long value reaches Postgres and raises a `DatabaseError`,
+  // which surfaces as a 500 instead of a 422.
+  name: vine.string().trim().minLength(1).maxLength(255),
+  description: vine.string().trim().maxLength(255).nullable().optional(),
   type: vine.enum(['before', 'during', 'after']).optional(),
 })
 

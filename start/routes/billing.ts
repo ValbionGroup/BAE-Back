@@ -32,11 +32,18 @@ router
 
     /**
      * Vouchers ("bons d'achat")
+     *
+     * Un bon d'achat est un objet **au porteur** : sa valeur est dans sa
+     * lecture. `GET` est donc gardé comme les écritures, et non laissé ouvert.
      */
-    router.get('/vouchers', [controllers.Vouchers, 'index'])
-    router.post('/vouchers', [controllers.Vouchers, 'store'])
-    router.route('/vouchers/:id', ['PUT', 'PATCH'], [controllers.Vouchers, 'update'])
-    router.delete('/vouchers/:id', [controllers.Vouchers, 'destroy'])
+    router.get('/vouchers', [controllers.Vouchers, 'index']).use(middleware.can('voucher:read'))
+    router.post('/vouchers', [controllers.Vouchers, 'store']).use(middleware.can('voucher:write'))
+    router
+      .route('/vouchers/:id', ['PUT', 'PATCH'], [controllers.Vouchers, 'update'])
+      .use(middleware.can('voucher:write'))
+    router
+      .delete('/vouchers/:id', [controllers.Vouchers, 'destroy'])
+      .use(middleware.can('voucher:write'))
   })
   .prefix('/v1')
   .use(middleware.auth())
