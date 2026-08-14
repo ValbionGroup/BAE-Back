@@ -242,7 +242,7 @@ test.group('Event products — écriture du menu', (group) => {
     await event.related('products').attach({ [product.id]: { quantity: 100, price: 350 } })
 
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['menu:read', 'menu:write'])
+    const user = await grantPermissions(member, ['menu:read', 'menu:write', 'menu:delete'])
 
     const response = await client
       .delete(`/v1/events/${event.id}/products/${product.id}`)

@@ -118,6 +118,12 @@ export interface ApiDefinition {
     destroy: typeof routes['event_products.destroy']
     shoppingList: typeof routes['event_products.shopping_list']
   }
+  productionRuns: {
+    index: typeof routes['production_runs.index']
+    store: typeof routes['production_runs.store']
+    returnState: typeof routes['production_runs.return_state']
+    returns: typeof routes['production_runs.returns']
+  }
   jobs: {
     index: typeof routes['jobs.index']
     store: typeof routes['jobs.store']

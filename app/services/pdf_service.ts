@@ -17,6 +17,12 @@ export default class PdfService {
       this.browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        // Alpine's node:*-alpine images are musl libc: Puppeteer's own
+        // downloaded Chrome build is glibc-only and cannot run there at all.
+        // The Docker images install Alpine's native `chromium` package and
+        // point here via this env var; left unset, Puppeteer falls back to
+        // its own bundled browser — what local, non-containerized dev uses.
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       })
     }
     return this.browser
@@ -87,6 +93,9 @@ export default class PdfService {
       format?: 'A4' | 'Letter'
       landscape?: boolean
       margin?: { top?: string; right?: string; bottom?: string; left?: string }
+      displayHeaderFooter?: boolean
+      headerTemplate?: string
+      footerTemplate?: string
     } = {}
   ): Promise<Buffer> {
     const browser = await this.getBrowser()
@@ -101,9 +110,9 @@ export default class PdfService {
         format: options.format || 'A4',
         landscape: options.landscape || false,
         margin: options.margin || { top: '0', right: '0', bottom: '16mm', left: '0' },
-        displayHeaderFooter: true,
-        headerTemplate: '<span></span>',
-        footerTemplate: this.footerTemplate,
+        displayHeaderFooter: options.displayHeaderFooter ?? true,
+        headerTemplate: options.headerTemplate || '<span></span>',
+        footerTemplate: options.footerTemplate || this.footerTemplate,
         printBackground: true,
       }
 
@@ -115,3 +124,5 @@ export default class PdfService {
     }
   }
 }
+
+export const pdfService = new PdfService()

@@ -1,6 +1,5 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import User from '#models/user'
 import { grantPermissions } from '#tests/helpers/permissions'
 import { MemberFactory } from '#database/factories/members_factory'
 import { EventFactory } from '#database/factories/event_factory'
@@ -15,7 +14,7 @@ test.group('Event availability', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['presence:read', 'presence:write'])
     const event = await EventFactory.create()
 
     const created = await client
@@ -40,7 +39,7 @@ test.group('Event availability', (group) => {
 
   test('returns -1 for a member who has not answered', async ({ client }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['presence:read', 'presence:write'])
     const event = await EventFactory.create()
 
     const response = await client.get(`/v1/events/${event.id}/response`).loginAs(user)
@@ -56,7 +55,7 @@ test.group('Event availability — presence lock (D8, D9)', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['presence:read', 'presence:write'])
     const event = await EventFactory.create()
     const job = await JobFactory.create()
 
@@ -83,7 +82,7 @@ test.group('Event availability — presence lock (D8, D9)', (group) => {
 
   test('the same member can still confirm their presence', async ({ client }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['presence:read', 'presence:write'])
     const event = await EventFactory.create()
     const job = await JobFactory.create()
 
@@ -107,7 +106,7 @@ test.group('Event availability — presence lock (D8, D9)', (group) => {
 
   test('a member holding no job can still declare themselves absent', async ({ client }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['presence:read', 'presence:write'])
     const event = await EventFactory.create()
 
     const response = await client
@@ -124,7 +123,12 @@ test.group('Event availability — presence lock (D8, D9)', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['assignment:write'])
+    const user = await grantPermissions(member, [
+      'assignment:write',
+      'assignment:delete',
+      'presence:read',
+      'presence:write',
+    ])
     const event = await EventFactory.create()
     const job = await JobFactory.create()
 
@@ -164,7 +168,7 @@ test.group('Event availability — presence lock (D8, D9)', (group) => {
     client,
   }) => {
     const member = await MemberFactory.create()
-    const user = await User.findOrFail(member.id)
+    const user = await grantPermissions(member, ['presence:read', 'presence:write'])
     const event = await EventFactory.create()
     const cleanupJob = await JobFactory.merge({ type: 'after' }).create()
 

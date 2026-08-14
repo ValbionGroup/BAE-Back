@@ -4,37 +4,78 @@ import { middleware } from '#start/kernel'
 
 router
   .group(() => {
-    router.get('/categories', [controllers.Categories, 'index'])
-    router.post('/categories', [controllers.Categories, 'store'])
-    router.get('/categories/:id', [controllers.Categories, 'show'])
-    router.route('/categories/:id', ['PUT', 'PATCH'], [controllers.Categories, 'update'])
-    router.delete('/categories/:id', [controllers.Categories, 'destroy'])
+    router
+      .get('/categories', [controllers.Categories, 'index'])
+      .use(middleware.can('category:read'))
+    router
+      .post('/categories', [controllers.Categories, 'store'])
+      .use(middleware.can('category:write'))
+    router
+      .get('/categories/:id', [controllers.Categories, 'show'])
+      .use(middleware.can('category:read'))
+    router
+      .route('/categories/:id', ['PUT', 'PATCH'], [controllers.Categories, 'update'])
+      .use(middleware.can('category:write'))
+    router
+      .delete('/categories/:id', [controllers.Categories, 'destroy'])
+      .use(middleware.can('category:delete'))
 
-    router.get('/products/summary', [controllers.Products, 'summary'])
-    router.get('/products/:id/ingredients', [controllers.Products, 'ingredients'])
-    router.get('/products', [controllers.Products, 'index'])
-    router.post('/products', [controllers.Products, 'store'])
-    router.get('/products/:id', [controllers.Products, 'show'])
-    router.route('/products/:id', ['PUT', 'PATCH'], [controllers.Products, 'update'])
-    router.delete('/products/:id', [controllers.Products, 'destroy'])
+    router
+      .get('/products/summary', [controllers.Products, 'summary'])
+      .use(middleware.can('product:read'))
+    router
+      .get('/products/:id/ingredients', [controllers.Products, 'ingredients'])
+      .use(middleware.can('product:read'))
+    router
+      .get('/products/:id/recipe/pdf', [controllers.Products, 'recipePdf'])
+      .use(middleware.can('product:read'))
+    router.get('/products', [controllers.Products, 'index']).use(middleware.can('product:read'))
+    router.post('/products', [controllers.Products, 'store']).use(middleware.can('product:write'))
+    router.get('/products/:id', [controllers.Products, 'show']).use(middleware.can('product:read'))
+    router
+      .route('/products/:id', ['PUT', 'PATCH'], [controllers.Products, 'update'])
+      .use(middleware.can('product:write'))
+    router
+      .delete('/products/:id', [controllers.Products, 'destroy'])
+      .use(middleware.can('product:delete'))
 
-    router.get('/goods', [controllers.Goods, 'index'])
-    router.post('/goods', [controllers.Goods, 'store'])
-    router.get('/goods/:id', [controllers.Goods, 'show'])
-    router.route('/goods/:id', ['PUT', 'PATCH'], [controllers.Goods, 'update'])
-    router.delete('/goods/:id', [controllers.Goods, 'destroy'])
+    router.get('/goods', [controllers.Goods, 'index']).use(middleware.can('good:read'))
+    router.post('/goods', [controllers.Goods, 'store']).use(middleware.can('good:write'))
+    router.get('/goods/:id', [controllers.Goods, 'show']).use(middleware.can('good:read'))
+    router
+      .route('/goods/:id', ['PUT', 'PATCH'], [controllers.Goods, 'update'])
+      .use(middleware.can('good:write'))
+    router.delete('/goods/:id', [controllers.Goods, 'destroy']).use(middleware.can('good:delete'))
 
-    router.get('/furnitures', [controllers.Furnitures, 'index'])
-    router.post('/furnitures', [controllers.Furnitures, 'store'])
-    router.get('/furnitures/:id', [controllers.Furnitures, 'show'])
-    router.route('/furnitures/:id', ['PUT', 'PATCH'], [controllers.Furnitures, 'update'])
-    router.delete('/furnitures/:id', [controllers.Furnitures, 'destroy'])
+    router
+      .get('/furnitures', [controllers.Furnitures, 'index'])
+      .use(middleware.can('furniture:read'))
+    router
+      .post('/furnitures', [controllers.Furnitures, 'store'])
+      .use(middleware.can('furniture:write'))
+    router
+      .get('/furnitures/:id', [controllers.Furnitures, 'show'])
+      .use(middleware.can('furniture:read'))
+    router
+      .route('/furnitures/:id', ['PUT', 'PATCH'], [controllers.Furnitures, 'update'])
+      .use(middleware.can('furniture:write'))
+    router
+      .delete('/furnitures/:id', [controllers.Furnitures, 'destroy'])
+      .use(middleware.can('furniture:delete'))
 
-    router.get('/suppliers', [controllers.Suppliers, 'index'])
-    router.post('/suppliers', [controllers.Suppliers, 'store'])
-    router.get('/suppliers/:id', [controllers.Suppliers, 'show'])
-    router.route('/suppliers/:id', ['PUT', 'PATCH'], [controllers.Suppliers, 'update'])
-    router.delete('/suppliers/:id', [controllers.Suppliers, 'destroy'])
+    router.get('/suppliers', [controllers.Suppliers, 'index']).use(middleware.can('supplier:read'))
+    router
+      .post('/suppliers', [controllers.Suppliers, 'store'])
+      .use(middleware.can('supplier:write'))
+    router
+      .get('/suppliers/:id', [controllers.Suppliers, 'show'])
+      .use(middleware.can('supplier:read'))
+    router
+      .route('/suppliers/:id', ['PUT', 'PATCH'], [controllers.Suppliers, 'update'])
+      .use(middleware.can('supplier:write'))
+    router
+      .delete('/suppliers/:id', [controllers.Suppliers, 'destroy'])
+      .use(middleware.can('supplier:delete'))
   })
   .prefix('/v1')
   .use(middleware.auth())

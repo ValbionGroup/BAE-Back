@@ -373,6 +373,42 @@ test.group('Event matching', (group) => {
     assert.deepEqual(body.data.unmatched_member_ids, [contender.id])
   })
 
+  test('a manual assignment survives a matching run even when `locked` is omitted on creation', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
+
+    const manualMember = await MemberFactory.create()
+    const manualUser = await asCoordinator(manualMember)
+    await client
+      .post('/v1/assignments')
+      .loginAs(manualUser)
+      .json({ member_id: manualMember.id, event_id: event.id, job_id: job.id })
+
+    const contender = await MemberFactory.create()
+    contender.points = 90
+    await contender.save()
+    await makeAvailable(contender, event.id)
+    await setPreference(contender, job.id, 1)
+
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(manualUser)
+    response.assertStatus(200)
+
+    const manualRow = await MemberEventAssignedJob.query()
+      .where('eventId', event.id)
+      .where('memberId', manualMember.id)
+      .firstOrFail()
+    assert.isTrue(manualRow.locked)
+
+    const contenderRows = await MemberEventAssignedJob.query()
+      .where('eventId', event.id)
+      .where('memberId', contender.id)
+    assert.lengthOf(contenderRows, 0)
+  })
+
   test('excludes an ineligible member from a restricted job even when it is their top preference', async ({
     client,
     assert,

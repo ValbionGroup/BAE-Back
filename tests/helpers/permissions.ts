@@ -17,7 +17,17 @@ export async function grantPermissions(member: Member, permissions: string[]): P
   return User.findOrFail(member.id)
 }
 
-export const COORDINATION_PERMISSIONS = ['event:matching', 'event:settle', 'assignment:write']
+export const COORDINATION_PERMISSIONS = [
+  'event:matching',
+  'event:settle',
+  'event:write',
+  'event:delete',
+  'assignment:write',
+  'assignment:delete',
+  'job:read',
+  'job:write',
+  'job:delete',
+]
 
 export function asCoordinator(member: Member): Promise<User> {
   return grantPermissions(member, COORDINATION_PERMISSIONS)

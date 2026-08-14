@@ -1,7 +1,8 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
-import { UserFactory } from '#database/factories/user_factory'
+import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 import { ProductFactory } from '#database/factories/product_factory'
 import { GoodFactory } from '#database/factories/good_factory'
 import { EventFactory } from '#database/factories/event_factory'
@@ -9,11 +10,16 @@ import { EventFactory } from '#database/factories/event_factory'
 test.group('Product CRUD', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
+  async function asProductManager() {
+    const member = await MemberFactory.create()
+    return grantPermissions(member, ['product:write', 'product:delete'])
+  }
+
   test('creates a recipe and its ingredients, ranked by payload order', async ({
     client,
     assert,
   }) => {
-    const user = await UserFactory.create()
+    const user = await asProductManager()
     const flour = await GoodFactory.create()
     const sugar = await GoodFactory.create()
 
@@ -52,7 +58,7 @@ test.group('Product CRUD', (group) => {
   })
 
   test('refuses a nameless recipe instead of hitting the NOT NULL column', async ({ client }) => {
-    const user = await UserFactory.create()
+    const user = await asProductManager()
 
     const response = await client
       .post('/v1/products')
@@ -64,7 +70,7 @@ test.group('Product CRUD', (group) => {
   })
 
   test('replaces the whole ingredient set on update', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asProductManager()
     const product = await ProductFactory.create()
     const dropped = await GoodFactory.create()
     const kept = await GoodFactory.create()
@@ -100,7 +106,7 @@ test.group('Product CRUD', (group) => {
     client,
     assert,
   }) => {
-    const user = await UserFactory.create()
+    const user = await asProductManager()
     const product = await ProductFactory.create()
     const good = await GoodFactory.create()
     await product
@@ -132,7 +138,7 @@ test.group('Product CRUD', (group) => {
       { label: 'an unknown good', line: () => [{ goodId: 999_999, quantity: 1 }] },
     ])
     .run(async ({ client, assert }, { label, line }) => {
-      const user = await UserFactory.create()
+      const user = await asProductManager()
       const product = await ProductFactory.create()
       const good = await GoodFactory.create()
 
@@ -149,7 +155,7 @@ test.group('Product CRUD', (group) => {
     client,
     assert,
   }) => {
-    const user = await UserFactory.create()
+    const user = await asProductManager()
     const product = await ProductFactory.create()
     const event = await EventFactory.create()
     await product.related('events').attach([event.id])
@@ -163,7 +169,7 @@ test.group('Product CRUD', (group) => {
   })
 
   test('deletes a recipe nothing references', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asProductManager()
     const product = await ProductFactory.create()
 
     const response = await client.delete(`/v1/products/${product.id}`).loginAs(user)

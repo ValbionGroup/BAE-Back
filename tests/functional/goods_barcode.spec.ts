@@ -1,7 +1,8 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import Good from '#models/good'
-import { UserFactory } from '#database/factories/user_factory'
+import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 
 test.group('Goods barcode', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
@@ -10,8 +11,13 @@ test.group('Goods barcode', (group) => {
     return Good.create({ name, unit: 'pcs', brand: '', categoryId: null, barcode })
   }
 
+  async function asGoodsManager() {
+    const member = await MemberFactory.create()
+    return grantPermissions(member, ['good:read', 'good:write'])
+  }
+
   test('finds a good by its barcode', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asGoodsManager()
     await makeGood('Moutarde', '3268754117904')
     await makeGood('Ketchup', '3168421988011')
 
@@ -24,7 +30,7 @@ test.group('Goods barcode', (group) => {
   })
 
   test('answers with an empty list for an unknown barcode', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asGoodsManager()
     await makeGood('Moutarde', '3268754117904')
 
     const response = await client.get('/v1/goods?barcode=0000000000000').loginAs(user)
@@ -34,7 +40,7 @@ test.group('Goods barcode', (group) => {
   })
 
   test('still lists every good when no barcode is given', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asGoodsManager()
     await makeGood('Moutarde ZZ', '3268754117904')
     await makeGood('Ketchup ZZ', null)
 
@@ -47,7 +53,7 @@ test.group('Goods barcode', (group) => {
   })
 
   test('creates a good carrying its barcode', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asGoodsManager()
 
     const response = await client
       .post('/v1/goods')
@@ -59,7 +65,7 @@ test.group('Goods barcode', (group) => {
   })
 
   test('stores an empty barcode as null', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asGoodsManager()
 
     const response = await client
       .post('/v1/goods')
@@ -71,7 +77,7 @@ test.group('Goods barcode', (group) => {
   })
 
   test('lets several goods have no barcode at all', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asGoodsManager()
     await makeGood('Sans code A', null)
 
     const response = await client
@@ -84,7 +90,7 @@ test.group('Goods barcode', (group) => {
   })
 
   test('attaches a barcode to an existing good', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asGoodsManager()
     const good = await makeGood('Moutarde', null)
 
     const response = await client
@@ -100,7 +106,7 @@ test.group('Goods barcode', (group) => {
   })
 
   test('refuses a barcode already carried by another good', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asGoodsManager()
     await makeGood('Moutarde', '3268754117904')
     const other = await makeGood('Ketchup', null)
 

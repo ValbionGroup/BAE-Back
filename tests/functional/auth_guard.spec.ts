@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import { UserFactory } from '#database/factories/user_factory'
+import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 
 test.group('Auth guard on /v1', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
@@ -11,7 +12,8 @@ test.group('Auth guard on /v1', (group) => {
   })
 
   test('allows an authenticated request', async ({ client }) => {
-    const user = await UserFactory.create()
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['event:read'])
     const response = await client.get('/v1/events').loginAs(user)
     response.assertStatus(200)
   })

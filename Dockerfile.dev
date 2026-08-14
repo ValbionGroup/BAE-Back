@@ -3,8 +3,14 @@
 FROM node:24-alpine AS development
 
 # Install pnpm directly (avoids corepack version-pinning writes to package.json)
+# Chromium: node:*-alpine is musl libc, and Puppeteer's own downloaded Chrome
+# build is glibc-only — it cannot run on this image at all. Alpine's native
+# chromium package is the one Puppeteer is pointed at via PUPPETEER_EXECUTABLE_PATH.
 RUN npm install -g pnpm && \
-    apk add --no-cache git
+    apk add --no-cache git chromium
+
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 WORKDIR /app
 

@@ -7,6 +7,9 @@ import { minSupplierPrice } from '#services/pricing_service'
 import { primaryCategoryName } from '#services/product_category_service'
 import { eventProductValidator, eventProductUpdateValidator } from '#validators/event_product'
 import { buildShoppingList } from '#services/shopping_list_service'
+import { buildShoppingListHtml } from '#services/print/print_shopping_list'
+import { printFooterTemplate } from '#services/print/print_layout'
+import { pdfService } from '#services/pdf_service'
 
 interface MenuLinePayload {
   productId: number
@@ -162,5 +165,17 @@ export default class EventProductsController {
 
   async shoppingList({ params, serialize }: HttpContext) {
     return serialize(await buildShoppingList(params.id))
+  }
+
+  async shoppingListPdf({ params, response }: HttpContext) {
+    const list = await buildShoppingList(params.id)
+    const buffer = await pdfService.generateFromHtml(buildShoppingListHtml(list), {
+      footerTemplate: printFooterTemplate(
+        'Instantané généré automatiquement — non mis à jour après impression.'
+      ),
+    })
+    response.header('Content-Type', 'application/pdf')
+    response.header('Content-Disposition', `inline; filename="fiche-logistique-${params.id}.pdf"`)
+    return response.send(buffer)
   }
 }
