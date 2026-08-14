@@ -32,6 +32,22 @@ router
       .use(middleware.can(['menu:read', 'stock:read']))
 
     router
+      .get('/events/:id/production-runs', [controllers.ProductionRuns, 'index'])
+      .use(middleware.can('stock:read'))
+
+    router
+      .post('/events/:id/production-runs', [controllers.ProductionRuns, 'store'])
+      .use(middleware.can('stock:update'))
+
+    router
+      .get('/events/:id/production-returns', [controllers.ProductionRuns, 'returnState'])
+      .use(middleware.can('stock:read'))
+
+    router
+      .post('/events/:id/production-returns', [controllers.ProductionRuns, 'returns'])
+      .use(middleware.can('stock:update'))
+
+    router
       .post('/events/:id/matching', [controllers.Events, 'runMatching'])
       .use(middleware.can('event:matching'))
 

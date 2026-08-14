@@ -32,7 +32,9 @@ test.group('Assignments locking', (group) => {
     assert.equal(row?.points_delta, 8)
   })
 
-  test('defaults locked to false when omitted', async ({ client }) => {
+  test('defaults locked to true when omitted, so a manual pick survives the next matching run', async ({
+    client,
+  }) => {
     const member = await MemberFactory.create()
     const user = await asCoordinator(member)
     const event = await EventFactory.create()
@@ -43,6 +45,20 @@ test.group('Assignments locking', (group) => {
       .post('/v1/assignments')
       .loginAs(user)
       .json({ member_id: member.id, event_id: event.id, job_id: job.id })
+    created.assertBodyContains({ data: { locked: true } })
+  })
+
+  test('honors an explicit locked: false on creation', async ({ client }) => {
+    const member = await MemberFactory.create()
+    const user = await asCoordinator(member)
+    const event = await EventFactory.create()
+    const job = await JobFactory.create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
+
+    const created = await client
+      .post('/v1/assignments')
+      .loginAs(user)
+      .json({ member_id: member.id, event_id: event.id, job_id: job.id, locked: false })
     created.assertBodyContains({ data: { locked: false } })
   })
 

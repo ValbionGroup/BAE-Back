@@ -919,6 +919,54 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['shoppingList']>>>
     }
   }
+  'production_runs.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/production-runs'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['index']>>>
+    }
+  }
+  'production_runs.store': {
+    methods: ["POST"]
+    pattern: '/v1/events/:id/production-runs'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['store']>>>
+    }
+  }
+  'production_runs.return_state': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/production-returns'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['returnState']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['returnState']>>>
+    }
+  }
+  'production_runs.returns': {
+    methods: ["POST"]
+    pattern: '/v1/events/:id/production-returns'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['returns']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['returns']>>>
+    }
+  }
   'events.run_matching': {
     methods: ["POST"]
     pattern: '/v1/events/:id/matching'

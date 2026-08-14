@@ -25,6 +25,10 @@ const PRODUCT_USAGES = [
   { table: 'order_products', singular: 'commande', plural: 'commandes' },
   { table: 'event_products', singular: 'menu de soirée', plural: 'menus de soirée' },
   { table: 'pre_order_items', singular: 'précommande', plural: 'précommandes' },
+  // The RESTRICT foreign key on production_runs.product_id already refuses the
+  // delete — but as an unhandled 500. This entry is what turns that refusal into
+  // a 409 that says why.
+  { table: 'production_runs', singular: 'production', plural: 'productions' },
 ] as const
 
 async function usageLabels(productId: number): Promise<string[]> {

@@ -99,7 +99,10 @@ export default class AssignmentsController {
       memberId,
       eventId,
       jobId,
-      locked: locked ?? false,
+      // Une affectation manuelle est verrouillée d'office : le CDC (§20.1) exige que
+      // le prochain lancement de l'algorithme ne l'écrase pas. `runMatching` ne
+      // touche déjà qu'aux lignes `locked = false` — seul le défaut ici était faux.
+      locked: locked ?? true,
       pointsDelta,
     })
 
