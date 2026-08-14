@@ -90,7 +90,7 @@ test.group('Production runs — lancement', (group) => {
 
   test('writes one out movement per picked batch', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['stock:update'])
+    const user = await grantPermissions(member, ['stock:write'])
     const event = await makeEvent()
     const good = await makeGood('Saucisses')
     await batch(good, 'L26-1', 6, 5)
@@ -122,7 +122,7 @@ test.group('Production runs — lancement', (group) => {
    */
   test('dryRun returns the plan and writes nothing', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['stock:update'])
+    const user = await grantPermissions(member, ['stock:write'])
     const event = await makeEvent()
     const good = await makeGood('Saucisses')
     await batch(good, 'L26-1', 50, 5)
@@ -149,7 +149,7 @@ test.group('Production runs — lancement', (group) => {
    */
   test('refuses the whole run when one good is short', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['stock:update'])
+    const user = await grantPermissions(member, ['stock:write'])
     const event = await makeEvent()
     const sausage = await makeGood('Saucisses')
     const bread = await makeGood('Pains')
@@ -174,7 +174,7 @@ test.group('Production runs — lancement', (group) => {
     assert.equal(await countOf(ProductionRun.query().where('eventId', event.id)), 0)
   })
 
-  test('refuses a member without stock:update', async ({ client }) => {
+  test('refuses a member without stock:write', async ({ client }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['stock:read'])
     const event = await makeEvent()
@@ -192,7 +192,7 @@ test.group('Production runs — lancement', (group) => {
 
   test('refuses a quantity that is not a positive integer', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['stock:update'])
+    const user = await grantPermissions(member, ['stock:write'])
     const event = await makeEvent()
     const good = await makeGood('Saucisses')
     await batch(good, 'L26-1', 50, 5)

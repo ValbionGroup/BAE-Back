@@ -2,7 +2,8 @@ import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import Good from '#models/good'
 import StockBatch from '#models/stock_batch'
-import { UserFactory } from '#database/factories/user_factory'
+import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 
 test.group('Stock batch label', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
@@ -11,8 +12,13 @@ test.group('Stock batch label', (group) => {
     return Good.create({ name: 'Sauce ZZ', unit: 'pcs', brand: '', categoryId: null })
   }
 
+  async function asStockManager() {
+    const member = await MemberFactory.create()
+    return grantPermissions(member, ['stock:write'])
+  }
+
   test('generates a readable label when none is given', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const good = await makeGood()
 
     const response = await client
@@ -25,7 +31,7 @@ test.group('Stock batch label', (group) => {
   })
 
   test('numbers the batches of one good in sequence', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const good = await makeGood()
 
     await client.post('/v1/stock-batches').json({ good_id: good.id, quantity: 1 }).loginAs(user)
@@ -38,7 +44,7 @@ test.group('Stock batch label', (group) => {
   })
 
   test('counts per good, not globally', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const first = await makeGood()
     const other = await Good.create({
       name: 'Autre ZZ',
@@ -57,7 +63,7 @@ test.group('Stock batch label', (group) => {
   })
 
   test('keeps a label the caller provides', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const good = await makeGood()
 
     const response = await client
@@ -69,7 +75,7 @@ test.group('Stock batch label', (group) => {
   })
 
   test('persists the quantity it was given', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asStockManager()
     const good = await makeGood()
 
     const response = await client

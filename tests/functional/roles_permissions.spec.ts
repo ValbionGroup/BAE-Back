@@ -193,7 +193,7 @@ test.group('Roles permissions exposure', (group) => {
     await db.from('roles_permissions').where('permission_id', 'role:write').delete()
 
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['role:write'])
+    const user = await grantPermissions(member, ['role:write', 'role:delete'])
     const role = await Role.findOrFail(member.roleId)
 
     const response = await client.delete(`/v1/roles/${role.id}`).loginAs(user)
@@ -214,7 +214,7 @@ test.group('Roles permissions exposure', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['role:write'])
+    const user = await grantPermissions(member, ['role:delete'])
 
     await Permission.firstOrCreate({ permission: 'stock:read' })
     const role = await Role.create({ name: 'Pole Jetable' })
@@ -250,7 +250,7 @@ test.group('Roles permissions exposure', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['role:write'])
+    const user = await grantPermissions(member, ['role:delete'])
 
     const response = await client.delete('/v1/roles/999999').loginAs(user)
 

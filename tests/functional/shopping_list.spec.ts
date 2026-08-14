@@ -206,6 +206,8 @@ test.group('Shopping list — arithmétique', (group) => {
 
     assert.strictEqual(list.optimumTotal, 84)
     assert.strictEqual(list.savings, 10)
+    assert.strictEqual(list.totals.optimumGoodsTotal, 60)
+    assert.strictEqual(list.totals.furnitureTotal, 24)
   })
 
   test('reports null savings when no supplier covers everything', async ({ assert }) => {

@@ -25,7 +25,7 @@ test.group('Member administration', (group) => {
 
   test('DELETE on an unknown member answers 404, not 500', async ({ client, assert }) => {
     const actor = await MemberFactory.create()
-    const user = await grantPermissions(actor, ['member:write'])
+    const user = await grantPermissions(actor, ['member:write', 'member:delete'])
 
     const response = await client.delete('/v1/members/999999').loginAs(user)
 
@@ -178,7 +178,7 @@ test.group('Member administration', (group) => {
     assert,
   }) => {
     const actor = await MemberFactory.create()
-    const user = await grantPermissions(actor, ['member:write'])
+    const user = await grantPermissions(actor, ['member:write', 'member:delete'])
     const target = await MemberFactory.create()
     const targetUser = await User.findOrFail(target.id)
     await User.accessTokens.create(targetUser)
@@ -198,7 +198,7 @@ test.group('Member administration', (group) => {
 
   test('refuses to delete oneself', async ({ client, assert }) => {
     const actor = await MemberFactory.create()
-    const user = await grantPermissions(actor, ['member:write'])
+    const user = await grantPermissions(actor, ['member:write', 'member:delete'])
 
     const response = await client.delete(`/v1/members/${actor.id}`).loginAs(user)
 
@@ -214,7 +214,7 @@ test.group('Member administration', (group) => {
     assert,
   }) => {
     const actor = await MemberFactory.create()
-    const user = await grantPermissions(actor, ['member:write'])
+    const user = await grantPermissions(actor, ['member:write', 'member:delete'])
 
     const target = await MemberFactory.create()
     await grantPermissions(target, ['member:write', 'role:write'])
@@ -235,7 +235,7 @@ test.group('Member administration', (group) => {
     await db.from('roles_permissions').where('permission_id', 'role:write').delete()
     await db.from('roles_permissions').where('permission_id', 'role:read').delete()
 
-    const held = ['member:write', 'role:read', 'role:write']
+    const held = ['member:write', 'member:delete', 'role:read', 'role:write']
     for (const permission of held) {
       await Permission.firstOrCreate({ permission })
     }

@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import { UserFactory } from '#database/factories/user_factory'
+import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 import { GoodFactory } from '#database/factories/good_factory'
 import { SupplierFactory } from '#database/factories/supplier_factory'
 
@@ -8,7 +9,8 @@ test.group('Goods supplier pricing', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
   test('exposes every supplier price, cheapest first', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['good:read'])
     const good = await GoodFactory.create()
     const cheap = await SupplierFactory.merge({ name: 'Leclerc' }).create()
     const dear = await SupplierFactory.merge({ name: 'Carrefour' }).create()
@@ -32,7 +34,8 @@ test.group('Goods supplier pricing', (group) => {
   })
 
   test('reports no price for a good nobody supplies', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['good:read'])
     const good = await GoodFactory.create()
 
     const response = await client.get('/v1/goods').loginAs(user)

@@ -54,7 +54,7 @@ test.group('Production returns', (group) => {
    */
   test('credits the batches in reverse order of the pick', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['stock:update'])
+    const user = await grantPermissions(member, ['stock:write'])
     const event = await makeEvent()
     const good = await makeGood('Saucisses')
     const near = await batch(good, 'L26-PROCHE', 6, 5)
@@ -81,7 +81,7 @@ test.group('Production returns', (group) => {
 
   test('refuses to return more than the evening took', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['stock:update'])
+    const user = await grantPermissions(member, ['stock:write'])
     const event = await makeEvent()
     const good = await makeGood('Saucisses')
     await batch(good, 'L26-1', 50, 30)
@@ -99,7 +99,7 @@ test.group('Production returns', (group) => {
 
   test('a second return cannot exceed what is left to give back', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['stock:update'])
+    const user = await grantPermissions(member, ['stock:write'])
     const event = await makeEvent()
     const good = await makeGood('Saucisses')
     await batch(good, 'L26-1', 50, 30)
@@ -127,7 +127,7 @@ test.group('Production returns', (group) => {
    */
   test('spans every run of the evening', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['stock:update'])
+    const user = await grantPermissions(member, ['stock:write'])
     const event = await makeEvent()
     const good = await makeGood('Saucisses')
     const only = await batch(good, 'L26-1', 50, 30)
@@ -153,7 +153,7 @@ test.group('Production returns', (group) => {
    */
   test('lists what the evening took, per good', async ({ client, assert }) => {
     const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['stock:read', 'stock:update'])
+    const user = await grantPermissions(member, ['stock:read', 'stock:write'])
     const event = await makeEvent()
     const good = await makeGood('Saucisses')
     await batch(good, 'L26-1', 50, 30)
@@ -204,7 +204,7 @@ test.group('Production returns', (group) => {
     response.assertStatus(403)
   })
 
-  test('refuses a member without stock:update', async ({ client }) => {
+  test('refuses a member without stock:write', async ({ client }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['stock:read'])
     const event = await makeEvent()

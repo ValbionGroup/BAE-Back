@@ -1,13 +1,15 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import { UserFactory } from '#database/factories/user_factory'
+import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 import { SupplierFactory } from '#database/factories/supplier_factory'
 
 test.group('Suppliers listing', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
   test('lists suppliers by name, without their goods or restocks', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['supplier:read'])
     await SupplierFactory.merge({ name: 'Zzz Leclerc' }).create()
     await SupplierFactory.merge({ name: 'Aaa Carrefour' }).create()
 

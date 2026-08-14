@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import { UserFactory } from '#database/factories/user_factory'
+import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 import { ProductFactory } from '#database/factories/product_factory'
 import { GoodFactory } from '#database/factories/good_factory'
 import { CategoryFactory } from '#database/factories/category_factory'
@@ -8,8 +9,13 @@ import { CategoryFactory } from '#database/factories/category_factory'
 test.group('Product summary', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
+  async function asProductReader() {
+    const member = await MemberFactory.create()
+    return grantPermissions(member, ['product:read'])
+  }
+
   test('is reachable and not shadowed by products/:id', async ({ client }) => {
-    const user = await UserFactory.create()
+    const user = await asProductReader()
     const product = await ProductFactory.create()
 
     const response = await client.get('/v1/products/summary').loginAs(user)
@@ -19,7 +25,7 @@ test.group('Product summary', (group) => {
   })
 
   test('labels a product with its lowest-rank ingredient category', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asProductReader()
     const product = await ProductFactory.create()
 
     const mainCategory = await CategoryFactory.merge({ name: 'Boisson' }).create()
@@ -41,7 +47,7 @@ test.group('Product summary', (group) => {
   })
 
   test('returns a null category for a product with no ingredients', async ({ client, assert }) => {
-    const user = await UserFactory.create()
+    const user = await asProductReader()
     const product = await ProductFactory.create()
 
     const response = await client.get('/v1/products/summary').loginAs(user)

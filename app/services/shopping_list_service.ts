@@ -28,12 +28,18 @@ export interface SupplierTotal {
   fullCoverage: boolean
 }
 
+export interface ShoppingTotals {
+  optimumGoodsTotal: number
+  furnitureTotal: number
+}
+
 export interface ShoppingList {
   eventId: number
   eventName: string
   lines: ShoppingListLine[]
   lineCount: number
   optimumTotal: number
+  totals: ShoppingTotals
   supplierTotals: SupplierTotal[]
   savings: number | null
   unpricedCount: number
@@ -167,7 +173,13 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
   const complete = supplierTotals.filter((entry) => entry.fullCoverage)
   const cheapestSingle = complete.length > 0 ? Math.min(...complete.map((e) => e.total)) : null
 
+  const furnitureLines = lines.filter((line) => line.kind === 'furniture')
+
   const optimumGoodsTotal = goodLines.reduce(
+    (sum, line) => sum + (line.bestPrice === null ? 0 : line.missingQty * line.bestPrice),
+    0
+  )
+  const furnitureTotal = furnitureLines.reduce(
     (sum, line) => sum + (line.bestPrice === null ? 0 : line.missingQty * line.bestPrice),
     0
   )
@@ -178,6 +190,10 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
     lines,
     lineCount: lines.length,
     optimumTotal,
+    totals: {
+      optimumGoodsTotal,
+      furnitureTotal,
+    },
     supplierTotals,
     savings: cheapestSingle === null ? null : cheapestSingle - optimumGoodsTotal,
     unpricedCount,

@@ -12,7 +12,7 @@ router
       .use(middleware.can('member:write'))
     router
       .delete('/members/:id', [controllers.Members, 'destroy'])
-      .use(middleware.can('member:write'))
+      .use(middleware.can('member:delete'))
 
     router.get('/roles', [controllers.Roles, 'index']).use(middleware.can('role:read'))
     router.post('/roles', [controllers.Roles, 'store']).use(middleware.can('role:write'))
@@ -20,7 +20,7 @@ router
     router
       .route('/roles/:id', ['PUT', 'PATCH'], [controllers.Roles, 'update'])
       .use(middleware.can('role:write'))
-    router.delete('/roles/:id', [controllers.Roles, 'destroy']).use(middleware.can('role:write'))
+    router.delete('/roles/:id', [controllers.Roles, 'destroy']).use(middleware.can('role:delete'))
     router
       .put('/roles/:id/permissions', [controllers.Roles, 'syncPermissions'])
       .use(middleware.can('role:write'))

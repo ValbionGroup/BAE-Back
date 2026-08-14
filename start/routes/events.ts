@@ -4,15 +4,25 @@ import { middleware } from '#start/kernel'
 
 router
   .group(() => {
-    router.get('/events', [controllers.Events, 'index'])
-    router.post('/events', [controllers.Events, 'store'])
-    router.get('/events/:id', [controllers.Events, 'show'])
-    router.route('/events/:id', ['PUT', 'PATCH'], [controllers.Events, 'update'])
-    router.delete('/events/:id', [controllers.Events, 'destroy'])
+    router.get('/events', [controllers.Events, 'index']).use(middleware.can('event:read'))
+    router.post('/events', [controllers.Events, 'store']).use(middleware.can('event:write'))
+    router.get('/events/:id', [controllers.Events, 'show']).use(middleware.can('event:read'))
+    router
+      .route('/events/:id', ['PUT', 'PATCH'], [controllers.Events, 'update'])
+      .use(middleware.can('event:write'))
+    router
+      .delete('/events/:id', [controllers.Events, 'destroy'])
+      .use(middleware.can('event:delete'))
 
-    router.get('/events/:id/response', [controllers.Events, 'getResponse'])
-    router.post('/events/:id/response', [controllers.Events, 'setResponse'])
-    router.get('/events/:id/roster', [controllers.Events, 'roster'])
+    router
+      .get('/events/:id/response', [controllers.Events, 'getResponse'])
+      .use(middleware.can('presence:read'))
+    router
+      .post('/events/:id/response', [controllers.Events, 'setResponse'])
+      .use(middleware.can('presence:write'))
+    router
+      .get('/events/:id/roster', [controllers.Events, 'roster'])
+      .use(middleware.can('event:read'))
 
     router
       .get('/events/:id/products', [controllers.EventProducts, 'index'])
@@ -25,7 +35,7 @@ router
       .use(middleware.can('menu:write'))
     router
       .delete('/events/:id/products/:productId', [controllers.EventProducts, 'destroy'])
-      .use(middleware.can('menu:write'))
+      .use(middleware.can('menu:delete'))
 
     router
       .get('/events/:id/shopping-list', [controllers.EventProducts, 'shoppingList'])
@@ -37,7 +47,7 @@ router
 
     router
       .post('/events/:id/production-runs', [controllers.ProductionRuns, 'store'])
-      .use(middleware.can('stock:update'))
+      .use(middleware.can('stock:write'))
 
     router
       .get('/events/:id/production-returns', [controllers.ProductionRuns, 'returnState'])
@@ -45,7 +55,7 @@ router
 
     router
       .post('/events/:id/production-returns', [controllers.ProductionRuns, 'returns'])
-      .use(middleware.can('stock:update'))
+      .use(middleware.can('stock:write'))
 
     router
       .post('/events/:id/matching', [controllers.Events, 'runMatching'])
