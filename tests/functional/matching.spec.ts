@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import User from '#models/user'
+import { DateTime } from 'luxon'
+import { asCoordinator } from '#tests/helpers/permissions'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
 import { MemberFactory } from '#database/factories/members_factory'
@@ -8,12 +9,41 @@ import { EventFactory } from '#database/factories/event_factory'
 import { JobFactory } from '#database/factories/job_factory'
 import { MemberEventAssignedJobFactory } from '#database/factories/member_event_assigned_job_factory'
 
+interface MatchedRow {
+  member_id: number
+  job_id: number
+  period: string
+  rank_achieved: number | null
+  points_delta: number
+}
+
+interface LockedRow {
+  member_id: number
+  job_id: number
+  period: string
+}
+
+interface MatchingBody {
+  data: {
+    matched: MatchedRow[]
+    unmatched_member_ids: number[]
+    locked: LockedRow[]
+  }
+}
+
 async function makeAvailable(member: Member, eventId: number) {
   await member.related('responses').sync({ [eventId]: { is_available: true } }, false)
 }
 
 async function setPreference(member: Member, jobId: number, rank: number) {
   await member.related('preferences').sync({ [jobId]: { rank } }, false)
+}
+
+/** Assignment rows of an event as comparable `jobId:memberId` strings, sorted —
+ *  the persisted set, independent of insertion order. */
+async function assignmentSignature(eventId: number): Promise<string[]> {
+  const rows = await MemberEventAssignedJob.query().where('eventId', eventId)
+  return rows.map((row) => `${row.jobId}:${row.memberId}`).sort()
 }
 
 test.group('Event matching', (group) => {
@@ -24,10 +54,12 @@ test.group('Event matching', (group) => {
     assert,
   }) => {
     const event = await EventFactory.create()
-    const job = await JobFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     // A: more raw points, but 5 prior events worked -> ranking key 20/5 = 4.
+    // Settled evenings: attendance only counts consolidated ones, so the
+    // denominator moves in step with the numerator.
     const memberA = await MemberFactory.create()
     memberA.points = 20
     await memberA.save()
@@ -38,6 +70,7 @@ test.group('Event matching', (group) => {
         memberId: memberA.id,
         eventId: pastEvent.id,
         jobId: pastJob.id,
+        settledAt: DateTime.now(),
       }).create()
     }
 
@@ -51,7 +84,7 @@ test.group('Event matching', (group) => {
     await setPreference(memberA, job.id, 1)
     await setPreference(memberB, job.id, 1)
 
-    const user = await User.findOrFail(memberA.id)
+    const user = await asCoordinator(memberA)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -60,40 +93,240 @@ test.group('Event matching', (group) => {
     assert.equal(rows[0].memberId, memberB.id)
   })
 
-  test('clamps points at 100 and stores the applied (post-clamp) delta, not the raw formula output', async ({
+  /**
+   * The two halves of `rankingKey = points / attendance` have to move together.
+   *
+   * Since D7 the numerator only moves at the close, so counting an evening in
+   * the denominator before it is closed penalises a member for work they have
+   * not been credited for yet — the heavier the shift, the worse the penalty,
+   * exactly backwards. Attendance therefore counts SETTLED evenings only.
+   */
+  test('ignores evenings whose points have not been consolidated yet', async ({
     client,
     assert,
   }) => {
     const event = await EventFactory.create()
-    const job = await JobFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
+
+    // A worked 5 evenings nobody has closed: 60 credit points still pending on
+    // the rows, none of it in `members.points`.
+    const memberA = await MemberFactory.create()
+    memberA.points = 20
+    await memberA.save()
+    for (let i = 0; i < 5; i++) {
+      const pastEvent = await EventFactory.create()
+      const pastJob = await JobFactory.create()
+      await MemberEventAssignedJobFactory.merge({
+        memberId: memberA.id,
+        eventId: pastEvent.id,
+        jobId: pastJob.id,
+        pointsDelta: 12,
+      }).create()
+    }
+
+    const memberB = await MemberFactory.create()
+    memberB.points = 10
+    await memberB.save()
+
+    await makeAvailable(memberA, event.id)
+    await makeAvailable(memberB, event.id)
+    await setPreference(memberA, job.id, 1)
+    await setPreference(memberB, job.id, 1)
+
+    const user = await asCoordinator(memberA)
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    response.assertStatus(200)
+
+    // Counting the open evenings would give A 20/5 = 4 against B's 10/1 = 10
+    // and hand the slot to B — A punished for five shifts nobody has paid for.
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 1)
+    assert.equal(rows[0].memberId, memberA.id)
+  })
+
+  test('counts attendance in evenings worked, not in assignment rows held', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
+    await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
+
+    // A: ONE past evening, but he held all three periods of it -> 3 rows.
+    // Settled, same reason as above.
+    const memberA = await MemberFactory.create()
+    memberA.points = 60
+    await memberA.save()
+    const pastEventOfA = await EventFactory.create()
+    for (let i = 0; i < 3; i++) {
+      const pastJob = await JobFactory.create()
+      await MemberEventAssignedJobFactory.merge({
+        memberId: memberA.id,
+        eventId: pastEventOfA.id,
+        jobId: pastJob.id,
+        settledAt: DateTime.now(),
+      }).create()
+    }
+
+    // B: TWO past evenings, one job each -> 2 rows, so fewer rows than A but
+    // twice as many evenings worked.
+    const memberB = await MemberFactory.create()
+    memberB.points = 60
+    await memberB.save()
+    for (let i = 0; i < 2; i++) {
+      const pastEvent = await EventFactory.create()
+      const pastJob = await JobFactory.create()
+      await MemberEventAssignedJobFactory.merge({
+        memberId: memberB.id,
+        eventId: pastEvent.id,
+        jobId: pastJob.id,
+        settledAt: DateTime.now(),
+      }).create()
+    }
+
+    await makeAvailable(memberA, event.id)
+    await makeAvailable(memberB, event.id)
+    await setPreference(memberA, job.id, 1)
+    await setPreference(memberB, job.id, 1)
+
+    const user = await asCoordinator(memberA)
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    response.assertStatus(200)
+
+    // Counting rows would give A 60/3 = 20 against B's 60/2 = 30 and hand the
+    // slot to B — penalising A for having covered the thankless periods.
+    // Counting evenings gives A 60/1 = 60 against B's 60/2 = 30.
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 1)
+    assert.equal(rows[0].memberId, memberA.id)
+  })
+
+  test('assigns the reference scenario one job per period, skipping the second `during` job', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const installation = await JobFactory.merge({ type: 'before' }).create()
+    const service = await JobFactory.merge({ type: 'during' }).create()
+    const barbeuc = await JobFactory.merge({ type: 'during' }).create()
+    const vaisselle = await JobFactory.merge({ type: 'after' }).create()
+    await event.related('jobs').sync(
+      {
+        [installation.id]: { count: 1 },
+        [service.id]: { count: 1 },
+        [barbeuc.id]: { count: 1 },
+        [vaisselle.id]: { count: 1 },
+      },
+      false
+    )
+
+    const member = await MemberFactory.create()
+    member.points = 30
+    await member.save()
+    await makeAvailable(member, event.id)
+    // 1. Service · 2. Barbeuc · 3. Installation · 4. Vaisselle
+    await setPreference(member, service.id, 1)
+    await setPreference(member, barbeuc.id, 2)
+    await setPreference(member, installation.id, 3)
+    await setPreference(member, vaisselle.id, 4)
+
+    const user = await asCoordinator(member)
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    response.assertStatus(200)
+
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.lengthOf(rows, 3)
+
+    const deltaByJob = new Map(rows.map((row) => [row.jobId, row.pointsDelta]))
+    assert.equal(deltaByJob.get(installation.id), 4) // before, rang 3 -> 12 - 8
+    assert.equal(deltaByJob.get(service.id), -4) // during, rang 1 -> 8 - 12
+    assert.equal(deltaByJob.get(vaisselle.id), 6) // after, rang 4 -> 12 - 6
+    assert.isFalse(deltaByJob.has(barbeuc.id))
+
+    const body = response.body() as MatchingBody
+    const periodByJob = new Map(body.data.matched.map((row) => [row.job_id, row.period]))
+    assert.equal(periodByJob.get(installation.id), 'before')
+    assert.equal(periodByJob.get(service.id), 'during')
+    assert.equal(periodByJob.get(vaisselle.id), 'after')
+  })
+
+  test('still assigns an `after` job to a member locked on a `during` job', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const duringJob = await JobFactory.merge({ type: 'during' }).create()
+    const afterJob = await JobFactory.merge({ type: 'after' }).create()
+    await event
+      .related('jobs')
+      .sync({ [duringJob.id]: { count: 1 }, [afterJob.id]: { count: 1 } }, false)
+
+    const member = await MemberFactory.create()
+    await makeAvailable(member, event.id)
+    const user = await asCoordinator(member)
+    await client
+      .post('/v1/assignments')
+      .loginAs(user)
+      .json({ member_id: member.id, event_id: event.id, job_id: duringJob.id, locked: true })
+
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    response.assertStatus(200)
+
+    const rows = await MemberEventAssignedJob.query()
+      .where('eventId', event.id)
+      .where('memberId', member.id)
+    assert.lengthOf(rows, 2)
+
+    const afterRow = rows.find((row) => row.jobId === afterJob.id)
+    assert.isDefined(afterRow)
+    assert.isFalse(afterRow!.locked)
+    assert.equal(afterRow!.pointsDelta, 12) // after, non classé -> 12 - 0
+
+    const duringRow = rows.find((row) => row.jobId === duringJob.id)
+    assert.isTrue(duringRow!.locked)
+
+    const body = response.body() as MatchingBody
+    assert.deepEqual(body.data.locked, [
+      { member_id: member.id, job_id: duringJob.id, period: 'during' },
+    ])
+  })
+
+  test('assigns a member who expressed no preference at all, with a null rank', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     const member = await MemberFactory.create()
-    member.points = 98
-    await member.save()
     await makeAvailable(member, event.id)
-    await setPreference(member, job.id, 1)
 
-    const user = await User.findOrFail(member.id)
-    await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    const user = await asCoordinator(member)
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    response.assertStatus(200)
 
     const row = await MemberEventAssignedJob.query()
       .where('eventId', event.id)
       .where('memberId', member.id)
       .firstOrFail()
-    assert.equal(row.pointsDelta, 2)
+    assert.equal(row.jobId, job.id)
+    assert.equal(row.pointsDelta, 8) // during, non classé -> 8 - 0
 
-    const updated = await Member.findOrFail(member.id)
-    assert.equal(updated.points, 100)
+    const body = response.body() as MatchingBody
+    const matched = body.data.matched.find((r) => r.member_id === member.id)
+    assert.isNull(matched!.rank_achieved)
+    assert.deepEqual(body.data.unmatched_member_ids, [])
   })
 
-  test('leaves an unmatched available member with no assignment row and unchanged points', async ({
+  test('assigns an available member to an offered job they never ranked, instead of leaving them out', async ({
     client,
     assert,
   }) => {
     const event = await EventFactory.create()
-    const offeredJob = await JobFactory.create()
-    const unofferedJob = await JobFactory.create()
+    const offeredJob = await JobFactory.merge({ type: 'during' }).create()
+    const unofferedJob = await JobFactory.merge({ type: 'during' }).create()
     await event.related('jobs').sync({ [offeredJob.id]: { count: 1 } }, false)
 
     const member = await MemberFactory.create()
@@ -103,31 +336,37 @@ test.group('Event matching', (group) => {
     // Only preference is for a job not offered at this event.
     await setPreference(member, unofferedJob.id, 1)
 
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
-    const rows = await MemberEventAssignedJob.query()
+    const row = await MemberEventAssignedJob.query()
       .where('eventId', event.id)
       .where('memberId', member.id)
-    assert.lengthOf(rows, 0)
+      .firstOrFail()
+    assert.equal(row.jobId, offeredJob.id)
+    assert.equal(row.pointsDelta, 8)
+
+    const body = response.body() as MatchingBody
+    const matched = body.data.matched.find((r) => r.member_id === member.id)
+    assert.isNull(matched!.rank_achieved)
 
     const updated = await Member.findOrFail(member.id)
     assert.equal(updated.points, 40)
   })
 
-  test('respects a manual lock: excludes it from the pool, reserves its capacity, never scores or touches it', async ({
+  test('respects a manual lock: reserves its capacity within the period and never touches the row', async ({
     client,
     assert,
   }) => {
     const event = await EventFactory.create()
-    const job = await JobFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     const lockedMember = await MemberFactory.create()
     lockedMember.points = 30
     await lockedMember.save()
-    const lockedUser = await User.findOrFail(lockedMember.id)
+    const lockedUser = await asCoordinator(lockedMember)
     await client
       .post('/v1/assignments')
       .loginAs(lockedUser)
@@ -152,10 +391,16 @@ test.group('Event matching', (group) => {
       .where('memberId', lockedMember.id)
       .firstOrFail()
     assert.isTrue(lockedRow.locked)
-    assert.equal(lockedRow.pointsDelta, 0)
+    // Created by hand on an unranked `during` job, so it carries the credit the
+    // engine would have granted for the same job (§4.5): 8 − rankCost(null).
+    // The point of the assertion is that the re-run leaves it alone.
+    assert.equal(lockedRow.pointsDelta, 8)
 
     const refreshedLockedMember = await Member.findOrFail(lockedMember.id)
     assert.equal(refreshedLockedMember.points, 30)
+
+    const body = response.body() as MatchingBody
+    assert.deepEqual(body.data.unmatched_member_ids, [contender.id])
   })
 
   test('excludes an ineligible member from a restricted job even when it is their top preference', async ({
@@ -163,7 +408,7 @@ test.group('Event matching', (group) => {
     assert,
   }) => {
     const event = await EventFactory.create()
-    const job = await JobFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     // Lower points than the ineligible member, so the eligible member can only
@@ -183,7 +428,7 @@ test.group('Event matching', (group) => {
     await makeAvailable(ineligibleMember, event.id)
     await setPreference(ineligibleMember, job.id, 1)
 
-    const user = await User.findOrFail(ineligibleMember.id)
+    const user = await asCoordinator(ineligibleMember)
     const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     response.assertStatus(200)
 
@@ -201,14 +446,14 @@ test.group('Event matching', (group) => {
 
   test('leaves a job with no eligibility rows open to every member', async ({ client, assert }) => {
     const event = await EventFactory.create()
-    const job = await JobFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     const member = await MemberFactory.create()
     await makeAvailable(member, event.id)
     await setPreference(member, job.id, 1)
 
-    const user = await User.findOrFail(member.id)
+    const user = await asCoordinator(member)
     await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
 
     const rows = await MemberEventAssignedJob.query()
@@ -217,19 +462,127 @@ test.group('Event matching', (group) => {
     assert.lengthOf(rows, 1)
   })
 
-  test('re-running replaces prior non-locked assignments with an exact points reversal, leaving locked rows untouched', async ({
+  test('leaves `after` slots empty rather than filling them with members no eligibility rule allows', async ({
     client,
     assert,
   }) => {
     const event = await EventFactory.create()
-    const job = await JobFactory.create()
-    const lockedJob = await JobFactory.create()
+    const duringJob = await JobFactory.merge({ type: 'during' }).create()
+    const afterJob = await JobFactory.merge({ type: 'after' }).create()
+    await event
+      .related('jobs')
+      .sync({ [duringJob.id]: { count: 2 }, [afterJob.id]: { count: 1 } }, false)
+
+    // The only member the dishes are open to never answered the call.
+    const absentee = await MemberFactory.create()
+    await afterJob.related('eligibleMembers').sync({ [absentee.id]: {} }, false)
+
+    const memberA = await MemberFactory.create()
+    await makeAvailable(memberA, event.id)
+    const memberB = await MemberFactory.create()
+    await makeAvailable(memberB, event.id)
+
+    const user = await asCoordinator(memberA)
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    response.assertStatus(200)
+
+    const afterRows = await MemberEventAssignedJob.query()
+      .where('eventId', event.id)
+      .where('jobId', afterJob.id)
+    assert.lengthOf(afterRows, 0)
+
+    const duringRows = await MemberEventAssignedJob.query()
+      .where('eventId', event.id)
+      .where('jobId', duringJob.id)
+    assert.lengthOf(duringRows, 2)
+  })
+
+  test('produces exactly the same assignments on two consecutive runs', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const beforeJob = await JobFactory.merge({ type: 'before' }).create()
+    const duringJob = await JobFactory.merge({ type: 'during' }).create()
+    const afterJob = await JobFactory.merge({ type: 'after' }).create()
+    await event.related('jobs').sync(
+      {
+        [beforeJob.id]: { count: 1 },
+        [duringJob.id]: { count: 1 },
+        [afterJob.id]: { count: 1 },
+      },
+      false
+    )
+
+    // No preference at all: everything is a tie, so only the deterministic
+    // tie-break keeps two runs identical.
+    const members: Member[] = []
+    for (let i = 0; i < 3; i++) {
+      const member = await MemberFactory.create()
+      member.points = 50
+      await member.save()
+      await makeAvailable(member, event.id)
+      members.push(member)
+    }
+
+    const user = await asCoordinator(members[0])
+    await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    const firstRun = await assignmentSignature(event.id)
+
+    await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    const secondRun = await assignmentSignature(event.id)
+
+    assert.isAbove(firstRun.length, 0)
+    assert.deepEqual(secondRun, firstRun)
+  })
+
+  test('never writes to members.points', async ({ client, assert }) => {
+    const event = await EventFactory.create()
+    const beforeJob = await JobFactory.merge({ type: 'before' }).create()
+    const duringJob = await JobFactory.merge({ type: 'during' }).create()
+    await event
+      .related('jobs')
+      .sync({ [beforeJob.id]: { count: 1 }, [duringJob.id]: { count: 1 } }, false)
+
+    const memberA = await MemberFactory.create()
+    memberA.points = 50
+    await memberA.save()
+    await makeAvailable(memberA, event.id)
+    await setPreference(memberA, duringJob.id, 1)
+
+    const memberB = await MemberFactory.create()
+    memberB.points = 70
+    await memberB.save()
+    await makeAvailable(memberB, event.id)
+    await setPreference(memberB, beforeJob.id, 1)
+
+    const user = await asCoordinator(memberA)
+    const response = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
+    response.assertStatus(200)
+
+    const refreshedA = await Member.findOrFail(memberA.id)
+    const refreshedB = await Member.findOrFail(memberB.id)
+    assert.equal(refreshedA.points, 50)
+    assert.equal(refreshedB.points, 70)
+
+    // The deltas live on the assignment rows instead.
+    const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
+    assert.isAbove(rows.length, 0)
+  })
+
+  test('re-running replaces prior non-locked assignments without touching members.points, leaving locked rows untouched', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const job = await JobFactory.merge({ type: 'during' }).create()
+    const lockedJob = await JobFactory.merge({ type: 'during' }).create()
     await event
       .related('jobs')
       .sync({ [job.id]: { count: 1 }, [lockedJob.id]: { count: 1 } }, false)
 
     const lockedMember = await MemberFactory.create()
-    const lockedUser = await User.findOrFail(lockedMember.id)
+    const lockedUser = await asCoordinator(lockedMember)
     await client
       .post('/v1/assignments')
       .loginAs(lockedUser)
@@ -247,13 +600,14 @@ test.group('Event matching', (group) => {
       .where('eventId', event.id)
       .where('memberId', memberA.id)
       .firstOrFail()
-    assert.equal(firstRun.pointsDelta, 10)
-    const memberAAfterFirstRun = await Member.findOrFail(memberA.id)
-    assert.equal(memberAAfterFirstRun.points, 60)
+    assert.equal(firstRun.jobId, job.id)
+    assert.equal(firstRun.pointsDelta, -4) // during, rang 1
+    const aAfterFirstRun = await Member.findOrFail(memberA.id)
+    assert.equal(aAfterFirstRun.points, 50)
 
-    // A stronger contender now enters the pool for the same job (ranking key
-    // 70 beats A's post-first-run 60/1, without sitting at the points ceiling
-    // so the +10 rank-1 bonus isn't clamped away to 0).
+    // A stronger contender now enters the pool for the same job. Neither has
+    // any attendance history — this evening does not count towards its own
+    // ranking — so the floored denominator leaves 50/1 against 70/1.
     const memberB = await MemberFactory.create()
     memberB.points = 70
     await memberB.save()
@@ -266,20 +620,25 @@ test.group('Event matching', (group) => {
       .where('eventId', event.id)
       .where('memberId', memberA.id)
     assert.lengthOf(aRowsAfterRerun, 0)
-    const memberAAfterRerun = await Member.findOrFail(memberA.id)
-    assert.equal(memberAAfterRerun.points, 50)
+    const aAfterRerun = await Member.findOrFail(memberA.id)
+    assert.equal(aAfterRerun.points, 50)
 
     const bRow = await MemberEventAssignedJob.query()
       .where('eventId', event.id)
       .where('memberId', memberB.id)
       .firstOrFail()
-    assert.equal(bRow.pointsDelta, 10)
+    assert.equal(bRow.jobId, job.id)
+    assert.equal(bRow.pointsDelta, -4)
+    const bAfterRerun = await Member.findOrFail(memberB.id)
+    assert.equal(bAfterRerun.points, 70)
 
     const lockedRowAfterRerun = await MemberEventAssignedJob.query()
       .where('eventId', event.id)
       .where('memberId', lockedMember.id)
       .firstOrFail()
     assert.isTrue(lockedRowAfterRerun.locked)
-    assert.equal(lockedRowAfterRerun.pointsDelta, 0)
+    // Manual credit for an unranked `during` job (§4.5), untouched by the
+    // re-run — the row is neither deleted nor rescored.
+    assert.equal(lockedRowAfterRerun.pointsDelta, 8)
   })
 })

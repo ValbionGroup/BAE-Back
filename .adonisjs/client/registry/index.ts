@@ -96,35 +96,23 @@ const routes = {
     tokens: [{"old":"/v1/roles/:id","type":0,"val":"v1","end":""},{"old":"/v1/roles/:id","type":0,"val":"roles","end":""},{"old":"/v1/roles/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['roles.destroy']['types'],
   },
+  'roles.sync_permissions': {
+    methods: ["PUT"],
+    pattern: '/v1/roles/:id/permissions',
+    tokens: [{"old":"/v1/roles/:id/permissions","type":0,"val":"v1","end":""},{"old":"/v1/roles/:id/permissions","type":0,"val":"roles","end":""},{"old":"/v1/roles/:id/permissions","type":1,"val":"id","end":""},{"old":"/v1/roles/:id/permissions","type":0,"val":"permissions","end":""}],
+    types: placeholder as Registry['roles.sync_permissions']['types'],
+  },
   'permissions.index': {
     methods: ["GET","HEAD"],
     pattern: '/v1/permissions',
     tokens: [{"old":"/v1/permissions","type":0,"val":"v1","end":""},{"old":"/v1/permissions","type":0,"val":"permissions","end":""}],
     types: placeholder as Registry['permissions.index']['types'],
   },
-  'permissions.store': {
-    methods: ["POST"],
-    pattern: '/v1/permissions',
-    tokens: [{"old":"/v1/permissions","type":0,"val":"v1","end":""},{"old":"/v1/permissions","type":0,"val":"permissions","end":""}],
-    types: placeholder as Registry['permissions.store']['types'],
-  },
   'permissions.show': {
     methods: ["GET","HEAD"],
     pattern: '/v1/permissions/:id',
     tokens: [{"old":"/v1/permissions/:id","type":0,"val":"v1","end":""},{"old":"/v1/permissions/:id","type":0,"val":"permissions","end":""},{"old":"/v1/permissions/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['permissions.show']['types'],
-  },
-  'permissions.update': {
-    methods: ["PUT","PATCH"],
-    pattern: '/v1/permissions/:id',
-    tokens: [{"old":"/v1/permissions/:id","type":0,"val":"v1","end":""},{"old":"/v1/permissions/:id","type":0,"val":"permissions","end":""},{"old":"/v1/permissions/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['permissions.update']['types'],
-  },
-  'permissions.destroy': {
-    methods: ["DELETE"],
-    pattern: '/v1/permissions/:id',
-    tokens: [{"old":"/v1/permissions/:id","type":0,"val":"v1","end":""},{"old":"/v1/permissions/:id","type":0,"val":"permissions","end":""},{"old":"/v1/permissions/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['permissions.destroy']['types'],
   },
   'categories.index': {
     methods: ["GET","HEAD"],
@@ -449,6 +437,12 @@ const routes = {
     pattern: '/v1/events/:id/matching',
     tokens: [{"old":"/v1/events/:id/matching","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/matching","type":0,"val":"events","end":""},{"old":"/v1/events/:id/matching","type":1,"val":"id","end":""},{"old":"/v1/events/:id/matching","type":0,"val":"matching","end":""}],
     types: placeholder as Registry['events.run_matching']['types'],
+  },
+  'events.settle': {
+    methods: ["POST"],
+    pattern: '/v1/events/:id/settle',
+    tokens: [{"old":"/v1/events/:id/settle","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/settle","type":0,"val":"events","end":""},{"old":"/v1/events/:id/settle","type":1,"val":"id","end":""},{"old":"/v1/events/:id/settle","type":0,"val":"settle","end":""}],
+    types: placeholder as Registry['events.settle']['types'],
   },
   'jobs.index': {
     methods: ["GET","HEAD"],

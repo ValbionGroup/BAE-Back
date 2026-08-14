@@ -19,11 +19,9 @@ export type ScannedRoutes = {
     'roles.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'roles.sync_permissions': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'permissions.index': { paramsTuple?: []; params?: {} }
-    'permissions.store': { paramsTuple?: []; params?: {} }
     'permissions.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'permissions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'permissions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'categories.index': { paramsTuple?: []; params?: {} }
     'categories.store': { paramsTuple?: []; params?: {} }
     'categories.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -78,6 +76,7 @@ export type ScannedRoutes = {
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'events.settle': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
     'jobs.store': { paramsTuple?: []; params?: {} }
     'jobs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -122,7 +121,6 @@ export type ScannedRoutes = {
     'auth.access_token.destroy': { paramsTuple?: []; params?: {} }
     'members.store': { paramsTuple?: []; params?: {} }
     'roles.store': { paramsTuple?: []; params?: {} }
-    'permissions.store': { paramsTuple?: []; params?: {} }
     'categories.store': { paramsTuple?: []; params?: {} }
     'products.store': { paramsTuple?: []; params?: {} }
     'goods.store': { paramsTuple?: []; params?: {} }
@@ -135,6 +133,7 @@ export type ScannedRoutes = {
     'events.store': { paramsTuple?: []; params?: {} }
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'events.settle': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.store': { paramsTuple?: []; params?: {} }
     'event_jobs.store': { paramsTuple?: []; params?: {} }
     'assignments.store': { paramsTuple?: []; params?: {} }
@@ -147,7 +146,6 @@ export type ScannedRoutes = {
     'auth.access_token.destroy_all': { paramsTuple?: []; params?: {} }
     'members.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'permissions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'categories.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'products.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'goods.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -265,7 +263,7 @@ export type ScannedRoutes = {
   PUT: {
     'members.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'permissions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'roles.sync_permissions': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'categories.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'products.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'goods.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -286,7 +284,6 @@ export type ScannedRoutes = {
   PATCH: {
     'members.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'permissions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'categories.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'products.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'goods.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

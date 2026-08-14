@@ -273,6 +273,7 @@ export class MemberEventAssignedJobSchema extends BaseModel {
     'locked',
     'memberId',
     'pointsDelta',
+    'settledAt',
     'updatedAt',
   ] as const
   $columns = MemberEventAssignedJobSchema.$columns
@@ -288,6 +289,8 @@ export class MemberEventAssignedJobSchema extends BaseModel {
   declare memberId: number
   @column()
   declare pointsDelta: number
+  @column.dateTime()
+  declare settledAt: DateTime | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

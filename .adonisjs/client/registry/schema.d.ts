@@ -187,6 +187,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['destroy']>>>
     }
   }
+  'roles.sync_permissions': {
+    methods: ["PUT"]
+    pattern: '/v1/roles/:id/permissions'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/role').rolePermissionsValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/role').rolePermissionsValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['syncPermissions']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['syncPermissions']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
   'permissions.index': {
     methods: ["GET","HEAD"]
     pattern: '/v1/permissions'
@@ -199,18 +211,6 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['index']>>>
     }
   }
-  'permissions.store': {
-    methods: ["POST"]
-    pattern: '/v1/permissions'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['store']>>>
-    }
-  }
   'permissions.show': {
     methods: ["GET","HEAD"]
     pattern: '/v1/permissions/:id'
@@ -221,30 +221,6 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['show']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['show']>>>
-    }
-  }
-  'permissions.update': {
-    methods: ["PUT","PATCH"]
-    pattern: '/v1/permissions/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['update']>>>
-    }
-  }
-  'permissions.destroy': {
-    methods: ["DELETE"]
-    pattern: '/v1/permissions/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['destroy']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/permissions_controller').default['destroy']>>>
     }
   }
   'categories.index': {
@@ -893,6 +869,18 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/events_controller').default['runMatching']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['runMatching']>>>
+    }
+  }
+  'events.settle': {
+    methods: ["POST"]
+    pattern: '/v1/events/:id/settle'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/events_controller').default['settle']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['settle']>>>
     }
   }
   'jobs.index': {

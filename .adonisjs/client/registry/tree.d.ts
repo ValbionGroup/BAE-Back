@@ -30,13 +30,11 @@ export interface ApiDefinition {
     show: typeof routes['roles.show']
     update: typeof routes['roles.update']
     destroy: typeof routes['roles.destroy']
+    syncPermissions: typeof routes['roles.sync_permissions']
   }
   permissions: {
     index: typeof routes['permissions.index']
-    store: typeof routes['permissions.store']
     show: typeof routes['permissions.show']
-    update: typeof routes['permissions.update']
-    destroy: typeof routes['permissions.destroy']
   }
   categories: {
     index: typeof routes['categories.index']
@@ -111,6 +109,7 @@ export interface ApiDefinition {
     setResponse: typeof routes['events.set_response']
     roster: typeof routes['events.roster']
     runMatching: typeof routes['events.run_matching']
+    settle: typeof routes['events.settle']
   }
   jobs: {
     index: typeof routes['jobs.index']

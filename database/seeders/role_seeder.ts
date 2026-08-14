@@ -1,9 +1,12 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
-import { RoleFactory } from '#database/factories/role_factory'
+import Role from '#models/role'
+import { ROLES } from '#database/rbac_catalog'
 
 export default class extends BaseSeeder {
   async run() {
-    // Write your database queries inside the run method
-    await RoleFactory.createMany(5)
+    await Role.fetchOrCreateMany(
+      'name',
+      ROLES.map((name) => ({ name }))
+    )
   }
 }

@@ -62,7 +62,7 @@ export default class PreferencesController {
     const member = await Member.find(user.id)
     if (!member) {
       return response.notFound({
-        error: { code: 'E_ROW_NOT_FOUND', message: 'No member profile for this account' },
+        error: { code: 'E_ROW_NOT_FOUND', message: 'Aucun profil membre pour ce compte.' },
       })
     }
 
@@ -70,7 +70,7 @@ export default class PreferencesController {
       const known = await Job.query().whereIn('id', jobIds)
       if (known.length !== jobIds.length) {
         return response.unprocessableEntity({
-          error: { code: 'E_UNKNOWN_JOB', message: 'One or more jobs do not exist' },
+          error: { code: 'E_UNKNOWN_JOB', message: 'Poste inconnu.' },
         })
       }
     }

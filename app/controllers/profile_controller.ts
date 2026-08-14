@@ -5,11 +5,17 @@ import MemberTransformer from '#transformers/member_transformer'
 export default class ProfileController {
   async show({ auth, serialize }: HttpContext) {
     const user = auth.use('api').getUserOrFail()
-    await user.load('member', (query) => query.preload('role'))
+    await user.load('member', (query) =>
+      query.preload('role', (roleQuery) => roleQuery.preload('permissions'))
+    )
 
     return serialize({
       user: UserTransformer.transform(user),
       member: MemberTransformer.transform(user.member),
+      // À la racine, et non dans `member` : `MemberTransformer` sert aussi
+      // `GET /v1/members`, qui ne précharge pas les permissions. Le champ y
+      // sortirait vide, et « non chargé » se lirait comme « aucun droit ».
+      permissions: user.member?.role?.permissions.map((entry) => entry.permission) ?? [],
     })
   }
 }

@@ -1,7 +1,8 @@
 import { test } from '@japa/runner'
 import {
-  clampPoints,
+  buildEffectivePreferences,
   computePointsDelta,
+  rankCost,
   rankingKey,
   sortByJobRanking,
   stableMatch,
@@ -30,25 +31,82 @@ test.group('Matching algorithm (pure functions)', () => {
     assert.deepEqual(order, [2, 5])
   })
 
-  test('computePointsDelta decays linearly from rank 1 and floors at 0', ({ assert }) => {
-    assert.equal(computePointsDelta(1), 10)
-    assert.equal(computePointsDelta(2), 8)
-    assert.equal(computePointsDelta(3), 6)
-    assert.equal(computePointsDelta(6), 0)
-    assert.equal(computePointsDelta(20), 0)
+  test('buildEffectivePreferences places the expressed ranking before the ex-aequo block', ({
+    assert,
+  }) => {
+    const result = buildEffectivePreferences({ 30: 2, 10: 1 }, [10, 20, 30])
+    // 10 (rank 1) then 30 (rank 2) — the expressed ranking, in rank order —
+    // then 20, unranked, alone in the ex-aequo block.
+    assert.deepEqual(result, [10, 30, 20])
   })
 
-  test('clampPoints keeps points within 0 and 100', ({ assert }) => {
-    assert.equal(clampPoints(105), 100)
-    assert.equal(clampPoints(-5), 0)
-    assert.equal(clampPoints(42), 42)
+  test('buildEffectivePreferences sorts the ex-aequo block by ascending job id, deterministically', ({
+    assert,
+  }) => {
+    const eligibleJobIds = [50, 10, 30, 20]
+    const first = buildEffectivePreferences({}, eligibleJobIds)
+    const second = buildEffectivePreferences({}, eligibleJobIds)
+    assert.deepEqual(first, [10, 20, 30, 50])
+    assert.deepEqual(second, [10, 20, 30, 50])
+  })
+
+  test('buildEffectivePreferences on an empty ranking returns all eligible jobs by ascending id', ({
+    assert,
+  }) => {
+    const result = buildEffectivePreferences({}, [30, 10, 20])
+    assert.deepEqual(result, [10, 20, 30])
+  })
+
+  test('buildEffectivePreferences ignores an expressed rank for a job outside the period', ({
+    assert,
+  }) => {
+    // Job 99 is ranked by the member but not offered in this period/event —
+    // it must not leak into the result.
+    const result = buildEffectivePreferences({ 99: 1, 10: 2 }, [10, 20])
+    assert.deepEqual(result, [10, 20])
+  })
+
+  test('rankCost decays linearly from rank 1 and floors at 0; null costs nothing', ({ assert }) => {
+    assert.equal(rankCost(1), 12)
+    assert.equal(rankCost(2), 10)
+    assert.equal(rankCost(6), 2)
+    assert.equal(rankCost(7), 0)
+    assert.equal(rankCost(20), 0)
+    assert.equal(rankCost(null), 0)
+  })
+
+  test('computePointsDelta reproduces the D5 table in full', ({ assert }) => {
+    // rank | during | before/after
+    assert.equal(computePointsDelta('during', 1), -4)
+    assert.equal(computePointsDelta('before', 1), 0)
+    assert.equal(computePointsDelta('after', 1), 0)
+
+    assert.equal(computePointsDelta('during', 2), -2)
+    assert.equal(computePointsDelta('before', 2), 2)
+    assert.equal(computePointsDelta('after', 2), 2)
+
+    assert.equal(computePointsDelta('during', 3), 0)
+    assert.equal(computePointsDelta('before', 3), 4)
+    assert.equal(computePointsDelta('after', 3), 4)
+
+    assert.equal(computePointsDelta('during', 6), 6)
+    assert.equal(computePointsDelta('before', 6), 10)
+    assert.equal(computePointsDelta('after', 6), 10)
+
+    assert.equal(computePointsDelta('during', 7), 8)
+    assert.equal(computePointsDelta('before', 7), 12)
+    assert.equal(computePointsDelta('after', 7), 12)
+
+    assert.equal(computePointsDelta('during', null), 8)
+    assert.equal(computePointsDelta('before', null), 12)
+    assert.equal(computePointsDelta('after', null), 12)
   })
 
   test('stableMatch gives each candidate their top choice when capacity allows', ({ assert }) => {
     const { matches, unmatchedMemberIds } = stableMatch(
       [
-        { memberId: 1, orderedJobIds: [10] },
-        { memberId: 2, orderedJobIds: [20] },
+        { memberId: 1, orderedJobIds: [10], expressedRankByJobId: { 10: 1 } },
+        { memberId: 2, orderedJobIds: [20], expressedRankByJobId: { 20: 1 } },
       ],
       [
         { jobId: 10, remainingCount: 1 },
@@ -76,9 +134,9 @@ test.group('Matching algorithm (pure functions)', () => {
   test('produces a stable matching via a genuine rejection chain', ({ assert }) => {
     const { matches, unmatchedMemberIds } = stableMatch(
       [
-        { memberId: 1, orderedJobIds: [10, 20] },
-        { memberId: 2, orderedJobIds: [10, 20] },
-        { memberId: 3, orderedJobIds: [10, 20] },
+        { memberId: 1, orderedJobIds: [10, 20], expressedRankByJobId: { 10: 1, 20: 2 } },
+        { memberId: 2, orderedJobIds: [10, 20], expressedRankByJobId: { 10: 1, 20: 2 } },
+        { memberId: 3, orderedJobIds: [10, 20], expressedRankByJobId: { 10: 1, 20: 2 } },
       ],
       [
         { jobId: 10, remainingCount: 1 },
@@ -95,11 +153,45 @@ test.group('Matching algorithm (pure functions)', () => {
 
   test('leaves a candidate with an exhausted preference list unmatched', ({ assert }) => {
     const { matches, unmatchedMemberIds } = stableMatch(
-      [{ memberId: 1, orderedJobIds: [] }],
+      [{ memberId: 1, orderedJobIds: [], expressedRankByJobId: {} }],
       [{ jobId: 10, remainingCount: 1 }],
       [1]
     )
     assert.deepEqual(matches, [])
     assert.deepEqual(unmatchedMemberIds, [1])
+  })
+
+  test('stableMatch reports rankAchieved null for a job obtained outside the member ranking', ({
+    assert,
+  }) => {
+    const { matches } = stableMatch(
+      [{ memberId: 1, orderedJobIds: [10], expressedRankByJobId: {} }],
+      [{ jobId: 10, remainingCount: 1 }],
+      [1]
+    )
+    assert.sameDeepMembers(matches, [{ memberId: 1, jobId: 10, rankAchieved: null }])
+  })
+
+  test('stableMatch reports the global expressed rank, not the position in the period-restricted list', ({
+    assert,
+  }) => {
+    // Job 30 is first in this member's period-restricted orderedJobIds
+    // (position 1), but their globally expressed rank for job 30 is 5 —
+    // that global rank must be what comes out, not the position.
+    const { matches } = stableMatch(
+      [
+        {
+          memberId: 1,
+          orderedJobIds: [30, 10],
+          expressedRankByJobId: { 10: 2, 30: 5 },
+        },
+      ],
+      [
+        { jobId: 30, remainingCount: 1 },
+        { jobId: 10, remainingCount: 1 },
+      ],
+      [1]
+    )
+    assert.sameDeepMembers(matches, [{ memberId: 1, jobId: 30, rankAchieved: 5 }])
   })
 })

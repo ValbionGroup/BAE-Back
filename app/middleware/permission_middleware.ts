@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import { Exception } from '@adonisjs/core/exceptions'
+import ApiException from '#exceptions/api_exception'
 import Member from '#models/member'
 
 /**
@@ -39,10 +39,12 @@ export default class PermissionMiddleware {
     const missing = required.filter((entry) => !granted.has(entry))
 
     if (missing.length > 0) {
-      throw new Exception(`Missing permission: ${missing.join(', ')}`, {
-        code: 'E_FORBIDDEN',
-        status: 403,
-      })
+      // `ApiException` et non une `Exception` nue : le gestionnaire d'erreurs ne
+      // traite spécialement que la première. Une exception nue tombe dans le
+      // fourre-tout, qui conserve le statut mais remplace le corps par
+      // `E_INTERNAL_SERVER_ERROR` et « Internal server error » hors mode debug —
+      // le client n'apprendrait donc pas quelle permission lui manque.
+      throw new ApiException('E_FORBIDDEN', `Missing permission: ${missing.join(', ')}`, 403)
     }
 
     return next()
