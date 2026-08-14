@@ -8,10 +8,12 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   build-and-push:
     permissions:
+      contents: read
       id-token: write
     uses: Eirbware/.github/.github/workflows/build-and-publish.yml@master
     with:
