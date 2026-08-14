@@ -140,6 +140,41 @@ test.group('Roles permissions exposure', (group) => {
     )
   })
 
+  test('allows an unrelated sync when role:read already has no holders', async ({
+    client,
+    assert,
+  }) => {
+    // Same reasoning as the two lockout tests above: clear role:read down to zero
+    // holders first. Unlike those, this one exercises the OTHER side of the
+    // invariant — a permission already at zero before the mutation must not brick
+    // every future sync on every role, only the ones that would push a permission
+    // still held by someone down to zero. `role:write` is left alone, so the
+    // actor's own role keeps it and can call the route.
+    await db.from('roles_permissions').where('permission_id', 'role:read').delete()
+
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    await Permission.firstOrCreate({ permission: 'stock:read' })
+    await Permission.firstOrCreate({ permission: 'log:read' })
+    const role = await Role.create({ name: 'Pole Tiers' })
+    await role.related('permissions').sync(['stock:read'])
+
+    const response = await client
+      .put(`/v1/roles/${role.id}/permissions`)
+      .json({ permissions: ['log:read'] })
+      .loginAs(user)
+
+    response.assertStatus(200)
+
+    await role.load('permissions')
+    assert.deepEqual(
+      role.permissions.map((entry) => entry.permission),
+      ['log:read'],
+      'une permission protégée déjà à zéro porteur ne doit pas bloquer un sync qui ne la touche pas'
+    )
+  })
+
   test('allows stripping role:write from a role nobody holds', async ({ client, assert }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['role:write'])
@@ -160,6 +195,81 @@ test.group('Roles permissions exposure', (group) => {
       vacant.permissions,
       'un rôle sans membre n’est pas un porteur : le retirer ne verrouille rien'
     )
+  })
+
+  test('DELETE /v1/roles/:id refuses to delete the sole role carrying role:write', async ({
+    client,
+    assert,
+  }) => {
+    // Same reasoning as the sync lockout tests: clear other holders first, or
+    // the global count never reaches zero and the test proves nothing.
+    await db.from('roles_permissions').where('permission_id', 'role:write').delete()
+
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+    const role = await Role.findOrFail(member.roleId)
+
+    const response = await client.delete(`/v1/roles/${role.id}`).loginAs(user)
+
+    response.assertStatus(409)
+    assert.equal(response.body().error.code, 'E_RBAC_LOCKOUT')
+    assert.equal(
+      response.body().error.message,
+      'Accordez d’abord role:write à un rôle occupé avant de la retirer ici.'
+    )
+
+    const stillThere = await Role.find(role.id)
+    assert.isNotNull(stillThere, 'le refus doit annuler la suppression, pas la laisser passer')
+  })
+
+  test('DELETE /v1/roles/:id succeeds for an unrelated role carrying no protected permission', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    await Permission.firstOrCreate({ permission: 'stock:read' })
+    const role = await Role.create({ name: 'Pole Jetable' })
+    await role.related('permissions').sync(['stock:read'])
+
+    const response = await client.delete(`/v1/roles/${role.id}`).loginAs(user)
+
+    response.assertStatus(204)
+
+    const gone = await Role.find(role.id)
+    assert.isNull(gone, 'un rôle sans permission protégée doit rester supprimable')
+  })
+
+  test('PATCH /v1/roles/:id on an unknown id answers 404 with E_ROLE_NOT_FOUND', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    const response = await client
+      .patch('/v1/roles/999999')
+      .json({ name: 'Peu importe' })
+      .loginAs(user)
+
+    response.assertStatus(404)
+    assert.equal(response.body().error.code, 'E_ROLE_NOT_FOUND')
+    assert.equal(response.body().error.message, 'Rôle introuvable.')
+  })
+
+  test('DELETE /v1/roles/:id on an unknown id answers 404 with E_ROLE_NOT_FOUND', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['role:write'])
+
+    const response = await client.delete('/v1/roles/999999').loginAs(user)
+
+    response.assertStatus(404)
+    assert.equal(response.body().error.code, 'E_ROLE_NOT_FOUND')
+    assert.equal(response.body().error.message, 'Rôle introuvable.')
   })
 
   test('the permission catalog cannot be written over HTTP', async ({ client }) => {
