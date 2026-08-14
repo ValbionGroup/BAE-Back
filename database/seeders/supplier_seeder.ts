@@ -1,9 +1,13 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
-import { SupplierFactory } from '#database/factories/supplier_factory'
+import Supplier from '#models/supplier'
+
+const RETAILERS = ['Leclerc', 'Auchan', 'Carrefour'] as const
 
 export default class extends BaseSeeder {
   async run() {
-    // Write your database queries inside the run method
-    await SupplierFactory.createMany(10)
+    await Supplier.fetchOrCreateMany(
+      'name',
+      RETAILERS.map((name) => ({ name }))
+    )
   }
 }

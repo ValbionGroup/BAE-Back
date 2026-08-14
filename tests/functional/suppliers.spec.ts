@@ -6,12 +6,6 @@ import { SupplierFactory } from '#database/factories/supplier_factory'
 test.group('Suppliers listing', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  /**
-   * L'endpoint alimente le sélecteur d'enseigne de la modale de création d'un
-   * bon d'achat. Il préchargeait `goods` et `restocks` — soit tout le catalogue
-   * et tout l'historique de réassort — pour deux colonnes utiles. Ce test
-   * empêche qu'un `preload` de confort le regonfle sans qu'on le voie.
-   */
   test('lists suppliers by name, without their goods or restocks', async ({ client, assert }) => {
     const user = await UserFactory.create()
     await SupplierFactory.merge({ name: 'Zzz Leclerc' }).create()

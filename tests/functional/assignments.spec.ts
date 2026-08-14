@@ -14,8 +14,6 @@ test.group('Assignments locking', (group) => {
     const user = await asCoordinator(member)
     const event = await EventFactory.create()
     const job = await JobFactory.create()
-    // The evening must offer the job — `store` refuses an unoffered one since
-    // a hand-made assignment carries real credit.
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
 
     const created = await client
@@ -31,8 +29,6 @@ test.group('Assignments locking', (group) => {
     }
     const row = body.data.find((r) => r.member_id === member.id)
     assert.equal(row?.locked, true)
-    // A hand-made assignment is scored exactly like the same automatic one
-    // (§4.5): an unranked `during` job is worth CHARGE.during 8 − rankCost(null).
     assert.equal(row?.points_delta, 8)
   })
 
@@ -86,14 +82,6 @@ test.group('Assignments locking', (group) => {
   })
 })
 
-/**
- * Structural rules of a hand-made assignment.
- *
- * `store` used to accept anything: a job the evening does not even offer, a job
- * the member is barred from, a second job on a period they already cover. That
- * was harmless while `points_delta` was always 0 — since §4.5 every accepted
- * row is worth up to +12, so an unprivileged member could mint credit at will.
- */
 test.group('Assignments structural rules', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
@@ -206,10 +194,6 @@ test.group('Assignments structural rules', (group) => {
     assert.lengthOf(rows, 2)
   })
 
-  /**
-   * The reported abuse, end to end: five jobs the evening does not offer, each
-   * accepted at +12, then a close carrying the member to 60 points.
-   */
   test('cannot mint credit out of jobs the evening never offered', async ({ client, assert }) => {
     const { member, user, event } = await scene()
 
@@ -269,12 +253,6 @@ test.group('Assignments update', (group) => {
     assert.isTrue(assignment.locked)
   })
 
-  /**
-   * The reason this route exists. Locking used to be a DELETE followed by a
-   * POST, which dropped `points_delta` back to 0 — the very value the matching
-   * engine refunds when it replaces a row, so losing it corrupted point totals
-   * on the next run.
-   */
   test('preserves points_delta, unlike the delete-then-recreate it replaces', async ({
     client,
     assert,
@@ -326,11 +304,6 @@ test.group('Assignments update', (group) => {
     response.assertStatus(422)
   })
 
-  /**
-   * One resource, one shape. `index` reported `settled_at` while `store` and
-   * `update` did not, so a client had to re-fetch the list to learn whether the
-   * row it had just written was already consolidated.
-   */
   test('reports settled_at like the listing does, on create and on update', async ({
     client,
     assert,
@@ -368,7 +341,6 @@ test.group('Assignments update', (group) => {
     const afterCloseBody = afterClose.body() as { data: { settled_at: string | null } }
     assert.isString(afterCloseBody.data.settled_at)
 
-    // And a create-or-ignore hit on an already settled row reports it too.
     const again = await client
       .post('/v1/assignments')
       .loginAs(user)
@@ -377,15 +349,6 @@ test.group('Assignments update', (group) => {
     assert.isString(againBody.data.settled_at)
   })
 
-  /**
-   * The composite key again. `assignment.save()` keys the UPDATE on the model's
-   * primary column alone, and the generated schema only marks `member_id` as
-   * primary — so locking one row used to lock every row of that member.
-   *
-   * A row locked by accident then escapes the `.where('locked', false).delete()`
-   * of a matching re-run: the engine can no longer replace it, and its capacity
-   * stays reserved for good.
-   */
   test('locks only the targeted row, leaving the member other job of the evening open', async ({
     client,
     assert,

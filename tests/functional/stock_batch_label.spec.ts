@@ -4,10 +4,6 @@ import Good from '#models/good'
 import StockBatch from '#models/stock_batch'
 import { UserFactory } from '#database/factories/user_factory'
 
-/**
- * `stock_batches.label` est `NOT NULL` sans défaut : un POST qui ne le fournit
- * pas partait en 500. C'est aussi lui qui porte le numéro de lot lisible.
- */
 test.group('Stock batch label', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
@@ -38,7 +34,6 @@ test.group('Stock batch label', (group) => {
       .json({ good_id: good.id, quantity: 1 })
       .loginAs(user)
 
-    // « Prends le lot n°2 » n'a de sens que si la suite est par produit.
     assert.match(second.body().data.label, /^L\d{2}-2$/)
   })
 

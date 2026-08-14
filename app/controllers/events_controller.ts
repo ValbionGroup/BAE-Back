@@ -7,13 +7,17 @@ import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import { availabilityValidator } from '#validators/event'
 import {
+  type BackfillJobInput,
   type CandidateInput,
   type JobCapacityInput,
   type JobPeriod,
   type RankedCandidate,
   JOB_PERIODS,
+  backfillUnmatched,
   buildEffectivePreferences,
   computePointsDelta,
+  makeTieBreaker,
+  seededRng,
   sortByJobRanking,
   stableMatch,
 } from '#services/matching_service'
@@ -52,24 +56,13 @@ export default class EventsController {
     return serialize(event)
   }
 
-  /**
-   * Deletes an evening — unless its points were consolidated.
-   *
-   * `members.points` is a DERIVED total (D7): the sum of the settled
-   * `points_delta`, which is exactly what `points:recompute` rebuilds. While
-   * the assignment FKs cascaded, deleting an evening erased the rows without
-   * touching `members.points` — the total survived until the next recompute,
-   * which then wiped a credit that had genuinely been earned. So the ledger of
-   * a closed evening is not deletable; `node ace event:unsettle` hands the
-   * credit back first, knowingly, and then this passes.
-   *
-   * The UNSETTLED rows are deleted here by hand because the FK is now
-   * `RESTRICT`: their delta never reached anybody's total, so there is nothing
-   * to give back and nothing to preserve.
-   */
   async destroy({ params, response }: HttpContext) {
     const event = await Event.query().where('id', params.id).firstOrFail()
 
+    // `members.points` is a DERIVED total: the sum of the settled `points_delta`,
+    // which `points:recompute` rebuilds. A settled row therefore may not vanish,
+    // or the next recompute would wipe a credit that had genuinely been earned.
+    // `node ace event:unsettle` is the way through.
     await db.transaction(async (trx) => {
       const settled = await MemberEventAssignedJob.query({ client: trx })
         .where('eventId', event.id)
@@ -86,10 +79,6 @@ export default class EventsController {
         return
       }
 
-      // `whereNull('settledAt')` and not a blanket delete: it keeps the FK
-      // `RESTRICT` as a real backstop. Should the guard above ever be
-      // weakened, the database refuses the deletion instead of quietly taking
-      // the settled ledger down with the evening.
       await MemberEventAssignedJob.query({ client: trx })
         .where('eventId', event.id)
         .whereNull('settledAt')
@@ -110,17 +99,6 @@ export default class EventsController {
     return { data: status }
   }
 
-  /**
-   * Sets the authenticated member's own availability for an event.
-   *
-   * Declaring oneself absent is refused once the member holds at least one
-   * job on this evening — any period, D9 — because `AssignmentsController`
-   * does not read this table when assigning, so a lock is the only place the
-   * rule can be enforced. Confirming presence is always allowed (D8): a
-   * manual assignment may target a member who had said no, and that member
-   * needs a way back to "available" rather than being stuck as "assigned and
-   * absent".
-   */
   async setResponse({ params, request, response, auth }: HttpContext) {
     const user = auth.use('api').getUserOrFail()
     const { isAvailable } = await request.validateUsing(availabilityValidator)
@@ -147,35 +125,14 @@ export default class EventsController {
     return { data: isAvailable ? 1 : 0 }
   }
 
-  /**
-   * Runs the stable-marriage job matching for this event and persists the
-   * result — one pass per period, so a member can hold a `before`, a `during`
-   * and an `after` job on the same evening (D1).
-   *
-   * Re-running replaces prior algorithm-produced assignments but never touches
-   * manually locked rows: a lock only reserves its job's capacity and pulls the
-   * member out of the pool *for that job's period* (D9 concerns the evening,
-   * the matching pool does not).
-   *
-   * `members.points` is never written here (D7): each delta lives on its
-   * assignment row until the evening is closed.
-   */
   async runMatching({ params, response, serialize }: HttpContext) {
     const event = await Event.findOrFail(params.id)
 
     const summary = await db.transaction(async (trx) => {
-      // Every assignment row of the event, locked `FOR UPDATE` for the whole
-      // transaction. The lock is what makes the settled check below a real
-      // guard: without it a `settle` could consolidate a row between the check
-      // and the deletion at the end, and that credit would become
-      // unrefundable — the row carrying it would be gone.
       const existingRows = await MemberEventAssignedJob.query({ client: trx })
         .where('eventId', event.id)
         .forUpdate()
 
-      // A re-run deletes every unlocked row. Once a delta has been consolidated
-      // into `members.points`, deleting its row would erase the only trace of a
-      // credit already granted.
       if (existingRows.some((row) => row.settledAt !== null)) {
         return null
       }
@@ -187,14 +144,11 @@ export default class EventsController {
 
       const lockedRows = existingRows.filter((row) => row.locked)
 
-      // Locked rows may point at a job the event no longer offers, so the
-      // period lookup covers their jobs too — the response reports it.
       const periodJobIds = new Set<number>([
         ...capacityByJob.keys(),
         ...lockedRows.map((row) => row.jobId),
       ])
-      const jobDetails = await Job.query()
-        .useTransaction(trx)
+      const jobDetails = await Job.query({ client: trx })
         .whereIn('id', [...periodJobIds])
         .preload('eligibleMembers')
       const periodByJob = new Map<number, JobPeriod>(
@@ -215,17 +169,12 @@ export default class EventsController {
         }
       }
 
-      // One pool for the whole evening: `member_responses.is_available` is a
-      // single boolean, and that is deliberate — saying yes means being
-      // available for all three moments.
       const respondingMembers = await event
         .related('members')
         .query()
         .useTransaction(trx)
         .wherePivot('is_available', true)
 
-      // A job with no `job_eligible_members` rows is unrestricted (open to
-      // everyone) — only jobs with at least one row narrow the pool.
       const eligibilityByJob = new Map<number, Set<number> | null>(
         jobDetails.map((job) => [
           job.id,
@@ -233,23 +182,6 @@ export default class EventsController {
         ])
       )
 
-      // Attendance history means *other* evenings: counting this event's own
-      // rows would make a second run rank people differently from the first.
-      //
-      // `countDistinct` on the event, never `count('*')`: since D1 one evening
-      // yields up to three rows for the same member (before/during/after), and
-      // `rankingKey` divides points by *evenings worked*. Counting rows would
-      // rank somebody who covered all three periods of a single evening below
-      // somebody who did one `during` on two evenings — penalising precisely
-      // the thankless shifts the D5 credits reward, and which the member does
-      // not even choose to take on.
-      //
-      // SETTLED evenings only. `rankingKey` divides points by evenings worked,
-      // and since D7 the numerator moves at the close and nowhere else — so an
-      // evening counted in the denominator before its close removes priority
-      // for work the member has not been credited for yet. The heavier the
-      // shift, the worse the penalty: exactly backwards. `whereNotNull` puts
-      // the two halves of the ratio back in step.
       const attendanceRows = await db
         .from('member_event_assigned_jobs')
         .select('member_id')
@@ -262,8 +194,6 @@ export default class EventsController {
         attendanceRows.map((row) => [Number(row.member_id), Number(row.count)])
       )
 
-      // The expressed ranking is global and loaded once: it is restricted to
-      // the jobs of a period at proposal time, never re-numbered (D3).
       const expressedRankByMember = new Map<number, Record<number, number>>()
       const rankedCandidates: RankedCandidate[] = []
       for (const member of respondingMembers) {
@@ -280,7 +210,11 @@ export default class EventsController {
         })
       }
 
-      const jobRankingOrder = sortByJobRanking(rankedCandidates)
+      const memberTieBreak = makeTieBreaker(
+        respondingMembers.map((member) => member.id),
+        seededRng(event.id)
+      )
+      const jobRankingOrder = sortByJobRanking(rankedCandidates, memberTieBreak)
 
       const matched: {
         memberId: number
@@ -333,15 +267,53 @@ export default class EventsController {
         }
       }
 
-      // Being passed over on one period is not "unassigned": only a member who
-      // ends the evening with nothing at all — no match, no lock — counts.
+      const zeroAssignmentMemberIds = respondingMembers
+        .map((member) => member.id)
+        .filter((memberId) => !matchedMemberIds.has(memberId) && !lockedMemberIds.has(memberId))
+
+      if (zeroAssignmentMemberIds.length > 0) {
+        const takenByJob = new Map<number, number>()
+        for (const match of matched) {
+          takenByJob.set(match.jobId, (takenByJob.get(match.jobId) ?? 0) + 1)
+        }
+
+        const backfillJobs: BackfillJobInput[] = []
+        for (const [jobId, capacity] of capacityByJob) {
+          const period = periodByJob.get(jobId)
+          if (!period) {
+            continue
+          }
+          backfillJobs.push({
+            jobId,
+            period,
+            remainingCount: Math.max(0, capacity) - (takenByJob.get(jobId) ?? 0),
+            eligibleMemberIds: eligibilityByJob.get(jobId) ?? null,
+          })
+        }
+
+        const backfilled = backfillUnmatched(
+          zeroAssignmentMemberIds.map((memberId) => ({
+            memberId,
+            expressedRankByJobId: expressedRankByMember.get(memberId) ?? {},
+          })),
+          backfillJobs,
+          memberTieBreak
+        )
+
+        for (const match of backfilled) {
+          matched.push({
+            ...match,
+            pointsDelta: computePointsDelta(match.period, match.rankAchieved),
+          })
+          matchedMemberIds.add(match.memberId)
+        }
+      }
+
       const unmatchedMemberIds = respondingMembers
         .map((member) => member.id)
         .filter((memberId) => !matchedMemberIds.has(memberId) && !lockedMemberIds.has(memberId))
         .sort((a, b) => a - b)
 
-      // No refund: the deltas never reached `members.points` in the first
-      // place, they are consolidated when the evening is closed (D7).
       await MemberEventAssignedJob.query({ client: trx })
         .where('eventId', event.id)
         .where('locked', false)
@@ -383,20 +355,14 @@ export default class EventsController {
     return serialize(summary)
   }
 
-  /**
-   * Closes the evening: consolidates every pending `points_delta` of the event
-   * into `members.points` (D7).
-   *
-   * Idempotent row by row. The claim is a single `UPDATE … WHERE settled_at IS
-   * NULL … RETURNING`, so it is also the lock: a concurrent close blocks on the
-   * same rows, then re-evaluates the predicate and finds nothing left to claim.
-   * Reading the rows first and updating them afterwards would let two calls
-   * read the same pending set and apply it twice.
-   */
   async settle({ params, serialize }: HttpContext) {
     const event = await Event.findOrFail(params.id)
 
     const summary = await db.transaction(async (trx) => {
+      // The `UPDATE … RETURNING` is also the lock: a concurrent close blocks on
+      // the same rows, then re-evaluates the predicate and finds nothing left to
+      // claim. Reading the rows first and updating them afterwards would let two
+      // calls apply the same pending set twice.
       const claimed = await trx
         .from('member_event_assigned_jobs')
         .where('event_id', event.id)
@@ -412,17 +378,12 @@ export default class EventsController {
         totalDelta += delta
       }
 
-      // `increment` with a negative amount is the refund direction: a member
-      // who was served his first choice legitimately spends credit (D6, the
-      // score may go negative).
       for (const [memberId, delta] of deltaByMember) {
         if (delta !== 0) {
           await trx.from('members').where('id', memberId).increment('points', delta)
         }
       }
 
-      // Counted after the claim so that a close racing another one reports the
-      // rows the winner just consolidated, instead of an empty snapshot.
       const settledTotal = await trx
         .from('member_event_assigned_jobs')
         .where('event_id', event.id)

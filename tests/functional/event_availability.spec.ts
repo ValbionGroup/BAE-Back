@@ -124,8 +124,6 @@ test.group('Event availability — presence lock (D8, D9)', (group) => {
     assert,
   }) => {
     const member = await MemberFactory.create()
-    // `DELETE /v1/assignments` now requires `assignment:write` — the release
-    // this test describes is coordination work, so the caller carries it.
     const user = await grantPermissions(member, ['assignment:write'])
     const event = await EventFactory.create()
     const job = await JobFactory.create()

@@ -1,7 +1,3 @@
-/*
- * Copyright (c) 2026 - Groupe Valbion - Tous droits réservés.
- */
-
 import jwtConfig from '#config/jwt'
 import { importPKCS8, importSPKI, SignJWT, jwtVerify, type JWTPayload } from 'jose'
 
@@ -23,9 +19,6 @@ export type QrTokenPayload = JWTPayload &
 export default class JwtService {
   readonly #algorithm = jwtConfig.algorithm
 
-  /**
-   * Sign a JWT with the configured RSA private key.
-   */
   async sign(payload: JWTPayload, options: { expiresIn?: string | number } = {}): Promise<string> {
     const privateKey = await importPKCS8(jwtConfig.privateKey, this.#algorithm)
 
@@ -38,10 +31,6 @@ export default class JwtService {
     return builder.sign(privateKey)
   }
 
-  /**
-   * Verify a JWT and return its decoded payload.
-   * Throws if the token is invalid or expired.
-   */
   async verify<T extends JWTPayload = JWTPayload>(token: string): Promise<T> {
     const publicKey = await importSPKI(jwtConfig.publicKey, this.#algorithm)
     const { payload } = await jwtVerify<T>(token, publicKey, {
@@ -50,10 +39,6 @@ export default class JwtService {
     return payload
   }
 
-  /**
-   * Generate a short-lived token for a rolling QR code.
-   * Defaults to 60 seconds so the QR becomes invalid quickly if captured.
-   */
   async generateQrToken(
     data: Omit<QrTokenPayload, keyof JWTPayload>,
     ttlSeconds = 60
@@ -61,10 +46,6 @@ export default class JwtService {
     return this.sign(data, { expiresIn: ttlSeconds })
   }
 
-  /**
-   * Verify a QR token and return its typed payload.
-   * Throws if the token is expired or tampered with.
-   */
   async verifyQrToken(token: string): Promise<QrTokenPayload> {
     return this.verify<QrTokenPayload>(token)
   }

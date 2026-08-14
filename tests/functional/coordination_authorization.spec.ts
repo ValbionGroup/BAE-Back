@@ -7,15 +7,6 @@ import { EventFactory } from '#database/factories/event_factory'
 import { JobFactory } from '#database/factories/job_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 
-/**
- * `POST /v1/events/:id/matching`, `POST /v1/events/:id/settle` and the three
- * assignment writes used to carry `middleware.auth()` alone.
- *
- * Closing an evening is irreversible from the API — a settled evening makes
- * `runMatching` fail with 409 and no route un-settles it — so any authenticated
- * member could freeze the core of the business with a single request. The
- * assignment writes are the other half: each one moves credit.
- */
 test.group('Coordination authorization', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 

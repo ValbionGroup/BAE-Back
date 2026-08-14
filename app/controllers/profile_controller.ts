@@ -12,9 +12,6 @@ export default class ProfileController {
     return serialize({
       user: UserTransformer.transform(user),
       member: MemberTransformer.transform(user.member),
-      // À la racine, et non dans `member` : `MemberTransformer` sert aussi
-      // `GET /v1/members`, qui ne précharge pas les permissions. Le champ y
-      // sortirait vide, et « non chargé » se lirait comme « aucun droit ».
       permissions: user.member?.role?.permissions.map((entry) => entry.permission) ?? [],
     })
   }

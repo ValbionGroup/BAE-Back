@@ -10,15 +10,6 @@ import { EventFactory } from '#database/factories/event_factory'
 import { JobFactory } from '#database/factories/job_factory'
 import PointsRecompute from '../../commands/points_recompute.js'
 
-/**
- * Consolidation of the per-assignment `points_delta` into `members.points`.
- *
- * The matching engine never writes `members.points` (D7): each delta sits on
- * its assignment row until the evening is closed. `settled_at` marks a row as
- * already counted — it is the only guard against double application, so every
- * test here is really a test of that marker.
- */
-
 async function seedMember(points = 0) {
   const member = await MemberFactory.create()
   member.points = points
@@ -114,7 +105,6 @@ test.group('Event settlement', (group) => {
     })
     await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
 
-    // A row added after the first close — e.g. a late manual assignment.
     await MemberEventAssignedJob.create({
       memberId: member.id,
       eventId: event.id,
@@ -162,7 +152,6 @@ test.group('Manual assignment credit', (group) => {
   test('credits a manual assignment exactly like the engine would', async ({ client, assert }) => {
     const event = await EventFactory.create()
     const job = await JobFactory.merge({ type: 'after' }).create()
-    // `store` only accepts a job the evening actually offers.
     await event.related('jobs').sync({ [job.id]: { count: 1 } }, false)
     const { member, user } = await seedMember(0)
     await setPreference(member, job.id, 2)
@@ -179,7 +168,6 @@ test.group('Manual assignment credit', (group) => {
       .where('eventId', event.id)
       .where('jobId', job.id)
       .firstOrFail()
-    // CHARGE.after 12 − rankCost(2) 10
     assert.equal(row.pointsDelta, 2)
   })
 
@@ -199,7 +187,6 @@ test.group('Manual assignment credit', (group) => {
       .where('eventId', event.id)
       .where('jobId', job.id)
       .firstOrFail()
-    // CHARGE.after 12 − rankCost(null) 0
     assert.equal(row.pointsDelta, 12)
   })
 
@@ -214,7 +201,6 @@ test.group('Manual assignment credit', (group) => {
       .loginAs(user)
       .json({ member_id: member.id, event_id: event.id, job_id: job.id })
 
-    // Ranking the job first afterwards would turn +12 into 0 on a recompute.
     await setPreference(member, job.id, 1)
     await client
       .post('/v1/assignments')
@@ -283,7 +269,6 @@ test.group('Assignment deletion refund', (group) => {
       .loginAs(user)
 
     assert.equal(await pointsOf(member.id), 4)
-    // The composite key must not take the other row down with it.
     const rows = await MemberEventAssignedJob.query().where('eventId', event.id)
     assert.lengthOf(rows, 1)
     assert.equal(rows[0].jobId, otherJob.id)
@@ -297,11 +282,6 @@ test.group('points:recompute', (group) => {
     return () => ace.ui.switchMode('normal')
   })
 
-  /**
-   * A member whose `members.points` was corrupted by the old in-place engine,
-   * holding one settled row (+12) and one unsettled row (+8) — only the settled
-   * one counts.
-   */
   async function seedDriftedMember() {
     const event = await EventFactory.create()
     const settledJob = await JobFactory.merge({ type: 'after' }).create()
@@ -324,7 +304,6 @@ test.group('points:recompute', (group) => {
       pointsDelta: 8,
     })
 
-    // Deliberately corrupt the derived total.
     member.points = 99
     await member.save()
     return member

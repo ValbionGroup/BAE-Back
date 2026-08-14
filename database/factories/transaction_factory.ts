@@ -5,7 +5,7 @@ export const TransactionFactory = factory
   .define(Transaction, async ({ faker }) => {
     return {
       amount: faker.finance.amount(),
-      type: faker.helpers.arrayElement(['credit', 'debit', 'refund']),
+      type: faker.helpers.arrayElement(['cash', 'lydia']),
     }
   })
   .build()

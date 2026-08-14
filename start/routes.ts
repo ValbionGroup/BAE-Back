@@ -13,13 +13,13 @@ import { healthChecks } from '#start/health'
 import { readFileSync } from 'node:fs'
 
 import '#start/routes/auth'
-import '#start/routes/members' // members, roles, permissions
-import '#start/routes/catalog' // categories, products, goods, furnitures, suppliers
-import '#start/routes/stocks' // stocks, stock-batches, stock-movements, restocks
-import '#start/routes/events' // events + response/roster
-import '#start/routes/coordination' // jobs, event-jobs, assignments, responses, preferences
-import '#start/routes/billing' // transactions, fast-passes, vouchers
-import '#start/routes/system' // logs, sessions
+import '#start/routes/members'
+import '#start/routes/catalog'
+import '#start/routes/stocks'
+import '#start/routes/events'
+import '#start/routes/coordination'
+import '#start/routes/billing'
+import '#start/routes/system'
 
 const appVersion = (() => {
   const fromEnv = process.env.APP_VERSION

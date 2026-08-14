@@ -10,13 +10,6 @@ export default class AccessTokenController {
     const user = await User.verifyCredentials(email, password)
     const token = await User.accessTokens.create(user)
 
-    /**
-     * `DbAccessTokensProvider.create()` builds a fixed insert payload
-     * (tokenable_id, type, name, hash, abilities, timestamps) and exposes no
-     * hook for extra columns — `options` only accepts `name` and `expiresIn`.
-     * The device info is therefore written back onto the freshly created row,
-     * keyed on the returned token identifier.
-     */
     await db
       .from('auth_access_tokens')
       .where('id', Number(token.identifier))

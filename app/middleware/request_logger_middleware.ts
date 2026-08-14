@@ -20,9 +20,6 @@ export default class RequestLoggerMiddleware {
     const message = `${method} ${url} → ${status} (${Math.round(durationMs)}ms)`
     const userId = (ctx.auth?.user as { id?: number } | undefined)?.id ?? null
 
-    // `GET /v1/logs` is readable by any authenticated user, so the stored body
-    // must never carry credentials: auth responses are dropped outright and
-    // secret-looking keys elsewhere are masked.
     const response = redactResponseBody(url, ctx.response.getBody())
 
     Log.create({

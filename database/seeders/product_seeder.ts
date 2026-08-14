@@ -1,9 +1,44 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
-import { ProductFactory } from '#database/factories/product_factory'
+import Product from '#models/product'
+
+const RECIPES: readonly { name: string; isVegetarian: boolean; recipe: string }[] = [
+  {
+    name: 'Hot-dog classique',
+    isVegetarian: false,
+    recipe: 'Chauffer la saucisse 3 min. Fendre le pain, moutarde, oignons frits.',
+  },
+  {
+    name: 'Hot-dog végétarien',
+    isVegetarian: true,
+    recipe: 'Poêler le steak végétal 4 min par face. Même montage que le classique.',
+  },
+  {
+    name: 'Frites portion',
+    isVegetarian: true,
+    recipe: 'Friture 170 °C, 4 min. Égoutter, saler à la sortie.',
+  },
+  {
+    name: 'Crêpe Nutella',
+    isVegetarian: true,
+    recipe: 'Pâte reposée 30 min. Une louche par crêpe, garnir hors du feu.',
+  },
+  {
+    name: 'Bière pression 25cl',
+    isVegetarian: true,
+    recipe: 'Verre incliné 45°, laisser deux doigts de mousse.',
+  },
+]
 
 export default class extends BaseSeeder {
   async run() {
-    // Write your database queries inside the run method
-    await ProductFactory.createMany(10)
+    await Product.fetchOrCreateMany(
+      'name',
+      RECIPES.map((recipe) => ({
+        name: recipe.name,
+        isVegetarian: recipe.isVegetarian,
+        description: null,
+        recipe: recipe.recipe,
+      }))
+    )
   }
 }

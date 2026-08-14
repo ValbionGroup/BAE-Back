@@ -20,12 +20,9 @@ function convertKeys(obj: unknown, converter: (key: string) => string): unknown 
     return convertKeys(obj.serialize(), converter)
   }
 
-  // `DateTime.isDateTime` only checks the `isLuxonDateTime` marker, which
-  // survives JSON round-tripping while the prototype does not. A raw DateTime
-  // stored in a JSON column therefore reads back as a plain object that claims
-  // to be a DateTime but has no `toISO`, and calling it crashed the request.
-  // Real instances are converted; impostors fall through and are walked like
-  // any other object.
+  // `isDateTime` only checks the `isLuxonDateTime` marker, which survives a JSON
+  // round-trip while the prototype does not: a DateTime stored in a JSON column
+  // reads back as a plain object that claims to be one but has no `toISO`.
   if (DateTime.isDateTime(obj) && typeof obj.toISO === 'function') {
     return obj.toISO()
   }

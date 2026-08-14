@@ -75,6 +75,11 @@ export type ScannedRoutes = {
     'events.get_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.update': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'productId': ParamValue} }
+    'event_products.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'productId': ParamValue} }
+    'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.settle': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
@@ -132,6 +137,7 @@ export type ScannedRoutes = {
     'restocks.store': { paramsTuple?: []; params?: {} }
     'events.store': { paramsTuple?: []; params?: {} }
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.settle': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.store': { paramsTuple?: []; params?: {} }
@@ -155,6 +161,7 @@ export type ScannedRoutes = {
     'stock_movements.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'restocks.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'productId': ParamValue} }
     'jobs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.destroy': { paramsTuple?: []; params?: {} }
     'assignments.destroy': { paramsTuple?: []; params?: {} }
@@ -196,6 +203,8 @@ export type ScannedRoutes = {
     'events.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.get_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
     'jobs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.index': { paramsTuple?: []; params?: {} }
@@ -244,6 +253,8 @@ export type ScannedRoutes = {
     'events.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.get_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'jobs.index': { paramsTuple?: []; params?: {} }
     'jobs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.index': { paramsTuple?: []; params?: {} }
@@ -293,6 +304,7 @@ export type ScannedRoutes = {
     'stock_movements.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'restocks.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_products.update': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'productId': ParamValue} }
     'jobs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.update': { paramsTuple?: []; params?: {} }
     'assignments.update': { paramsTuple?: []; params?: {} }

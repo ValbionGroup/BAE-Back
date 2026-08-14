@@ -5,7 +5,6 @@ import { StockMovementFactory } from '#database/factories/stock_movement_factory
 
 export default class extends BaseSeeder {
   async run() {
-    // Write your database queries inside the run method
     const goods = await Good.query().select('id')
     const stockBatches = await StockBatch.query().select('id')
 

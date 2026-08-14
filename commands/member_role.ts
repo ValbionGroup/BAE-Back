@@ -3,29 +3,11 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 import Member from '#models/member'
 import Role from '#models/role'
 
-/**
- * Attribue un rôle à un membre depuis la console, en passant outre les deux
- * gardes RBAC des routes HTTP.
- *
- * C'est le chemin de secours nommé pour les deux impasses que le modèle admet :
- *
- *  - la hiérarchie dérivée (`E_RBAC_ABOVE_ACTOR`), quand une personne est seule
- *    à porter un ensemble que personne d'autre n'a et part sans passer la main ;
- *  - l'invariant anti-verrouillage (`E_RBAC_LOCKOUT`).
- *
- * Le remède documenté jusqu'ici était `node ace db:seed`, qui resynchronise la
- * matrice depuis le catalogue et ÉCRASE donc toute édition faite à la main :
- * un remède qui détruit ce qu'on venait de régler. Celle-ci ne touche qu'à une
- * ligne.
- *
- * Délibérément une commande et non une route : contourner ses propres gardes
- * est un geste d'exploitant, fait sciemment, jamais quelque chose qu'un écran
- * doit pouvoir offrir.
- *
- *     node ace member:role 12 Administrateur
- *     node ace member:role 12 none
- *     node ace member:role 12 Administrateur --dry-run
- */
+// The named escape hatch for the two dead ends of the RBAC model:
+// `E_RBAC_ABOVE_ACTOR`, when the lone holder of a permission set leaves without
+// handing over, and `E_RBAC_LOCKOUT`. Deliberately a command and not a route:
+// bypassing one's own guards is an operator action. `db:seed` is no substitute,
+// it rewrites the whole matrix from the catalogue.
 export default class MemberRole extends BaseCommand {
   static commandName = 'member:role'
   static description = 'Attribue un rôle à un membre en passant outre les gardes RBAC'

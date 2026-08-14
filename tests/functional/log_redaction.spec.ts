@@ -45,14 +45,7 @@ test.group('Log redaction (unit)', () => {
 test.group('Log redaction (end to end)', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  /**
-   * The request logger stored `ctx.response.getBody()` verbatim, so every token
-   * minted by `/auth/login` and `/auth/signup` landed in the `logs` table in
-   * clear text — readable by any authenticated user through `GET /v1/logs`.
-   */
   test('never stores the access token returned by signup', async ({ client, assert }) => {
-    // Rows written before this fix still carry response bodies, so only look at
-    // what THIS request produces.
     const previous = await Log.query().orderBy('id', 'desc').first()
     const sinceId = previous?.id ?? 0
 
@@ -72,7 +65,6 @@ test.group('Log redaction (end to end)', (group) => {
       const serialised = JSON.stringify(log.meta ?? {})
       assert.notInclude(serialised, token)
       assert.notInclude(serialised, password)
-      // The body is dropped wholesale for auth routes.
       assert.notProperty(log.meta ?? {}, 'response')
     }
   })

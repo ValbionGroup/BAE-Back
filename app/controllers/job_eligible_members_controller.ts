@@ -3,13 +3,6 @@ import Job from '#models/job'
 import Member from '#models/member'
 import { jobEligibleMemberValidator } from '#validators/coordination'
 
-/**
- * Job eligible members are the `job_eligible_members` pivot rows: which
- * members the matching algorithm may assign to a given job. A job with no
- * rows here is unrestricted (open to everyone) — this table only ever
- * narrows the pool, it never has to be populated to leave a job open.
- * Composite key, `destroy` reads it from the query string.
- */
 export default class JobEligibleMembersController {
   async index({ serialize }: HttpContext) {
     const jobs = await Job.query().preload('eligibleMembers').orderBy('id')

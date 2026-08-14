@@ -1,13 +1,19 @@
-import { SupplierFactory } from '#database/factories/supplier_factory'
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import { RestockFactory } from '#database/factories/restock_factory'
-import { MemberFactory } from '#database/factories/members_factory'
+import Supplier from '#models/supplier'
+import Member from '#models/member'
 
 export default class extends BaseSeeder {
   async run() {
-    // Write your database queries inside the run method
-    const suppliers = await SupplierFactory.createMany(5)
-    const members = await MemberFactory.createMany(5)
+    const suppliers = await Supplier.all()
+    const members = await Member.all()
+
+    if (suppliers.length === 0) {
+      throw new Error('RestockSeeder: no suppliers found. Run supplier_seeder first!')
+    }
+    if (members.length === 0) {
+      throw new Error('RestockSeeder: no members found. Run member_seeder first!')
+    }
 
     await RestockFactory.merge(
       Array.from({ length: 10 }, (_, index) => ({

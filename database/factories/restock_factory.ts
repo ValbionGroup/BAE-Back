@@ -7,8 +7,8 @@ export const RestockFactory = factory
   .define(Restock, async ({ faker }) => {
     return {
       totalPrice: faker.commerce.price(),
-      memberId: null, // Will be set by relation
-      supplierId: null, // Will be set by relation
+      memberId: null,
+      supplierId: null,
     }
   })
   .relation('member', () => MemberFactory)

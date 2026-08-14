@@ -16,17 +16,11 @@ import {
 } from '#services/rbac_service'
 
 export default class MembersController {
-  /**
-   * Display a list of resource
-   */
   async index({ serialize }: HttpContext) {
     const members = await Member.query().preload('role')
     return serialize(members)
   }
 
-  /**
-   * Handle form submission for the create action
-   */
   async store({ request, serialize }: HttpContext) {
     const { firstName, lastName } = request.all()
     const member = new Member()
@@ -36,33 +30,20 @@ export default class MembersController {
     return serialize(member)
   }
 
-  /**
-   * Show individual record
-   */
   async show({ params, serialize }: HttpContext) {
     const member = await Member.query().preload('role').where('id', params.id).first()
     if (!member) {
-      // `ApiException` et non `new Error` : le gestionnaire ne traite spécialement
-      // que la première. Une `Error` nue n'a même pas de statut et sort en 500
-      // franc, là où le client attend un 404 — et le front ne peut alors rien
-      // formuler d'utile.
       throw new ApiException('E_MEMBER_NOT_FOUND', 'Membre introuvable.', 404)
     }
     return serialize(member)
   }
 
-  /**
-   * Handle form submission for the edit action
-   */
   async update({ params, request, auth, serialize }: HttpContext) {
     const payload = await request.validateUsing(updateMemberValidator)
     const actorId = auth.getUserOrFail().id
     const targetId = Number(params.id)
 
     await db.transaction(async (trx) => {
-      // Pris avant toute lecture : le comptage final ne vaut que si un écrivain
-      // concurrent attend son tour. L'instantané suit immédiatement — il doit
-      // précéder la mutation, sans quoi il ne mesure plus l'état d'avant.
       await acquireRbacLock(trx)
       const atRisk = await snapshotAtRiskPermissions(trx)
 
@@ -85,8 +66,6 @@ export default class MembersController {
         member.roleId = payload.roleId
       }
 
-      // `!== undefined` et non un test de vérité : le validator distingue
-      // « champ absent » de « champ fourni », et seul le second doit écrire.
       if (payload.firstName !== undefined) member.firstName = payload.firstName
       if (payload.lastName !== undefined) member.lastName = payload.lastName
 
@@ -96,30 +75,10 @@ export default class MembersController {
       await assertNoLockout(trx, atRisk)
     })
 
-    // Rechargé APRÈS la transaction, et non via le modèle muté : `update`
-    // préchargeait `role` avant le `save()`, donc un changement de `roleId`
-    // renvoyait l'ancien rôle. Recharger sur le modèle lié à la transaction
-    // committée lèverait « Transaction is already committed » — d'où une requête
-    // neuve.
     const fresh = await Member.query().where('id', targetId).preload('role').firstOrFail()
     return serialize(fresh)
   }
 
-  /**
-   * Delete record
-   *
-   * Supprime le COMPTE, pas seulement la ligne `members` : un `users` sans
-   * `members` n'a aujourd'hui aucun usage légitime (la table `clients` du §4.4
-   * n'existe pas), et `ProfileController.show` déréférence `user.member` sans
-   * tester sa nullité — la personne recevrait un 500 au démarrage du dashboard
-   * au lieu d'un refus propre.
-   *
-   * Tout cascade depuis `users` : `members`, `auth_access_tokens` (la session
-   * meurt avec le compte), puis depuis `members` les préférences, réponses,
-   * affectations et éligibilités. `orders.member_id`, `restocks.member_id` et
-   * `logs.user_id` passent en `SET NULL` — l'historique de caisse et le journal
-   * d'audit survivent sans leur auteur.
-   */
   async destroy({ params, auth, response }: HttpContext) {
     const actorId = auth.getUserOrFail().id
     const targetId = Number(params.id)
@@ -133,8 +92,6 @@ export default class MembersController {
         throw new ApiException('E_MEMBER_NOT_FOUND', 'Membre introuvable.', 404)
       }
 
-      // Avant la règle 1, qui passerait trivialement sur soi-même : le geste
-      // détruit sa propre session au milieu de la requête.
       if (member.id === actorId) {
         throw new ApiException(
           'E_MEMBER_SELF_DELETE',
@@ -148,19 +105,15 @@ export default class MembersController {
         await permissionsOfMember(member.id, trx)
       )
 
+      // Deletes the ACCOUNT, not just the `members` row: everything cascades from
+      // `users`, and `ProfileController.show` dereferences `user.member` without
+      // testing for null — an orphaned `users` would answer 500.
       const user = await User.query({ client: trx }).where('id', member.id).first()
       if (user) {
         user.useTransaction(trx)
         await user.delete()
       }
 
-      // Prouvablement inatteignable ici : la règle 1 ci-dessus force l'acteur à
-      // porter tout ce que la cible porte, et l'auto-suppression est refusée plus
-      // haut, donc l'acteur survit toujours comme porteur — contrairement à
-      // `update`, où un acteur seul porteur de `role:write` qui met son propre
-      // `roleId` à `null` contourne `assertCanGrant` et n'est rattrapé qu'ici. On
-      // la garde quand même : décision arbitrée, défense en profondeur pour le
-      // jour où la liste protégée s'agrandit ou où la règle 1 s'assouplit.
       await assertNoLockout(trx, atRisk)
     })
 

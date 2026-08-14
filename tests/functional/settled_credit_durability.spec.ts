@@ -10,20 +10,6 @@ import { asCoordinator } from '#tests/helpers/permissions'
 import EventUnsettle from '../../commands/event_unsettle.js'
 import PointsRecompute from '../../commands/points_recompute.js'
 
-/**
- * `points:recompute` rebuilds `members.points` as the sum of the SETTLED
- * `points_delta`. That derivation is only sound while a settled row cannot
- * vanish — and the FKs of `member_event_assigned_jobs` used to be
- * `onDelete('CASCADE')`, so deleting an evening or a job erased the rows
- * without touching `members.points`.
- *
- * The reported sequence: +12 settled → `points = 12` → `DELETE /v1/events/E` →
- * `points = 12` → `points:recompute` → **`points = 0`**. The safety net was
- * the tool that wiped the credit.
- *
- * The fix keeps the settled ledger: a consolidated row is not deletable, so the
- * sum the command derives always has its source in front of it.
- */
 test.group('Settled credit durability', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
   group.each.setup(() => {
@@ -67,7 +53,6 @@ test.group('Settled credit durability', (group) => {
     assert.equal(await pointsOf(member.id), 12)
   })
 
-  /** The reported scenario, end to end. */
   test('points:recompute keeps the credit of a settled evening someone tried to delete', async ({
     client,
     assert,
@@ -127,8 +112,6 @@ test.group('Settled credit durability', (group) => {
     assert.lengthOf(rows, 0)
   })
 
-  /** The way out: un-settle first, then delete — the credit is given back
-   *  explicitly instead of evaporating. */
   test('lets the evening be deleted once event:unsettle has given the credit back', async ({
     client,
     assert,

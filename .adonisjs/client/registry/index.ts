@@ -432,6 +432,36 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/roster","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/roster","type":0,"val":"events","end":""},{"old":"/v1/events/:id/roster","type":1,"val":"id","end":""},{"old":"/v1/events/:id/roster","type":0,"val":"roster","end":""}],
     types: placeholder as Registry['events.roster']['types'],
   },
+  'event_products.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/products',
+    tokens: [{"old":"/v1/events/:id/products","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/products","type":0,"val":"events","end":""},{"old":"/v1/events/:id/products","type":1,"val":"id","end":""},{"old":"/v1/events/:id/products","type":0,"val":"products","end":""}],
+    types: placeholder as Registry['event_products.index']['types'],
+  },
+  'event_products.store': {
+    methods: ["POST"],
+    pattern: '/v1/events/:id/products',
+    tokens: [{"old":"/v1/events/:id/products","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/products","type":0,"val":"events","end":""},{"old":"/v1/events/:id/products","type":1,"val":"id","end":""},{"old":"/v1/events/:id/products","type":0,"val":"products","end":""}],
+    types: placeholder as Registry['event_products.store']['types'],
+  },
+  'event_products.update': {
+    methods: ["PATCH"],
+    pattern: '/v1/events/:id/products/:productId',
+    tokens: [{"old":"/v1/events/:id/products/:productId","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/products/:productId","type":0,"val":"events","end":""},{"old":"/v1/events/:id/products/:productId","type":1,"val":"id","end":""},{"old":"/v1/events/:id/products/:productId","type":0,"val":"products","end":""},{"old":"/v1/events/:id/products/:productId","type":1,"val":"productId","end":""}],
+    types: placeholder as Registry['event_products.update']['types'],
+  },
+  'event_products.destroy': {
+    methods: ["DELETE"],
+    pattern: '/v1/events/:id/products/:productId',
+    tokens: [{"old":"/v1/events/:id/products/:productId","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/products/:productId","type":0,"val":"events","end":""},{"old":"/v1/events/:id/products/:productId","type":1,"val":"id","end":""},{"old":"/v1/events/:id/products/:productId","type":0,"val":"products","end":""},{"old":"/v1/events/:id/products/:productId","type":1,"val":"productId","end":""}],
+    types: placeholder as Registry['event_products.destroy']['types'],
+  },
+  'event_products.shopping_list': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/shopping-list',
+    tokens: [{"old":"/v1/events/:id/shopping-list","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/shopping-list","type":0,"val":"events","end":""},{"old":"/v1/events/:id/shopping-list","type":1,"val":"id","end":""},{"old":"/v1/events/:id/shopping-list","type":0,"val":"shopping-list","end":""}],
+    types: placeholder as Registry['event_products.shopping_list']['types'],
+  },
   'events.run_matching': {
     methods: ["POST"],
     pattern: '/v1/events/:id/matching',

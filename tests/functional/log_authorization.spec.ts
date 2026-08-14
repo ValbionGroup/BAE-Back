@@ -5,12 +5,6 @@ import { UserFactory } from '#database/factories/user_factory'
 import { MemberFactory } from '#database/factories/members_factory'
 import { RoleFactory } from '#database/factories/role_factory'
 
-/**
- * `GET /v1/logs` used to be guarded by `middleware.auth()` alone, so any
- * authenticated member could read the whole audit trail — who did what, from
- * which IP, plus the response body of every non-auth request. It now requires
- * the `log:read` permission, resolved through member → role → roles_permissions.
- */
 test.group('Logs authorization', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
@@ -18,20 +12,16 @@ test.group('Logs authorization', (group) => {
     return Permission.firstOrCreate({ permission: 'log:read' }, { permission: 'log:read' })
   }
 
-  /**
-   * A user whose member row carries a role, optionally granted `log:read`.
-   *
-   * `MemberFactory` creates its OWN user in a `before('create')` hook and
-   * overwrites `member.id` with it, so passing an existing user id through
-   * `merge()` is silently discarded. Let the factory make the pair, then read
-   * the user back off the member.
-   */
   async function userWithRole(granted: boolean) {
     const role = await RoleFactory.create()
     if (granted) {
       const perm = await permission()
       await role.related('permissions').attach([perm.permission])
     }
+    // `MemberFactory` creates its OWN user in a `before('create')` hook and
+    // overwrites `member.id` with it: passing an existing user id through
+    // `merge()` is silently discarded. So let the factory make the pair, then read
+    // the user back off the member.
     const member = await MemberFactory.merge({ roleId: role.id }).create()
     return member.user
   }

@@ -232,8 +232,6 @@ test.group('Member administration', (group) => {
   })
 
   test('a peer sharing the protected role can still be deleted', async ({ client, assert }) => {
-    // La base peut déjà contenir d'autres porteurs (comptes réels en dev, rôles
-    // seedés) : sans les neutraliser, le décompte ne prouve rien.
     await db.from('roles_permissions').where('permission_id', 'role:write').delete()
     await db.from('roles_permissions').where('permission_id', 'role:read').delete()
 
@@ -250,8 +248,6 @@ test.group('Member administration', (group) => {
 
     const response = await client.delete(`/v1/members/${target.id}`).loginAs(user)
 
-    // L'acteur occupe encore le rôle protégé : la permission garde un porteur,
-    // la suppression est légitime et l'invariant n'a pas à s'y opposer.
     response.assertStatus(204)
     assert.isNull(await Member.find(target.id))
   })

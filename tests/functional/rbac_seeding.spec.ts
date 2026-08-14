@@ -34,4 +34,23 @@ test.group('RBAC seeding', (group) => {
       )
     }
   })
+
+  test('grants menu:read to every role and menu:write only to the menu owners', async ({
+    assert,
+  }) => {
+    await seed()
+
+    const roles = await Role.query().preload('permissions')
+    const held = (name: string) =>
+      roles.find((role) => role.name === name)!.permissions.map((entry) => entry.permission)
+
+    for (const role of ROLES) {
+      assert.include(held(role), 'menu:read', `${role} devrait porter menu:read`)
+    }
+
+    assert.include(held('Coordinateur'), 'menu:write')
+    assert.include(held('Pole Log'), 'menu:write')
+    assert.notInclude(held('Membre'), 'menu:write')
+    assert.notInclude(held('Secretaire'), 'menu:write')
+  })
 })
