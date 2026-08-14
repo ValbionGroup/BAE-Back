@@ -24,6 +24,7 @@ pnpm-debug.log*
 
 # Tests
 tests
+bin/test.ts
 coverage
 .nyc_output
 
