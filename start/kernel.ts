@@ -48,4 +48,5 @@ router.use([
  */
 export const middleware = router.named({
   auth: () => import('#middleware/auth_middleware'),
+  can: () => import('#middleware/permission_middleware'),
 })

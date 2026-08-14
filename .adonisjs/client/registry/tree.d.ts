@@ -24,6 +24,20 @@ export interface ApiDefinition {
     update: typeof routes['members.update']
     destroy: typeof routes['members.destroy']
   }
+  roles: {
+    index: typeof routes['roles.index']
+    store: typeof routes['roles.store']
+    show: typeof routes['roles.show']
+    update: typeof routes['roles.update']
+    destroy: typeof routes['roles.destroy']
+  }
+  permissions: {
+    index: typeof routes['permissions.index']
+    store: typeof routes['permissions.store']
+    show: typeof routes['permissions.show']
+    update: typeof routes['permissions.update']
+    destroy: typeof routes['permissions.destroy']
+  }
   categories: {
     index: typeof routes['categories.index']
     store: typeof routes['categories.store']
@@ -31,21 +45,14 @@ export interface ApiDefinition {
     update: typeof routes['categories.update']
     destroy: typeof routes['categories.destroy']
   }
-  furnitures: {
-    index: typeof routes['furnitures.index']
-    store: typeof routes['furnitures.store']
-    show: typeof routes['furnitures.show']
-    update: typeof routes['furnitures.update']
-    destroy: typeof routes['furnitures.destroy']
-  }
   products: {
+    summary: typeof routes['products.summary']
+    ingredients: typeof routes['products.ingredients']
     index: typeof routes['products.index']
     store: typeof routes['products.store']
     show: typeof routes['products.show']
     update: typeof routes['products.update']
     destroy: typeof routes['products.destroy']
-    summary: typeof routes['products.summary']
-    ingredients: typeof routes['products.ingredients']
   }
   goods: {
     index: typeof routes['goods.index']
@@ -54,6 +61,13 @@ export interface ApiDefinition {
     update: typeof routes['goods.update']
     destroy: typeof routes['goods.destroy']
   }
+  furnitures: {
+    index: typeof routes['furnitures.index']
+    store: typeof routes['furnitures.store']
+    show: typeof routes['furnitures.show']
+    update: typeof routes['furnitures.update']
+    destroy: typeof routes['furnitures.destroy']
+  }
   suppliers: {
     index: typeof routes['suppliers.index']
     store: typeof routes['suppliers.store']
@@ -61,12 +75,10 @@ export interface ApiDefinition {
     update: typeof routes['suppliers.update']
     destroy: typeof routes['suppliers.destroy']
   }
-  restocks: {
-    index: typeof routes['restocks.index']
-    store: typeof routes['restocks.store']
-    show: typeof routes['restocks.show']
-    update: typeof routes['restocks.update']
-    destroy: typeof routes['restocks.destroy']
+  stocks: {
+    index: typeof routes['stocks.index']
+    batches: typeof routes['stocks.batches']
+    discard: typeof routes['stocks.discard']
   }
   stockBatches: {
     index: typeof routes['stock_batches.index']
@@ -82,26 +94,12 @@ export interface ApiDefinition {
     update: typeof routes['stock_movements.update']
     destroy: typeof routes['stock_movements.destroy']
   }
-  logs: {
-    index: typeof routes['logs.index']
-    store: typeof routes['logs.store']
-    show: typeof routes['logs.show']
-    update: typeof routes['logs.update']
-    destroy: typeof routes['logs.destroy']
-  }
-  roles: {
-    index: typeof routes['roles.index']
-    store: typeof routes['roles.store']
-    show: typeof routes['roles.show']
-    update: typeof routes['roles.update']
-    destroy: typeof routes['roles.destroy']
-  }
-  permissions: {
-    index: typeof routes['permissions.index']
-    store: typeof routes['permissions.store']
-    show: typeof routes['permissions.show']
-    update: typeof routes['permissions.update']
-    destroy: typeof routes['permissions.destroy']
+  restocks: {
+    index: typeof routes['restocks.index']
+    store: typeof routes['restocks.store']
+    show: typeof routes['restocks.show']
+    update: typeof routes['restocks.update']
+    destroy: typeof routes['restocks.destroy']
   }
   events: {
     index: typeof routes['events.index']
@@ -112,10 +110,71 @@ export interface ApiDefinition {
     getResponse: typeof routes['events.get_response']
     setResponse: typeof routes['events.set_response']
     roster: typeof routes['events.roster']
+    runMatching: typeof routes['events.run_matching']
   }
-  stocks: {
-    index: typeof routes['stocks.index']
-    batches: typeof routes['stocks.batches']
-    discard: typeof routes['stocks.discard']
+  jobs: {
+    index: typeof routes['jobs.index']
+    store: typeof routes['jobs.store']
+    show: typeof routes['jobs.show']
+    update: typeof routes['jobs.update']
+    destroy: typeof routes['jobs.destroy']
+  }
+  eventJobs: {
+    index: typeof routes['event_jobs.index']
+    store: typeof routes['event_jobs.store']
+    update: typeof routes['event_jobs.update']
+    destroy: typeof routes['event_jobs.destroy']
+  }
+  assignments: {
+    index: typeof routes['assignments.index']
+    store: typeof routes['assignments.store']
+    update: typeof routes['assignments.update']
+    destroy: typeof routes['assignments.destroy']
+  }
+  responses: {
+    index: typeof routes['responses.index']
+  }
+  preferences: {
+    index: typeof routes['preferences.index']
+  }
+  jobEligibleMembers: {
+    index: typeof routes['job_eligible_members.index']
+    store: typeof routes['job_eligible_members.store']
+    destroy: typeof routes['job_eligible_members.destroy']
+  }
+  accountPreferences: {
+    preferences: {
+      mine: typeof routes['account_preferences.preferences.mine']
+      updateMine: typeof routes['account_preferences.preferences.update_mine']
+    }
+  }
+  fastPasses: {
+    index: typeof routes['fast_passes.index']
+    store: typeof routes['fast_passes.store']
+    show: typeof routes['fast_passes.show']
+    update: typeof routes['fast_passes.update']
+    destroy: typeof routes['fast_passes.destroy']
+  }
+  transactions: {
+    index: typeof routes['transactions.index']
+  }
+  vouchers: {
+    index: typeof routes['vouchers.index']
+    store: typeof routes['vouchers.store']
+    update: typeof routes['vouchers.update']
+    destroy: typeof routes['vouchers.destroy']
+  }
+  logs: {
+    index: typeof routes['logs.index']
+    store: typeof routes['logs.store']
+    show: typeof routes['logs.show']
+    update: typeof routes['logs.update']
+    destroy: typeof routes['logs.destroy']
+  }
+  sessions: {
+    sessions: {
+      index: typeof routes['sessions.sessions.index']
+      destroy: typeof routes['sessions.sessions.destroy']
+    }
   }
 }

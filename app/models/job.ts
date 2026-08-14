@@ -22,4 +22,10 @@ export default class Job extends JobSchema {
     pivotColumns: ['rank'],
   })
   declare preferences: ManyToMany<typeof Member>
+
+  @manyToMany(() => Member, {
+    pivotTable: 'job_eligible_members',
+    pivotTimestamps: true,
+  })
+  declare eligibleMembers: ManyToMany<typeof Member>
 }

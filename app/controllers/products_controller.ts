@@ -1,14 +1,23 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Product from '#models/product'
-import type Good from '#models/good'
 import db from '@adonisjs/lucid/services/db'
 import { loadBatchesWithRemaining } from '#services/stock_service'
+import { minSupplierPrice } from '#services/pricing_service'
 
-function minSupplierPrice(good: Good): number | null {
-  const prices = good.suppliers
-    .map((supplier) => Number(supplier.$extras.pivot_price))
-    .filter((price) => !Number.isNaN(price))
-  return prices.length > 0 ? Math.min(...prices) : null
+/**
+ * A product has no category of its own — only its goods do. We label it with the
+ * category of its primary ingredient, i.e. the good with the lowest `rank` in the
+ * `product_goods` pivot, which is the same ordering `ingredients()` returns.
+ *
+ * Returns `null` for a product with no goods, or whose primary good is uncategorised.
+ */
+function primaryCategoryName(product: Product): string | null {
+  const [primary] = [...product.goods].sort(
+    (a, b) =>
+      Number(a.$extras.pivot_rank ?? 0) - Number(b.$extras.pivot_rank ?? 0) ||
+      a.name.localeCompare(b.name)
+  )
+  return primary?.category?.name ?? null
 }
 
 export default class ProductsController {
@@ -84,7 +93,7 @@ export default class ProductsController {
           `(SELECT ep.price FROM event_products ep JOIN events e ON e.id = ep.event_id WHERE ep.product_id = products.id ORDER BY e.date DESC LIMIT 1) as last_price`
         )
       )
-      .preload('goods', (goodsQuery) => goodsQuery.preload('suppliers'))
+      .preload('goods', (goodsQuery) => goodsQuery.preload('suppliers').preload('category'))
       .orderBy('name')
 
     const summaries = products.map((product) => {
@@ -102,6 +111,7 @@ export default class ProductsController {
         id: product.id,
         name: product.name,
         isVegetarian: product.isVegetarian,
+        category: primaryCategoryName(product),
         ingredientCount: product.goods.length,
         lastPrice: lastPrice === null || lastPrice === undefined ? null : Number(lastPrice),
         cost,

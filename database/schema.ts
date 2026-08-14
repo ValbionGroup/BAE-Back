@@ -14,11 +14,13 @@ export class AuthAccessTokenSchema extends BaseModel {
     'expiresAt',
     'hash',
     'id',
+    'ipAddress',
     'lastUsedAt',
     'name',
     'tokenableId',
     'type',
     'updatedAt',
+    'userAgent',
   ] as const
   $columns = AuthAccessTokenSchema.$columns
   @column()
@@ -31,6 +33,8 @@ export class AuthAccessTokenSchema extends BaseModel {
   declare hash: string
   @column({ isPrimary: true })
   declare id: number
+  @column()
+  declare ipAddress: string | null
   @column.dateTime()
   declare lastUsedAt: DateTime | null
   @column()
@@ -41,6 +45,8 @@ export class AuthAccessTokenSchema extends BaseModel {
   declare type: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+  @column()
+  declare userAgent: string | null
 }
 
 export class CategorySchema extends BaseModel {
@@ -196,6 +202,19 @@ export class GoodSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class JobEligibleMemberSchema extends BaseModel {
+  static $columns = ['createdAt', 'jobId', 'memberId', 'updatedAt'] as const
+  $columns = JobEligibleMemberSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare jobId: number
+  @column()
+  declare memberId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class JobSchema extends BaseModel {
   static $columns = ['createdAt', 'description', 'id', 'name', 'type', 'updatedAt'] as const
   $columns = JobSchema.$columns
@@ -247,7 +266,15 @@ export class LogSchema extends BaseModel {
 }
 
 export class MemberEventAssignedJobSchema extends BaseModel {
-  static $columns = ['createdAt', 'eventId', 'jobId', 'memberId', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'eventId',
+    'jobId',
+    'locked',
+    'memberId',
+    'pointsDelta',
+    'updatedAt',
+  ] as const
   $columns = MemberEventAssignedJobSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -255,8 +282,12 @@ export class MemberEventAssignedJobSchema extends BaseModel {
   declare eventId: number
   @column()
   declare jobId: number
+  @column()
+  declare locked: boolean
   @column({ isPrimary: true })
   declare memberId: number
+  @column()
+  declare pointsDelta: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -624,7 +655,7 @@ export class UserSchema extends BaseModel {
   static $columns = ['casId', 'createdAt', 'email', 'id', 'password', 'updatedAt'] as const
   $columns = UserSchema.$columns
   @column()
-  declare casId: string
+  declare casId: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
@@ -635,4 +666,34 @@ export class UserSchema extends BaseModel {
   declare password: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+}
+
+export class VoucherSchema extends BaseModel {
+  static $columns = [
+    'condition',
+    'createdAt',
+    'expiresAt',
+    'id',
+    'supplierId',
+    'updatedAt',
+    'usedAt',
+    'value',
+  ] as const
+  $columns = VoucherSchema.$columns
+  @column()
+  declare condition: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column.date()
+  declare expiresAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare supplierId: number | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column.dateTime()
+  declare usedAt: DateTime | null
+  @column()
+  declare value: string
 }

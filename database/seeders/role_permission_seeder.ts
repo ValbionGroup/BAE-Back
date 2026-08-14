@@ -29,6 +29,7 @@ export default class extends BaseSeeder {
         'restock:update',
         'restock:create',
         'restock:delete',
+        'log:read',
       ],
       Service: [
         'presence:read',
@@ -50,12 +51,16 @@ export default class extends BaseSeeder {
         'restock:update',
         'restock:create',
       ],
+      // Présidence and Trésorerie are the two admin scopes the app already
+      // claims ("admin réservé Présidence + Trésorerie"), so they are the two
+      // roles trusted with the audit trail.
       Finance: [
         'supplier:read',
         'supplier:update',
         'restock:read',
         'restock:update',
         'product:read',
+        'log:read',
       ],
       HR: ['presence:write', 'presence:read'],
     }

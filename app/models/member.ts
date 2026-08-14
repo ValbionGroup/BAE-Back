@@ -32,6 +32,12 @@ export default class Member extends MemberSchema {
   })
   declare preferences: ManyToMany<typeof Job>
 
+  @manyToMany(() => Job, {
+    pivotTable: 'job_eligible_members',
+    pivotTimestamps: true,
+  })
+  declare eligibleForJobs: ManyToMany<typeof Job>
+
   @hasMany(() => MemberEventAssignedJob)
   declare assigned: HasMany<typeof MemberEventAssignedJob>
 
