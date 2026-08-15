@@ -376,6 +376,7 @@ export class OrderProductSchema extends BaseModel {
 
 export class OrderSchema extends BaseModel {
   static $columns = [
+    'clientId',
     'createdAt',
     'eventId',
     'id',
@@ -385,6 +386,8 @@ export class OrderSchema extends BaseModel {
     'updatedAt',
   ] as const
   $columns = OrderSchema.$columns
+  @column()
+  declare clientId: number | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
   @column()
