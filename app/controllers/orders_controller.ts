@@ -25,7 +25,8 @@ export default class OrdersController {
       Number(params.id),
       payload.lines,
       cashier?.id ?? null,
-      payload.clientId ?? null
+      payload.clientId ?? null,
+      payload.paymentMethod ?? 'cash'
     )
 
     broadcastOrder('order.created', order)

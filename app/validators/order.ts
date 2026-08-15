@@ -15,6 +15,8 @@ export const orderCheckoutValidator = vine.create({
     )
     .minLength(1),
   clientId: vine.number().positive().optional(),
+  // Contraint par l'enum de `transactions.type`.
+  paymentMethod: vine.enum(['cash', 'lydia'] as const).optional(),
 })
 
 export const orderStatusValidator = vine.create({

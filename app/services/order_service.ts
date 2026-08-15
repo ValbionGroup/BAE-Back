@@ -53,6 +53,8 @@ export type OrderPayload = {
   lines: OrderLinePayload[]
   totalCents: number
   createdAt: string | null
+  /** Dernière transition — alimente le temps moyen de préparation. */
+  updatedAt: string | null
 }
 
 export interface CheckoutLine {
@@ -144,6 +146,7 @@ function buildPayload(
     lines,
     totalCents,
     createdAt: order.createdAt?.toISO() ?? null,
+    updatedAt: order.updatedAt?.toISO() ?? null,
   }
 }
 
@@ -155,7 +158,8 @@ export async function checkout(
   eventId: number,
   lines: readonly CheckoutLine[],
   memberId: number | null,
-  clientId: number | null
+  clientId: number | null,
+  paymentMethod: 'cash' | 'lydia' = 'cash'
 ): Promise<OrderPayload> {
   const quantities = mergeLines(lines)
 
@@ -185,7 +189,7 @@ export async function checkout(
 
     const transaction = new Transaction()
     transaction.useTransaction(trx)
-    transaction.type = 'cash'
+    transaction.type = paymentMethod
     // Centimes → euros, en chaîne : `decimal` transite en string dans les deux sens.
     transaction.amount = (totalCents / 100).toFixed(2)
     await transaction.save()
