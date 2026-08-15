@@ -3,7 +3,8 @@ import { DateTime } from 'luxon'
 import { errors as joseErrors } from 'jose'
 import ApiException from '#exceptions/api_exception'
 import JwtService from '#services/jwt_service'
-import { describeBuyer, searchBuyers } from '#services/buyer_service'
+import { describeBuyer, searchBuyers, validFastPass } from '#services/buyer_service'
+import { pickupFor } from '#services/pre_order_service'
 import { qrVerifyValidator, buyerSearchValidator } from '#validators/qr'
 
 /**
@@ -46,15 +47,27 @@ export default class QrsController {
       throw new ApiException('E_QR_INVALID', "Ce QR n'est pas valide.", 401)
     }
 
-    if (payload.type !== 'identity') {
-      throw new ApiException(
-        'E_QR_WRONG_TYPE',
-        "Ce QR n'identifie pas une personne : il ne peut pas être utilisé ici.",
-        422
-      )
+    // Le type vit **dans** le jeton précisément pour que le comptoir n'ait qu'un
+    // seul scanner : les trois QR de l'association passent par ici.
+    if (payload.type === 'pre_order') {
+      return serialize({
+        kind: 'pre_order' as const,
+        buyer: await describeBuyer(payload.userId),
+        preOrder: await pickupFor(payload.preOrderId, payload.userId),
+      })
     }
 
-    return serialize(await describeBuyer(payload.userId))
+    if (payload.type === 'fast_pass') {
+      // Un fast pass identifie son porteur aussi bien qu'un QR d'identité ; ce
+      // qui décide, c'est l'échéance, pas le type du jeton.
+      const pass = await validFastPass(payload.userId, payload.fastPassId)
+      if (!pass) {
+        throw new ApiException('E_FAST_PASS_EXPIRED', "Ce fast pass n'est plus valide.", 422)
+      }
+      return serialize({ kind: 'buyer' as const, buyer: await describeBuyer(payload.userId) })
+    }
+
+    return serialize({ kind: 'buyer' as const, buyer: await describeBuyer(payload.userId) })
   }
 
   /** Chemin dégradé : retrouver un acheteur par son nom. */

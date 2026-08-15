@@ -44,9 +44,10 @@ test.group('QR d’identité — émission et vérification', (group) => {
     const response = await client.post('/v1/qr/verify').json({ token }).loginAs(user)
 
     response.assertStatus(200)
-    assert.equal(response.body().data.user_id, buyer.id)
-    assert.equal(response.body().data.name, 'Camille Renard')
-    assert.isNull(response.body().data.fast_pass)
+    assert.equal(response.body().data.kind, 'buyer')
+    assert.equal(response.body().data.buyer.user_id, buyer.id)
+    assert.equal(response.body().data.buyer.name, 'Camille Renard')
+    assert.isNull(response.body().data.buyer.fast_pass)
   })
 
   test('remonte le fast pass en cours de validité', async ({ client, assert }) => {
@@ -58,7 +59,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
     const response = await client.post('/v1/qr/verify').json({ token }).loginAs(user)
 
     response.assertStatus(200)
-    assert.equal(response.body().data.fast_pass.label, 'Pass Annuel')
+    assert.equal(response.body().data.buyer.fast_pass.label, 'Pass Annuel')
   })
 
   test('ignore un fast pass échu — la validité est dérivée, pas stockée', async ({
@@ -74,7 +75,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
     const response = await client.post('/v1/qr/verify').json({ token }).loginAs(user)
 
     response.assertStatus(200)
-    assert.isNull(response.body().data.fast_pass)
+    assert.isNull(response.body().data.buyer.fast_pass)
   })
 
   test('distingue un QR expiré d’un QR invalide', async ({ client, assert }) => {
@@ -103,21 +104,39 @@ test.group('QR d’identité — émission et vérification', (group) => {
     assert.equal(garbageResponse.body().error.code, 'E_QR_INVALID')
   })
 
-  test('refuse un QR de précommande sur cette route', async ({ client, assert }) => {
-    const buyer = await MemberFactory.create()
+  test('un QR de fast pass valide identifie son porteur', async ({ client, assert }) => {
+    const buyer = await MemberFactory.merge({ firstName: 'Tom', lastName: 'Bessiere' }).create()
+    const pass = await subscribe(buyer.id, 'Pass Annuel', 365, 10)
     const user = await grantPermissions(await MemberFactory.create(), ['order:write'])
 
     const token = await new JwtService().generateQrToken({
-      type: 'pre_order',
+      type: 'fast_pass',
       userId: buyer.id,
-      preOrderId: 1,
-      eventId: 1,
+      fastPassId: pass.id,
+    })
+
+    const response = await client.post('/v1/qr/verify').json({ token }).loginAs(user)
+
+    response.assertStatus(200)
+    assert.equal(response.body().data.kind, 'buyer')
+    assert.equal(response.body().data.buyer.name, 'Tom Bessiere')
+  })
+
+  test('un fast pass echu est refuse, meme signe', async ({ client, assert }) => {
+    const buyer = await MemberFactory.create()
+    const pass = await subscribe(buyer.id, 'Pass Annuel', 365, 400)
+    const user = await grantPermissions(await MemberFactory.create(), ['order:write'])
+
+    const token = await new JwtService().generateQrToken({
+      type: 'fast_pass',
+      userId: buyer.id,
+      fastPassId: pass.id,
     })
 
     const response = await client.post('/v1/qr/verify').json({ token }).loginAs(user)
 
     response.assertStatus(422)
-    assert.equal(response.body().error.code, 'E_QR_WRONG_TYPE')
+    assert.equal(response.body().error.code, 'E_FAST_PASS_EXPIRED')
   })
 
   test('vérifier un QR exige order:write', async ({ client, assert }) => {

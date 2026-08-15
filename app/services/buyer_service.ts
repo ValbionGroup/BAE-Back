@@ -97,6 +97,36 @@ export async function describeBuyer(userId: number): Promise<Buyer> {
 }
 
 /**
+ * Le fast pass désigné par un QR, s'il est encore valide.
+ *
+ * Un QR de fast pass identifie donc son porteur aussi bien qu'un QR d'identité :
+ * ce qu'il ajoute, c'est la preuve du droit. C'est l'échéance qui décide, pas le
+ * type du jeton — un pass échu ne vaut plus rien, même signé.
+ */
+export async function validFastPass(
+  userId: number,
+  fastPassId: number,
+  now: DateTime = DateTime.now()
+): Promise<BuyerFastPass | null> {
+  const rows = await db
+    .from('subscriptions')
+    .join('fast_passes', 'fast_passes.id', 'subscriptions.fast_pass_id')
+    .where('subscriptions.user_id', userId)
+    .where('subscriptions.fast_pass_id', fastPassId)
+    .select('fast_passes.label', 'fast_passes.duration', 'subscriptions.subscribed_at')
+
+  for (const row of rows) {
+    const start = DateTime.fromJSDate(new Date(row.subscribed_at))
+    if (!start.isValid) continue
+
+    const end = start.plus({ days: Number(row.duration) })
+    if (end > now) return { label: String(row.label), validUntil: end.toISO()! }
+  }
+
+  return null
+}
+
+/**
  * Chemin dégradé du comptoir, et il n'est pas facultatif : `BarcodeDetector`
  * n'existe ni sous Firefox ni sous Safari, la caméra exige HTTPS, et le
  * téléphone du client peut être déchargé.
