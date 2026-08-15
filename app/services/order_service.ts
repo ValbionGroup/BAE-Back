@@ -4,11 +4,40 @@ import Event from '#models/event'
 import Order from '#models/order'
 import Transaction from '#models/transaction'
 import ApiException from '#exceptions/api_exception'
-import { ANONYMOUS_BUYER, resolveBuyerNames } from '#services/buyer_service'
+import { ANONYMOUS_BUYER, resolveBuyerName, resolveBuyerNames } from '#services/buyer_service'
 
 export const ORDER_STATUSES = ['pending', 'in_progress', 'ready', 'completed', 'cancelled'] as const
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
+
+/** Libellés lus au comptoir : les refus doivent nommer des états, pas des codes. */
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'en attente',
+  in_progress: 'en préparation',
+  ready: 'prête',
+  completed: 'servie',
+  cancelled: 'annulée',
+}
+
+/**
+ * Transitions légales. **Le serveur arbitre, pas l'écran.**
+ *
+ * La caisse et la cuisine regardent la même commande : sans cette table, un
+ * rafraîchissement tardif d'un des deux postes ferait reculer une commande déjà
+ * prête. Le `nextStatus()` du front reste un confort d'interface — il décide
+ * quel bouton afficher, pas ce qui est permis.
+ *
+ * `completed` et `cancelled` sont terminaux : une commande servie ne s'annule
+ * plus (l'argent est encaissé, le geste serait un remboursement, pas une
+ * annulation).
+ */
+const ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
+  pending: ['in_progress', 'cancelled'],
+  in_progress: ['ready', 'cancelled'],
+  ready: ['completed', 'cancelled'],
+  completed: [],
+  cancelled: [],
+}
 
 export interface OrderLinePayload {
   productId: number
@@ -252,4 +281,71 @@ export async function listForEvent(eventId: number): Promise<OrderPayload[]> {
       )
     )
     .reverse()
+}
+
+/** Recompose la charge utile d'une commande déjà écrite. */
+async function payloadOf(order: Order): Promise<OrderPayload> {
+  const menu = await menuOf(order.eventId!)
+
+  const pivots = await db
+    .from('order_products')
+    .where('order_id', order.id)
+    .select('product_id', 'quantity')
+
+  const quantities = new Map(
+    pivots.map((row) => [Number(row.product_id), Number(row.quantity)] as const)
+  )
+
+  return buildPayload(
+    order,
+    quantities,
+    menu,
+    await numberOf(order),
+    await resolveBuyerName(order.clientId ?? null)
+  )
+}
+
+function assertTransition(from: string, to: OrderStatus): void {
+  const allowed = ALLOWED_TRANSITIONS[from as OrderStatus] ?? []
+  if (allowed.includes(to)) return
+
+  const fromLabel = STATUS_LABELS[from as OrderStatus] ?? from
+  throw new ApiException(
+    'E_ORDER_INVALID_TRANSITION',
+    `Une commande ${fromLabel} ne peut pas passer ${STATUS_LABELS[to]}.`,
+    409
+  )
+}
+
+/**
+ * Fait avancer une commande, en refusant toute transition illégale.
+ *
+ * Le statut est relu **dans la transaction**, sous verrou de ligne : deux postes
+ * qui valident simultanément la même commande verraient sinon tous deux l'état
+ * d'avant et la feraient avancer deux fois.
+ */
+export async function setStatus(orderId: number, next: OrderStatus): Promise<OrderPayload> {
+  const order = await db.transaction(async (trx) => {
+    const locked = await Order.query({ client: trx }).where('id', orderId).forUpdate().first()
+    if (!locked) {
+      throw new ApiException('E_ORDER_NOT_FOUND', "Cette commande n'existe pas.", 404)
+    }
+
+    assertTransition(locked.status, next)
+
+    locked.status = next
+    await locked.save()
+    return locked
+  })
+
+  return payloadOf(order)
+}
+
+/**
+ * Annule une commande. C'est une **transition**, pas une suppression : la ligne
+ * reste en base, ce qui garde la numérotation par soirée stable et laisse une
+ * trace de ce qui a été encaissé puis rendu.
+ */
+export async function cancel(orderId: number): Promise<OrderPayload> {
+  return setStatus(orderId, 'cancelled')
 }

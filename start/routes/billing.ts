@@ -24,6 +24,18 @@ router
       .get('/transactions', [controllers.Transactions, 'index'])
       .use(middleware.can('transaction:read'))
 
+    // Gestes portant sur une commande précise. La liste et la création, elles,
+    // sont imbriquées sous la soirée (`start/routes/events.ts`).
+    router
+      .patch('/orders/:id/status', [controllers.Orders, 'setStatus'])
+      .use(middleware.can('order:write'))
+
+    // `order:delete` et non `order:write` : annuler porte sur de l'argent déjà
+    // encaissé, là où avancer un statut est le geste courant de la cuisine.
+    router
+      .delete('/orders/:id', [controllers.Orders, 'destroy'])
+      .use(middleware.can('order:delete'))
+
     router.get('/vouchers', [controllers.Vouchers, 'index']).use(middleware.can('voucher:read'))
     router.post('/vouchers', [controllers.Vouchers, 'store']).use(middleware.can('voucher:write'))
     router

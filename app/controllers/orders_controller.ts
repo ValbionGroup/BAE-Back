@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Member from '#models/member'
-import { checkout, listForEvent } from '#services/order_service'
-import { orderCheckoutValidator } from '#validators/order'
+import { cancel, checkout, listForEvent, setStatus } from '#services/order_service'
+import { orderCheckoutValidator, orderStatusValidator } from '#validators/order'
 
 export default class OrdersController {
   async index({ params, serialize }: HttpContext) {
@@ -26,5 +26,19 @@ export default class OrdersController {
 
     response.status(201)
     return serialize(order)
+  }
+
+  async setStatus({ params, request, serialize }: HttpContext) {
+    const payload = await request.validateUsing(orderStatusValidator)
+    return serialize(await setStatus(Number(params.id), payload.status))
+  }
+
+  /**
+   * Annule la commande. La ligne **reste** en base : c'est une transition vers
+   * `cancelled`, pas une suppression — la numérotation par soirée en dépend, et
+   * une commande encaissée puis rendue doit laisser une trace.
+   */
+  async destroy({ params, serialize }: HttpContext) {
+    return serialize(await cancel(Number(params.id)))
   }
 }
