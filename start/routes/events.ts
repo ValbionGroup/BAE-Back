@@ -57,6 +57,10 @@ router
       .use(middleware.can('order:write'))
 
     router
+      .get('/events/:id/sellable', [controllers.Orders, 'sellable'])
+      .use(middleware.can('order:read'))
+
+    router
       .get('/events/:id/production-runs', [controllers.ProductionRuns, 'index'])
       .use(middleware.can('stock:read'))
 

@@ -1,6 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Member from '#models/member'
-import { cancel, checkout, listForEvent, setStatus } from '#services/order_service'
+import {
+  cancel,
+  checkout,
+  listForEvent,
+  sellableForEvent,
+  setStatus,
+} from '#services/order_service'
 import { orderCheckoutValidator, orderStatusValidator } from '#validators/order'
 
 export default class OrdersController {
@@ -26,6 +32,11 @@ export default class OrdersController {
 
     response.status(201)
     return serialize(order)
+  }
+
+  /** Ce qu'il reste à vendre, par recette — le stock vu du comptoir. */
+  async sellable({ params, serialize }: HttpContext) {
+    return serialize(await sellableForEvent(Number(params.id)))
   }
 
   async setStatus({ params, request, serialize }: HttpContext) {

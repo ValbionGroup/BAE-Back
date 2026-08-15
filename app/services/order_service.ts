@@ -283,6 +283,76 @@ export async function listForEvent(eventId: number): Promise<OrderPayload[]> {
     .reverse()
 }
 
+export interface SellableLine {
+  productId: number
+  productName: string
+  /** Quantité inscrite au menu de la soirée (`event_products.quantity`). */
+  plannedQty: number
+  /** Ce que la cuisine a réellement assemblé (`Σ production_runs.quantity`). */
+  producedQty: number
+  /** Ce qui a été vendu, **commandes annulées exclues**. */
+  soldQty: number
+  remainingQty: number
+}
+
+/**
+ * Ce qu'il reste à vendre au comptoir, par recette.
+ *
+ * `remainingQty = max(0, produit − vendu)`. Le plancher à zéro n'est pas
+ * cosmétique : on assemble à la demande, donc vendre plus que ce qui a été
+ * lancé est un cas normal, pas une incohérence à afficher en négatif.
+ *
+ * ⚠️ **Les commandes annulées sont exclues du vendu.** Les compter reviendrait à
+ * rendre invendables des articles qui n'ont jamais quitté le comptoir — c'est la
+ * subtilité qui ferait mentir tout l'écran si elle était oubliée.
+ *
+ * Deux requêtes agrégées, jamais une boucle par produit.
+ */
+export async function sellableForEvent(eventId: number): Promise<SellableLine[]> {
+  const menuRows = await db
+    .from('event_products')
+    .join('products', 'products.id', 'event_products.product_id')
+    .where('event_products.event_id', eventId)
+    .select('event_products.product_id', 'event_products.quantity', 'products.name')
+    .orderBy('products.name')
+
+  if (menuRows.length === 0) return []
+
+  const produced = await db
+    .from('production_runs')
+    .where('event_id', eventId)
+    .groupBy('product_id')
+    .select('product_id')
+    .sum('quantity as total')
+
+  const sold = await db
+    .from('order_products')
+    .join('orders', 'orders.id', 'order_products.order_id')
+    .where('orders.event_id', eventId)
+    .whereNot('orders.status', 'cancelled')
+    .groupBy('order_products.product_id')
+    .select('order_products.product_id')
+    .sum('order_products.quantity as total')
+
+  const producedBy = new Map(produced.map((row) => [Number(row.product_id), Number(row.total)]))
+  const soldBy = new Map(sold.map((row) => [Number(row.product_id), Number(row.total)]))
+
+  return menuRows.map((row) => {
+    const productId = Number(row.product_id)
+    const producedQty = producedBy.get(productId) ?? 0
+    const soldQty = soldBy.get(productId) ?? 0
+
+    return {
+      productId,
+      productName: String(row.name),
+      plannedQty: Number(row.quantity),
+      producedQty,
+      soldQty,
+      remainingQty: Math.max(0, producedQty - soldQty),
+    }
+  })
+}
+
 /** Recompose la charge utile d'une commande déjà écrite. */
 async function payloadOf(order: Order): Promise<OrderPayload> {
   const menu = await menuOf(order.eventId!)
