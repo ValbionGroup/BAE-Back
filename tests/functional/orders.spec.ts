@@ -201,6 +201,30 @@ test.group('Orders — encaissement', (group) => {
     response.assertStatus(403)
     assert.equal(response.body().error.code, 'E_FORBIDDEN')
   })
+
+  test('la numerotation repart a 1 sur chaque soiree', async ({ client, assert }) => {
+    const first = await seedMenu()
+    const second = await seedMenu()
+    const user = await grantPermissions(await MemberFactory.create(), ['order:write', 'order:read'])
+
+    // Deux commandes sur la premiere soiree.
+    for (let i = 0; i < 2; i++) {
+      await client
+        .post(`/v1/events/${first.event.id}/orders`)
+        .json({ lines: [{ product_id: first.hotdog.id, quantity: 1 }] })
+        .loginAs(user)
+    }
+
+    // La premiere commande de la soiree suivante doit porter le numero 1, et non
+    // 3 : le comptoir annonce « commande 1 » a chaque soiree, comme un fast-food.
+    const response = await client
+      .post(`/v1/events/${second.event.id}/orders`)
+      .json({ lines: [{ product_id: second.hotdog.id, quantity: 1 }] })
+      .loginAs(user)
+
+    response.assertStatus(201)
+    assert.equal(response.body().data.number, 1)
+  })
 })
 
 test.group('Orders — lecture', (group) => {
