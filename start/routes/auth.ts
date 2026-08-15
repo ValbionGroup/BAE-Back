@@ -15,6 +15,7 @@ router
 router
   .group(() => {
     router.get('/profile', [controllers.Profile, 'show'])
+    router.get('/qr', [controllers.Qrs, 'mine'])
   })
   .prefix('v1/account')
   .as('profile')

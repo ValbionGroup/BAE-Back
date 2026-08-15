@@ -18,10 +18,7 @@ export default class OrdersController {
   async store({ params, request, response, serialize, auth }: HttpContext) {
     const payload = await request.validateUsing(orderCheckoutValidator)
 
-    // Qui a **pris** la commande — à ne pas confondre avec `clientId`, qui est
-    // l'acheteur. `auth.user.id` vaut `members.id` (clé primaire partagée), mais
-    // on vérifie la ligne : un `users` sans `members` deviendra possible dès que
-    // la table `clients` existera.
+    // Qui a pris la commande, à ne pas confondre avec `clientId` (l'acheteur).
     const cashier = auth.user ? await Member.find(auth.user.id) : null
 
     const order = await checkout(
@@ -31,15 +28,13 @@ export default class OrdersController {
       payload.clientId ?? null
     )
 
-    // Après le commit de `checkout`, jamais dedans : un rollback ne doit pas
-    // avoir fait apparaître la commande sur l'écran de cuisine.
     broadcastOrder('order.created', order)
 
     response.status(201)
     return serialize(order)
   }
 
-  /** Ce qu'il reste à vendre, par recette — le stock vu du comptoir. */
+  /** Le stock vu du comptoir. */
   async sellable({ params, serialize }: HttpContext) {
     return serialize(await sellableForEvent(Number(params.id)))
   }
@@ -53,11 +48,7 @@ export default class OrdersController {
     return serialize(order)
   }
 
-  /**
-   * Annule la commande. La ligne **reste** en base : c'est une transition vers
-   * `cancelled`, pas une suppression — la numérotation par soirée en dépend, et
-   * une commande encaissée puis rendue doit laisser une trace.
-   */
+  /** Transition vers `cancelled` : la ligne reste en base. */
   async destroy({ params, serialize }: HttpContext) {
     const order = await cancel(Number(params.id))
 

@@ -10,16 +10,9 @@ export function ordersChannel(eventId: number | string): string {
 export type OrderEvent = 'order.created' | 'order.updated' | 'order.cancelled'
 
 /**
- * Autorisation du canal des commandes.
- *
- * ⚠️ **C'est le point qui justifie Transmit plutôt qu'un WebSocket monté à la
- * main.** Le rappel reçoit le `HttpContext` complet, donc `ctx.auth.user` : la
- * vérification réutilise `permissionsOfMember`, exactement la résolution
- * qu'emploie `PermissionMiddleware`. Rien n'est réécrit, donc rien ne peut
- * diverger — contrairement au service front actuel, qui fait
- * `initialize(user.id)` en faisant aveuglément confiance au client (§9.10).
- *
- * Exportée séparément pour être éprouvée sans ouvrir de flux SSE.
+ * Réutilise `permissionsOfMember`, la résolution qu'emploie déjà
+ * `PermissionMiddleware` : rien n'est réécrit, donc rien ne peut diverger.
+ * Exportée séparément pour être testée sans ouvrir de flux SSE.
  */
 export async function canReadOrders(userId: number | undefined): Promise<boolean> {
   if (userId === undefined) return false
@@ -33,13 +26,7 @@ export function registerOrdersChannel(): void {
   })
 }
 
-/**
- * Diffuse un changement à tous les postes branchés sur la soirée.
- *
- * ⚠️ **À n'appeler qu'après le commit**, jamais depuis l'intérieur d'une
- * transaction : un rollback laisserait sinon les écrans afficher une commande
- * qui n'existe pas.
- */
+/** ⚠️ À n'appeler qu'après le commit : un rollback afficherait une commande fantôme. */
 export function broadcastOrder(event: OrderEvent, order: OrderPayload): void {
   if (order.eventId === null || order.eventId === undefined) return
   transmit.broadcast(ordersChannel(order.eventId), { event, order })

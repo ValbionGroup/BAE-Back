@@ -45,9 +45,6 @@ router
       .get('/events/:id/shopping-list/pdf', [controllers.EventProducts, 'shoppingListPdf'])
       .use(middleware.can(['menu:read', 'stock:read']))
 
-    // La commande appartient à une soirée, comme les lancements de production.
-    // Les gestes sur une commande précise (statut, annulation) vivent en revanche
-    // à plat dans `billing.ts`, à côté de `transactions`.
     router
       .get('/events/:id/orders', [controllers.Orders, 'index'])
       .use(middleware.can('order:read'))

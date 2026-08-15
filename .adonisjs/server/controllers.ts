@@ -24,6 +24,7 @@ export const controllers = {
   ProductionRuns: () => import('#controllers/production_runs_controller'),
   Products: () => import('#controllers/products_controller'),
   Profile: () => import('#controllers/profile_controller'),
+  Qrs: () => import('#controllers/qrs_controller'),
   Responses: () => import('#controllers/responses_controller'),
   Restocks: () => import('#controllers/restocks_controller'),
   Roles: () => import('#controllers/roles_controller'),

@@ -10,7 +10,7 @@ export const ORDER_STATUSES = ['pending', 'in_progress', 'ready', 'completed', '
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
-/** Libellés lus au comptoir : les refus doivent nommer des états, pas des codes. */
+/** Libellés lus au comptoir : un refus nomme un état, pas un code. */
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'en attente',
   in_progress: 'en préparation',
@@ -20,16 +20,9 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 }
 
 /**
- * Transitions légales. **Le serveur arbitre, pas l'écran.**
- *
- * La caisse et la cuisine regardent la même commande : sans cette table, un
- * rafraîchissement tardif d'un des deux postes ferait reculer une commande déjà
- * prête. Le `nextStatus()` du front reste un confort d'interface — il décide
- * quel bouton afficher, pas ce qui est permis.
- *
- * `completed` et `cancelled` sont terminaux : une commande servie ne s'annule
- * plus (l'argent est encaissé, le geste serait un remboursement, pas une
- * annulation).
+ * Le serveur arbitre, pas l'écran : caisse et cuisine regardent la même commande,
+ * et sans cette table un rafraîchissement tardif la ferait reculer. Une commande
+ * servie ne s'annule plus — ce serait un remboursement, pas une annulation.
  */
 const ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   pending: ['in_progress', 'cancelled'],
@@ -72,13 +65,7 @@ interface MenuEntry {
   name: string
 }
 
-/**
- * Prix de vente et libellé de chaque recette au menu d'une soirée.
- *
- * ⚠️ `event_products.price` est un entier **en centimes**. `transactions.amount`
- * est un `decimal(10,2)` **en euros** : la conversion se fait au moment d'écrire
- * la transaction, jamais avant.
- */
+/** ⚠️ `price` est un entier **en centimes** ; `transactions.amount` est en euros. */
 async function menuOf(
   eventId: number,
   trx?: TransactionClientContract
@@ -98,11 +85,8 @@ async function menuOf(
 }
 
 /**
- * Rang de la commande dans sa soirée.
- *
- * Dérivé plutôt que stocké : on **annule** une commande (statut `cancelled`), on
- * ne la supprime pas, donc les lignes ne disparaissent jamais et la numérotation
- * reste stable. Ajouter une colonne ne servirait qu'à la maintenir à la main.
+ * Dérivé plutôt que stocké : on annule une commande sans la supprimer, donc
+ * aucune ligne ne disparaît et la numérotation reste stable.
  */
 async function numberOf(order: Order, trx?: TransactionClientContract): Promise<number> {
   const row = await (trx ?? db)
@@ -164,9 +148,8 @@ function buildPayload(
 }
 
 /**
- * Enregistre une commande encaissée : transaction, commande et lignes en **une
- * seule écriture atomique**. Un échec à mi-chemin laisserait sinon soit de
- * l'argent sans commande, soit une commande sans argent.
+ * Transaction, commande et lignes en une seule écriture : un échec à mi-chemin
+ * laisserait de l'argent sans commande, ou l'inverse.
  */
 export async function checkout(
   eventId: number,
@@ -184,14 +167,11 @@ export async function checkout(
 
     const menu = await menuOf(eventId, trx)
 
-    // Le total est **recalculé** depuis le menu de la soirée. Rien de ce que le
-    // client envoie sur le prix n'est lu : c'est de l'argent.
+    // Total recalculé depuis le menu : rien de ce que le client annonce n'est lu.
     let totalCents = 0
     for (const [productId, quantity] of quantities) {
       const entry = menu.get(productId)
       if (!entry) {
-        // Nommer le produit plutôt que d'afficher son id : le refus se lit au
-        // comptoir, où personne ne connaît les identifiants.
         const row = await trx.from('products').where('id', productId).select('name').first()
         const label = row ? String(row.name) : `#${productId}`
         throw new ApiException(
@@ -206,9 +186,7 @@ export async function checkout(
     const transaction = new Transaction()
     transaction.useTransaction(trx)
     transaction.type = 'cash'
-    // Centimes → euros, et en **chaîne** : `amount` est un `decimal(10,2)`, que
-    // le driver rend en string dans les deux sens. `toFixed(2)` fixe la forme
-    // exacte de la colonne au lieu de laisser un flottant s'y approcher.
+    // Centimes → euros, en chaîne : `decimal` transite en string dans les deux sens.
     transaction.amount = (totalCents / 100).toFixed(2)
     await transaction.save()
 
@@ -238,11 +216,8 @@ export async function checkout(
 }
 
 /**
- * Les commandes d'une soirée, plus récentes d'abord.
- *
- * ⚠️ Le prix unitaire affiché est relu du menu **actuel**. Les prix étant fixés
- * par soirée et réputés stables, c'est assumé ; le chiffre d'argent qui fait foi
- * reste `transactions.amount`, figé à l'encaissement.
+ * ⚠️ Le prix unitaire est relu du menu **actuel** — assumé, les prix étant fixés
+ * par soirée. Le chiffre qui fait foi reste `transactions.amount`.
  */
 export async function listForEvent(eventId: number): Promise<OrderPayload[]> {
   const orders = await Order.query().where('eventId', eventId).orderBy('id', 'asc')
@@ -299,17 +274,9 @@ export interface SellableLine {
 }
 
 /**
- * Ce qu'il reste à vendre au comptoir, par recette.
- *
- * `remainingQty = max(0, produit − vendu)`. Le plancher à zéro n'est pas
- * cosmétique : on assemble à la demande, donc vendre plus que ce qui a été
- * lancé est un cas normal, pas une incohérence à afficher en négatif.
- *
- * ⚠️ **Les commandes annulées sont exclues du vendu.** Les compter reviendrait à
- * rendre invendables des articles qui n'ont jamais quitté le comptoir — c'est la
- * subtilité qui ferait mentir tout l'écran si elle était oubliée.
- *
- * Deux requêtes agrégées, jamais une boucle par produit.
+ * ⚠️ Les commandes annulées sont exclues du vendu : les compter rendrait
+ * invendables des articles qui n'ont jamais quitté le comptoir. Le plancher à
+ * zéro est voulu — on assemble à la demande, donc vendre plus que produit arrive.
  */
 export async function sellableForEvent(eventId: number): Promise<SellableLine[]> {
   const menuRows = await db
@@ -391,11 +358,8 @@ function assertTransition(from: string, to: OrderStatus): void {
 }
 
 /**
- * Fait avancer une commande, en refusant toute transition illégale.
- *
- * Le statut est relu **dans la transaction**, sous verrou de ligne : deux postes
- * qui valident simultanément la même commande verraient sinon tous deux l'état
- * d'avant et la feraient avancer deux fois.
+ * Statut relu sous verrou de ligne : deux postes validant simultanément la même
+ * commande verraient sinon tous deux l'état d'avant.
  */
 export async function setStatus(orderId: number, next: OrderStatus): Promise<OrderPayload> {
   const order = await db.transaction(async (trx) => {
@@ -414,11 +378,7 @@ export async function setStatus(orderId: number, next: OrderStatus): Promise<Ord
   return payloadOf(order)
 }
 
-/**
- * Annule une commande. C'est une **transition**, pas une suppression : la ligne
- * reste en base, ce qui garde la numérotation par soirée stable et laisse une
- * trace de ce qui a été encaissé puis rendu.
- */
+/** Une transition, pas une suppression : la ligne reste, la numérotation tient. */
 export async function cancel(orderId: number): Promise<OrderPayload> {
   return setStatus(orderId, 'cancelled')
 }
