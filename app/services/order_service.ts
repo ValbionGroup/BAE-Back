@@ -39,7 +39,10 @@ const ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   cancelled: [],
 }
 
-export interface OrderLinePayload {
+// `type` et non `interface` : seuls les alias reçoivent une signature d'index
+// implicite, sans laquelle ces charges utiles ne satisfont pas le
+// `Broadcastable` de Transmit (`orders_realtime.ts`).
+export type OrderLinePayload = {
   productId: number
   productName: string
   quantity: number
@@ -47,7 +50,7 @@ export interface OrderLinePayload {
   unitPrice: number
 }
 
-export interface OrderPayload {
+export type OrderPayload = {
   id: number
   /** Dérivé par soirée — voir `numberOf`. Aucune colonne ne le porte. */
   number: number

@@ -8,6 +8,7 @@ import {
   setStatus,
 } from '#services/order_service'
 import { orderCheckoutValidator, orderStatusValidator } from '#validators/order'
+import { broadcastOrder } from '#services/orders_realtime'
 
 export default class OrdersController {
   async index({ params, serialize }: HttpContext) {
@@ -30,6 +31,10 @@ export default class OrdersController {
       payload.clientId ?? null
     )
 
+    // Après le commit de `checkout`, jamais dedans : un rollback ne doit pas
+    // avoir fait apparaître la commande sur l'écran de cuisine.
+    broadcastOrder('order.created', order)
+
     response.status(201)
     return serialize(order)
   }
@@ -41,7 +46,11 @@ export default class OrdersController {
 
   async setStatus({ params, request, serialize }: HttpContext) {
     const payload = await request.validateUsing(orderStatusValidator)
-    return serialize(await setStatus(Number(params.id), payload.status))
+    const order = await setStatus(Number(params.id), payload.status)
+
+    broadcastOrder(payload.status === 'cancelled' ? 'order.cancelled' : 'order.updated', order)
+
+    return serialize(order)
   }
 
   /**
@@ -50,6 +59,10 @@ export default class OrdersController {
    * une commande encaissée puis rendue doit laisser une trace.
    */
   async destroy({ params, serialize }: HttpContext) {
-    return serialize(await cancel(Number(params.id)))
+    const order = await cancel(Number(params.id))
+
+    broadcastOrder('order.cancelled', order)
+
+    return serialize(order)
   }
 }
