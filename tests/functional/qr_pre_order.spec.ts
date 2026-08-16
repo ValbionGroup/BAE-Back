@@ -55,7 +55,9 @@ test.group('QR de précommande — retrait au comptoir', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
   test('affiche la commande et signale qu’elle est déjà payée', async ({ client, assert }) => {
-    const owner = await MemberFactory.merge({ firstName: 'Tom', lastName: 'Bessiere' }).create()
+    const owner = await MemberFactory.with('user', 1, (u) =>
+      u.merge({ firstName: 'Tom', lastName: 'Bessiere' })
+    ).create()
     const { preOrder, event } = await seedPreOrder(owner.id, { paid: true })
     const cashier = await grantPermissions(await MemberFactory.create(), ['order:write'])
 

@@ -23,7 +23,9 @@ async function seed(options: { paid?: boolean; pickupInMinutes?: number | null }
     description: null,
     recipe: null,
   })
-  const owner = await MemberFactory.merge({ firstName: 'Tom', lastName: 'Bessiere' }).create()
+  const owner = await MemberFactory.with('user', 1, (u) =>
+    u.merge({ firstName: 'Tom', lastName: 'Bessiere' })
+  ).create()
 
   const transaction =
     options.paid === false ? null : await Transaction.create({ type: 'lydia', amount: '7.00' })

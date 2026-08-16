@@ -35,7 +35,9 @@ test.group('QR d’identité — émission et vérification', (group) => {
   })
 
   test('le comptoir résout un QR en identité', async ({ client, assert }) => {
-    const buyer = await MemberFactory.merge({ firstName: 'Camille', lastName: 'Renard' }).create()
+    const buyer = await MemberFactory.with('user', 1, (u) =>
+      u.merge({ firstName: 'Camille', lastName: 'Renard' })
+    ).create()
     const cashier = await MemberFactory.create()
     const user = await grantPermissions(cashier, ['order:write'])
 
@@ -105,7 +107,9 @@ test.group('QR d’identité — émission et vérification', (group) => {
   })
 
   test('un QR de fast pass valide identifie son porteur', async ({ client, assert }) => {
-    const buyer = await MemberFactory.merge({ firstName: 'Tom', lastName: 'Bessiere' }).create()
+    const buyer = await MemberFactory.with('user', 1, (u) =>
+      u.merge({ firstName: 'Tom', lastName: 'Bessiere' })
+    ).create()
     const pass = await subscribe(buyer.id, 'Pass Annuel', 365, 10)
     const user = await grantPermissions(await MemberFactory.create(), ['order:write'])
 
@@ -153,7 +157,9 @@ test.group('Recherche d’acheteur — le chemin dégradé', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
   test('retrouve une personne par son nom', async ({ client, assert }) => {
-    await MemberFactory.merge({ firstName: 'Camille', lastName: 'Renard' }).create()
+    await MemberFactory.with('user', 1, (u) =>
+      u.merge({ firstName: 'Camille', lastName: 'Renard' })
+    ).create()
     const user = await grantPermissions(await MemberFactory.create(), ['order:write'])
 
     const response = await client.get('/v1/buyers?q=Renard').loginAs(user)
