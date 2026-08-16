@@ -181,7 +181,6 @@ export interface ApiDefinition {
     summary: typeof routes['clients.summary']
     index: typeof routes['clients.index']
     show: typeof routes['clients.show']
-    store: typeof routes['clients.store']
     update: typeof routes['clients.update']
     destroy: typeof routes['clients.destroy']
   }

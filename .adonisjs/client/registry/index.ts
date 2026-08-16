@@ -714,12 +714,6 @@ const routes = {
     tokens: [{"old":"/v1/clients/:id","type":0,"val":"v1","end":""},{"old":"/v1/clients/:id","type":0,"val":"clients","end":""},{"old":"/v1/clients/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['clients.show']['types'],
   },
-  'clients.store': {
-    methods: ["POST"],
-    pattern: '/v1/clients',
-    tokens: [{"old":"/v1/clients","type":0,"val":"v1","end":""},{"old":"/v1/clients","type":0,"val":"clients","end":""}],
-    types: placeholder as Registry['clients.store']['types'],
-  },
   'clients.update': {
     methods: ["PUT","PATCH"],
     pattern: '/v1/clients/:id',

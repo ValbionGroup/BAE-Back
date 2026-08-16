@@ -12,6 +12,7 @@ async function makeClient(email: string): Promise<Client> {
   const user = await User.create({
     email,
     password: 'secret-de-test',
+    casId: `cas-${email}`,
     firstName: 'Camille',
     lastName: 'Renard',
   })

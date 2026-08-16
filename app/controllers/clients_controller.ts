@@ -1,12 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
-import db from '@adonisjs/lucid/services/db'
-import string from '@adonisjs/core/helpers/string'
 import Client from '#models/client'
-import User from '#models/user'
 import Subscription from '#models/subscription'
 import ApiException from '#exceptions/api_exception'
-import { createClientValidator, updateClientValidator } from '#validators/client'
+import { updateClientValidator } from '#validators/client'
 import {
   EXPIRY_WARN_WINDOW_DAYS,
   type MembershipStatus,
@@ -92,8 +89,11 @@ export default class ClientsController {
       total: rows.length,
       upToDate: rows.filter((row) => row.status === 'active').length,
       expired: rows.filter((row) => row.status === 'expired').length,
-      // « Externes » au sens de la maquette : enregistré, jamais cotisé.
-      external: rows.filter((row) => row.status === 'none').length,
+      // Avoir un compte client et être adhérent sont deux choses : le compte
+      // naît de la connexion EirbConnect, l'adhésion d'une cotisation. Ceux-ci
+      // ont l'un sans l'autre — la maquette les appelait « externes », ce qui
+      // décrivait une provenance et non l'absence d'adhésion.
+      withoutSubscription: rows.filter((row) => row.status === 'none').length,
       expiringSoon: rows.filter(
         (row) =>
           row.status === 'active' &&
@@ -131,61 +131,16 @@ export default class ClientsController {
   }
 
   /**
-   * Crée le compte s'il n'existe pas, puis la ligne `clients`. Un membre du BAE
-   * qui prend sa carte réutilise donc son compte : les deux appartenances sont
-   * indépendantes et partagent la clé primaire de `users`.
+   * ⚠️ Pas de `store` : un compte client naît **uniquement** d'une connexion
+   * EirbConnect sur l'interface publique, qui le crée s'il n'existe pas. La
+   * personne décide ensuite de payer l'adhésion, de précommander, les deux, ou
+   * rien — un compte suffit à se présenter à la caisse.
+   *
+   * Le bureau n'a donc aucun geste de création ici : ce qu'il enregistre, c'est
+   * une **cotisation** (`POST /subscriptions`), qui est une autre chose que le
+   * compte. Ajouter un chemin de création ouvrirait une seconde porte d'entrée,
+   * avec une identité saisie à la main que le prochain login SSO contredirait.
    */
-  async store({ request, serialize }: HttpContext) {
-    const payload = await request.validateUsing(createClientValidator)
-
-    const client = await db.transaction(async (trx) => {
-      const existingUser = await User.query({ client: trx }).where('email', payload.email).first()
-
-      if (existingUser) {
-        existingUser.firstName = payload.firstName
-        existingUser.lastName = payload.lastName
-        existingUser.useTransaction(trx)
-        await existingUser.save()
-
-        const already = await Client.query({ client: trx }).where('id', existingUser.id).first()
-        if (already) {
-          throw new ApiException(
-            'E_CLIENT_ALREADY_EXISTS',
-            'Cette personne est déjà adhérente.',
-            409
-          )
-        }
-      }
-
-      const account =
-        existingUser ??
-        (await User.create(
-          {
-            email: payload.email,
-            // Un client s'authentifie par le SSO (§4.4), jamais par mot de
-            // passe — mais la colonne est `notNullable`. Une valeur aléatoire
-            // vaut donc « pas de mot de passe utilisable » en attendant.
-            password: string.random(32),
-            firstName: payload.firstName,
-            lastName: payload.lastName,
-          },
-          { client: trx }
-        ))
-
-      return Client.create(
-        {
-          id: account.id,
-          phone: payload.phone ?? null,
-          promotion: payload.promotion ?? null,
-          registeredAt: payload.registeredAt ?? DateTime.now(),
-        },
-        { client: trx }
-      )
-    })
-
-    await client.load('user')
-    return serialize(toRow(client, []))
-  }
 
   async update({ params, request, auth, serialize }: HttpContext) {
     const payload = await request.validateUsing(updateClientValidator)
@@ -195,12 +150,8 @@ export default class ClientsController {
       throw new ApiException('E_CLIENT_NOT_FOUND', 'Adhérent introuvable.', 404)
     }
 
-    if (payload.firstName !== undefined) client.user.firstName = payload.firstName
-    if (payload.lastName !== undefined) client.user.lastName = payload.lastName
-    if (payload.firstName !== undefined || payload.lastName !== undefined) {
-      await client.user.save()
-    }
-
+    // Le nom n'est pas modifiable ici : il vient des claims EirbConnect, et la
+    // prochaine connexion écraserait toute correction saisie au bureau.
     if ('phone' in payload) client.phone = payload.phone ?? null
     if ('promotion' in payload) client.promotion = payload.promotion ?? null
 

@@ -115,17 +115,25 @@ export default class extends BaseSeeder {
     }
 
     for (const seed of CLIENTS) {
+      // Le seeder simule ce que fera le callback EirbConnect : c'est le seul
+      // chemin de création d'un compte client. `casId` matérialise cette
+      // provenance, et `ClientsController.store` refuse un compte qui n'en a
+      // pas — sans lui, ces adhérents de démonstration seraient irrecevables.
       const user = await User.firstOrCreate(
         { email: seed.email },
         {
           email: seed.email,
-          // Ces comptes n'ont pas vocation à se connecter : la zone publique
-          // passera par le SSO.
           password: 'adherent-de-demonstration',
+          casId: `eirbconnect-demo-${seed.email}`,
           firstName: seed.firstName,
           lastName: seed.lastName,
         }
       )
+
+      if (user.casId === null) {
+        user.casId = `eirbconnect-demo-${seed.email}`
+        await user.save()
+      }
 
       const registeredAt = DateTime.now().minus({
         days: Math.max(...seed.subscribedDaysAgo, 60),

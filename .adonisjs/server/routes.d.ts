@@ -122,7 +122,6 @@ export type ScannedRoutes = {
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'clients.store': { paramsTuple?: []; params?: {} }
     'clients.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'clients.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.store': { paramsTuple?: []; params?: {} }
@@ -166,7 +165,6 @@ export type ScannedRoutes = {
     'assignments.store': { paramsTuple?: []; params?: {} }
     'job_eligible_members.store': { paramsTuple?: []; params?: {} }
     'fast_passes.store': { paramsTuple?: []; params?: {} }
-    'clients.store': { paramsTuple?: []; params?: {} }
     'subscriptions.store': { paramsTuple?: []; params?: {} }
     'vouchers.store': { paramsTuple?: []; params?: {} }
     'logs.store': { paramsTuple?: []; params?: {} }

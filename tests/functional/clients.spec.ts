@@ -18,6 +18,9 @@ async function makeClient(attrs: {
   const user = await User.create({
     email: attrs.email,
     password: 'secret-de-test',
+    // `ClientsController.store` exige une provenance EirbConnect ; les comptes
+    // fabriqués directement ici la simulent.
+    casId: `cas-${attrs.email}`,
     firstName: attrs.firstName,
     lastName: attrs.lastName,
   })
@@ -126,7 +129,7 @@ test.group('Adhérents — lecture', (group) => {
     assert.equal(counts.total, rows.length)
     assert.equal(counts.up_to_date, rows.filter((row) => row.status === 'active').length)
     assert.equal(counts.expired, rows.filter((row) => row.status === 'expired').length)
-    assert.equal(counts.external, rows.filter((row) => row.status === 'none').length)
+    assert.equal(counts.without_subscription, rows.filter((row) => row.status === 'none').length)
     assert.equal(counts.expiring_soon, 1, 'seule celle qui expire dans 15 jours compte')
   })
 
@@ -179,45 +182,28 @@ test.group('Adhérents — écriture', (group) => {
   test('refuses a member without client:write', async ({ client: httpClient }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['client:read'])
+    const person = await makeClient({ email: 'g@test.fr', firstName: 'G', lastName: 'G' })
 
     const response = await httpClient
-      .post('/v1/clients')
-      .json({ email: 'g@test.fr', firstName: 'G', lastName: 'G' })
+      .patch(`/v1/clients/${person.id}`)
+      .json({ phone: '06 00 00 00 00' })
       .loginAs(user)
     response.assertStatus(403)
   })
 
-  test('an existing account becomes a client without a second account', async ({
-    client: httpClient,
-    assert,
-  }) => {
+  /**
+   * Le compte client naît d'une connexion EirbConnect sur l'interface publique,
+   * jamais du dashboard : il ne doit exister aucune route pour en fabriquer un.
+   */
+  test('the office has no way to create a client account', async ({ client: httpClient }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['client:write', 'client:read'])
-    await member.load('user')
 
     const response = await httpClient
       .post('/v1/clients')
-      .json({ email: member.user.email, firstName: 'Même', lastName: 'Personne' })
+      .json({ email: 'jamais-connecte@test.fr' })
       .loginAs(user)
-
-    response.assertStatus(200)
-    const accounts = await User.query().where('email', member.user.email)
-    assert.lengthOf(accounts, 1, 'membre et client partagent le compte')
-
-    const created = await Client.query().where('id', member.id).first()
-    assert.isNotNull(created)
-  })
-
-  test('refuses to register the same person twice', async ({ client: httpClient }) => {
-    const member = await MemberFactory.create()
-    const user = await grantPermissions(member, ['client:write'])
-    await makeClient({ email: 'h@test.fr', firstName: 'H', lastName: 'H' })
-
-    const response = await httpClient
-      .post('/v1/clients')
-      .json({ email: 'h@test.fr', firstName: 'H', lastName: 'H' })
-      .loginAs(user)
-    response.assertStatus(409)
+    response.assertStatus(404)
   })
 
   test('a partial PATCH leaves the fields it does not carry alone', async ({

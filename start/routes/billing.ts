@@ -29,7 +29,6 @@ router
       .use(middleware.can('client:read'))
     router.get('/clients', [controllers.Clients, 'index']).use(middleware.can('client:read'))
     router.get('/clients/:id', [controllers.Clients, 'show']).use(middleware.can('client:read'))
-    router.post('/clients', [controllers.Clients, 'store']).use(middleware.can('client:write'))
     router
       .route('/clients/:id', ['PUT', 'PATCH'], [controllers.Clients, 'update'])
       .use(middleware.can('client:write'))

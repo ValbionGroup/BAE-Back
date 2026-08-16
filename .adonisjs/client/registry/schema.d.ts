@@ -1423,18 +1423,6 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['show']>>>
     }
   }
-  'clients.store': {
-    methods: ["POST"]
-    pattern: '/v1/clients'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/client').createClientValidator)>>
-      paramsTuple: []
-      params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/client').createClientValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
-    }
-  }
   'clients.update': {
     methods: ["PUT","PATCH"]
     pattern: '/v1/clients/:id'
