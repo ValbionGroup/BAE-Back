@@ -522,6 +522,12 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/sellable","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/sellable","type":0,"val":"events","end":""},{"old":"/v1/events/:id/sellable","type":1,"val":"id","end":""},{"old":"/v1/events/:id/sellable","type":0,"val":"sellable","end":""}],
     types: placeholder as Registry['orders.sellable']['types'],
   },
+  'orders.summary': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/summary',
+    tokens: [{"old":"/v1/events/:id/summary","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/summary","type":0,"val":"events","end":""},{"old":"/v1/events/:id/summary","type":1,"val":"id","end":""},{"old":"/v1/events/:id/summary","type":0,"val":"summary","end":""}],
+    types: placeholder as Registry['orders.summary']['types'],
+  },
   'pre_orders.index': {
     methods: ["GET","HEAD"],
     pattern: '/v1/events/:id/pre-orders',
@@ -899,6 +905,36 @@ const routes = {
     pattern: '/v1/account/notifications/read-all',
     tokens: [{"old":"/v1/account/notifications/read-all","type":0,"val":"v1","end":""},{"old":"/v1/account/notifications/read-all","type":0,"val":"account","end":""},{"old":"/v1/account/notifications/read-all","type":0,"val":"notifications","end":""},{"old":"/v1/account/notifications/read-all","type":0,"val":"read-all","end":""}],
     types: placeholder as Registry['notifications.notifications.mark_all_read']['types'],
+  },
+  'tickets.tickets.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/tickets',
+    tokens: [{"old":"/v1/tickets","type":0,"val":"v1","end":""},{"old":"/v1/tickets","type":0,"val":"tickets","end":""}],
+    types: placeholder as Registry['tickets.tickets.index']['types'],
+  },
+  'tickets.tickets.store': {
+    methods: ["POST"],
+    pattern: '/v1/tickets',
+    tokens: [{"old":"/v1/tickets","type":0,"val":"v1","end":""},{"old":"/v1/tickets","type":0,"val":"tickets","end":""}],
+    types: placeholder as Registry['tickets.tickets.store']['types'],
+  },
+  'tickets.tickets.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/tickets/:id',
+    tokens: [{"old":"/v1/tickets/:id","type":0,"val":"v1","end":""},{"old":"/v1/tickets/:id","type":0,"val":"tickets","end":""},{"old":"/v1/tickets/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['tickets.tickets.show']['types'],
+  },
+  'tickets.tickets.reply': {
+    methods: ["POST"],
+    pattern: '/v1/tickets/:id/messages',
+    tokens: [{"old":"/v1/tickets/:id/messages","type":0,"val":"v1","end":""},{"old":"/v1/tickets/:id/messages","type":0,"val":"tickets","end":""},{"old":"/v1/tickets/:id/messages","type":1,"val":"id","end":""},{"old":"/v1/tickets/:id/messages","type":0,"val":"messages","end":""}],
+    types: placeholder as Registry['tickets.tickets.reply']['types'],
+  },
+  'tickets.tickets.set_status': {
+    methods: ["PATCH"],
+    pattern: '/v1/tickets/:id/status',
+    tokens: [{"old":"/v1/tickets/:id/status","type":0,"val":"v1","end":""},{"old":"/v1/tickets/:id/status","type":0,"val":"tickets","end":""},{"old":"/v1/tickets/:id/status","type":1,"val":"id","end":""},{"old":"/v1/tickets/:id/status","type":0,"val":"status","end":""}],
+    types: placeholder as Registry['tickets.tickets.set_status']['types'],
   },
   'event_stream': {
     methods: ["GET","HEAD"],

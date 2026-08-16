@@ -1039,6 +1039,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['sellable']>>>
     }
   }
+  'orders.summary': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/summary'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['summary']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['summary']>>>
+    }
+  }
   'pre_orders.index': {
     methods: ["GET","HEAD"]
     pattern: '/v1/events/:id/pre-orders'
@@ -1793,6 +1805,66 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/notifications_controller').default['markAllRead']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/notifications_controller').default['markAllRead']>>>
+    }
+  }
+  'tickets.tickets.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/tickets'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['index']>>>
+    }
+  }
+  'tickets.tickets.store': {
+    methods: ["POST"]
+    pattern: '/v1/tickets'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/ticket').ticketOpenValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/ticket').ticketOpenValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'tickets.tickets.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/tickets/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['show']>>>
+    }
+  }
+  'tickets.tickets.reply': {
+    methods: ["POST"]
+    pattern: '/v1/tickets/:id/messages'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/ticket').ticketReplyValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/ticket').ticketReplyValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['reply']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['reply']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'tickets.tickets.set_status': {
+    methods: ["PATCH"]
+    pattern: '/v1/tickets/:id/status'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/ticket').ticketStatusValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/ticket').ticketStatusValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['setStatus']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/tickets_controller').default['setStatus']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'event_stream': {

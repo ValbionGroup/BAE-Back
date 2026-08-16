@@ -35,3 +35,20 @@ router
   .prefix('v1/account')
   .as('notifications')
   .use(middleware.auth())
+
+// Ouvrir un ticket et suivre les siens n'exige **aucune permission** : c'est une
+// question de propriété. `ticket:read` élargit la vue à tous les tickets,
+// `ticket:write` autorise à en changer le statut — le rôle du support.
+router
+  .group(() => {
+    router.get('/tickets', [controllers.Tickets, 'index'])
+    router.post('/tickets', [controllers.Tickets, 'store'])
+    router.get('/tickets/:id', [controllers.Tickets, 'show'])
+    router.post('/tickets/:id/messages', [controllers.Tickets, 'reply'])
+    router
+      .patch('/tickets/:id/status', [controllers.Tickets, 'setStatus'])
+      .use(middleware.can('ticket:write'))
+  })
+  .prefix('/v1')
+  .as('tickets')
+  .use(middleware.auth())

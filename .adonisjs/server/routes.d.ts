@@ -90,6 +90,7 @@ export type ScannedRoutes = {
     'orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.sellable': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.summary': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'pre_orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -153,6 +154,11 @@ export type ScannedRoutes = {
     'notifications.notifications.index': { paramsTuple?: []; params?: {} }
     'notifications.notifications.mark_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.notifications.mark_all_read': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.store': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'tickets.tickets.reply': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'tickets.tickets.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_stream': { paramsTuple?: []; params?: {} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
@@ -191,6 +197,8 @@ export type ScannedRoutes = {
     'vouchers.store': { paramsTuple?: []; params?: {} }
     'logs.store': { paramsTuple?: []; params?: {} }
     'notifications.notifications.mark_all_read': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.store': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.reply': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
   }
@@ -263,6 +271,7 @@ export type ScannedRoutes = {
     'event_products.shopping_list_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.sellable': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.summary': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'pre_orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.production_plan_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -289,6 +298,8 @@ export type ScannedRoutes = {
     'logs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.index': { paramsTuple?: []; params?: {} }
     'notifications.notifications.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
@@ -334,6 +345,7 @@ export type ScannedRoutes = {
     'event_products.shopping_list_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.sellable': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.summary': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'pre_orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.production_plan_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -360,6 +372,8 @@ export type ScannedRoutes = {
     'logs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.index': { paramsTuple?: []; params?: {} }
     'notifications.notifications.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   PUT: {
@@ -407,6 +421,7 @@ export type ScannedRoutes = {
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.notifications.mark_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'tickets.tickets.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {
