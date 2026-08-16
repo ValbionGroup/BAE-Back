@@ -3,11 +3,10 @@ import Member from '#models/member'
 import { UserFactory } from '#database/factories/user_factory'
 import { RoleFactory } from '#database/factories/role_factory'
 
+// Le nom est produit par `UserFactory` : il vit sur `users`.
 export const MemberFactory = factory
-  .define(Member, async ({ faker }) => {
+  .define(Member, async () => {
     return {
-      firstName: faker.person.firstName(),
-      lastName: faker.person.lastName(),
       roleId: null,
     }
   })

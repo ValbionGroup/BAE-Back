@@ -48,18 +48,23 @@ export default class extends BaseSeeder {
 
       const user = await User.firstOrCreate(
         { email: account.email },
-        { email: account.email, password: DEV_PASSWORD }
-      )
-
-      await Member.updateOrCreate(
-        { id: user.id },
         {
-          id: user.id,
+          email: account.email,
+          password: DEV_PASSWORD,
           firstName: account.firstName,
           lastName: account.lastName,
-          roleId,
         }
       )
+
+      // `firstOrCreate` ne touche pas un compte déjà semé : les noms des bases
+      // de dev antérieures au déplacement de colonne sont nuls sans ceci.
+      if (user.firstName === null || user.lastName === null) {
+        user.firstName = account.firstName
+        user.lastName = account.lastName
+        await user.save()
+      }
+
+      await Member.updateOrCreate({ id: user.id }, { id: user.id, roleId })
     }
   }
 }

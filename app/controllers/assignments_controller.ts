@@ -186,14 +186,14 @@ export default class AssignmentsController {
     const event = await Event.query().where('id', params.id).preload('jobs').firstOrFail()
     const assignments = await MemberEventAssignedJob.query()
       .where('eventId', params.id)
-      .preload('member')
+      .preload('member', (query) => query.preload('user'))
       .preload('job')
 
     const byJobId = new Map<number, { memberFullName: string; locked: boolean }[]>()
     for (const assignment of assignments) {
       const list = byJobId.get(assignment.jobId) ?? []
       list.push({
-        memberFullName: `${assignment.member.firstName} ${assignment.member.lastName}`,
+        memberFullName: assignment.member.user.fullName ?? '—',
         locked: assignment.locked,
       })
       byJobId.set(assignment.jobId, list)
