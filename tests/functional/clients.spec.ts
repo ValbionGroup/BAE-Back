@@ -123,14 +123,31 @@ test.group('Adhérents — lecture', (group) => {
     const summary = await httpClient.get('/v1/clients/summary').loginAs(user)
     summary.assertStatus(200)
 
-    const rows = (list.body() as { data: { status: string }[] }).data
+    const rows = (
+      list.body() as {
+        data: { email: string; status: string; days_until_expiry: number | null }[]
+      }
+    ).data
     const counts = (summary.body() as { data: Record<string, number> }).data
+
+    const isExpiringSoon = (row: (typeof rows)[number]) =>
+      row.status === 'active' && row.days_until_expiry !== null && row.days_until_expiry <= 30
 
     assert.equal(counts.total, rows.length)
     assert.equal(counts.up_to_date, rows.filter((row) => row.status === 'active').length)
     assert.equal(counts.expired, rows.filter((row) => row.status === 'expired').length)
     assert.equal(counts.without_subscription, rows.filter((row) => row.status === 'none').length)
-    assert.equal(counts.expiring_soon, 1, 'seule celle qui expire dans 15 jours compte')
+    assert.equal(counts.expiring_soon, rows.filter(isExpiringSoon).length)
+
+    // Compté sur les seules lignes que ce test a créées : la base de dev est
+    // partagée et porte déjà des cotisations proches de l'échéance, donc un
+    // total absolu mesurerait le jeu de données, pas la règle.
+    const mine = new Set(['a@test.fr', 'b@test.fr', 'c@test.fr', 'd@test.fr'])
+    assert.equal(
+      rows.filter((row) => mine.has(row.email) && isExpiringSoon(row)).length,
+      1,
+      'seule celle qui expire dans 15 jours compte'
+    )
   })
 
   test('renewing early keeps the person up to date', async ({ client: httpClient, assert }) => {
@@ -172,7 +189,11 @@ test.group('Adhérents — lecture', (group) => {
 
     const response = await httpClient.get(`/v1/clients/${person.id}`).loginAs(user)
     const body = (response.body() as { data: { membership_number: string } }).data
-    assert.match(body.membership_number, /^EXT-2025-\d{4}$/)
+    // `padStart(4, '0')` est une largeur **minimale**, pas un format fixe : au-delà
+    // de 9 999 comptes l'id déborde, et figer `\d{4}` ferait échouer ce test le jour
+    // où la séquence passe le cap — sans qu'aucun contrat ne soit rompu.
+    assert.match(body.membership_number, /^EXT-2025-\d{4,}$/)
+    assert.include(body.membership_number, String(person.id))
   })
 })
 
