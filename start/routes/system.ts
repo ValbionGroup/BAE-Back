@@ -11,7 +11,7 @@ router
     router.delete('/logs/:id', [controllers.Logs, 'destroy'])
   })
   .prefix('/v1')
-  .use([middleware.auth(), middleware.can('log:read')])
+  .use([middleware.auth(), middleware.audience('member'), middleware.can('log:read')])
 
 router
   .group(() => {
@@ -20,4 +20,4 @@ router
   })
   .prefix('v1/account')
   .as('sessions')
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.audience('member')])

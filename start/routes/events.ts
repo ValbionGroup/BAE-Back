@@ -103,4 +103,4 @@ router
       .use(middleware.can('job:read'))
   })
   .prefix('/v1')
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.audience('member')])

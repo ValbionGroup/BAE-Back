@@ -46,7 +46,7 @@ router
       .use(middleware.can('job:delete'))
   })
   .prefix('/v1')
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.audience('member')])
 
 router
   .group(() => {
@@ -55,4 +55,4 @@ router
   })
   .prefix('v1/account')
   .as('account_preferences')
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.audience('member')])
