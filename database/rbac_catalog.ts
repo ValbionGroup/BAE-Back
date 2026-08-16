@@ -49,12 +49,15 @@ export const PERMISSIONS = [
   'fast-pass:write',
   'fast-pass:delete',
   'transaction:read',
-  // `order:write` couvre la prise de commande **et** l'avancement de statut en
-  // cuisine : c'est le même geste de service. `order:delete` est séparée parce
-  // qu'annuler porte sur de l'argent déjà encaissé.
   'order:read',
   'order:write',
   'order:delete',
+  'client:read',
+  'client:write',
+  'client:delete',
+  'subscription:read',
+  'subscription:write',
+  'subscription:delete',
 ] as const
 
 export type PermissionName = (typeof PERMISSIONS)[number]
@@ -106,6 +109,12 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'order:read',
     'order:write',
     'order:delete',
+    'client:read',
+    'client:write',
+    'client:delete',
+    'subscription:read',
+    'subscription:write',
+    'subscription:delete',
   ],
   'Coordinateur': [
     'event:matching',
@@ -124,7 +133,7 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'order:write',
     'order:delete',
   ],
-  'Secretaire': ['log:read', 'role:read'],
+  'Secretaire': ['log:read', 'role:read', 'client:read', 'subscription:read'],
   'Pole Log': [
     'stock:read',
     'stock:write',

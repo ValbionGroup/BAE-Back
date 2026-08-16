@@ -307,6 +307,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/products_controller').default['ingredients']>>>
     }
   }
+  'products.recipe_pdf': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/products/:id/recipe/pdf'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/products_controller').default['recipePdf']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/products_controller').default['recipePdf']>>>
+    }
+  }
   'products.index': {
     methods: ["GET","HEAD"]
     pattern: '/v1/products'
@@ -605,6 +617,30 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['store']>>>
+    }
+  }
+  'stock_batches.inventory_pdf': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/stock-batches/inventory/pdf'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['inventoryPdf']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['inventoryPdf']>>>
+    }
+  }
+  'stock_batches.labels_pdf': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/stock-batches/labels/pdf'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['labelsPdf']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['labelsPdf']>>>
     }
   }
   'stock_batches.show': {
@@ -919,6 +955,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['shoppingList']>>>
     }
   }
+  'event_products.shopping_list_pdf': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/shopping-list/pdf'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['shoppingListPdf']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['shoppingListPdf']>>>
+    }
+  }
   'production_runs.index': {
     methods: ["GET","HEAD"]
     pattern: '/v1/events/:id/production-runs'
@@ -941,6 +989,18 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['store']>>>
+    }
+  }
+  'production_runs.production_plan_pdf': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/production-plan/pdf'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['productionPlanPdf']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['productionPlanPdf']>>>
     }
   }
   'production_runs.return_state': {
@@ -967,6 +1027,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['returns']>>>
     }
   }
+  'production_runs.production_returns_pdf': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/production-returns/pdf'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['productionReturnsPdf']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/production_runs_controller').default['productionReturnsPdf']>>>
+    }
+  }
   'events.run_matching': {
     methods: ["POST"]
     pattern: '/v1/events/:id/matching'
@@ -989,6 +1061,18 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/events_controller').default['settle']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['settle']>>>
+    }
+  }
+  'assignments.pdf': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/assignments/pdf'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['pdf']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['pdf']>>>
     }
   }
   'jobs.index': {
@@ -1301,6 +1385,102 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/transactions_controller').default['index']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/transactions_controller').default['index']>>>
+    }
+  }
+  'clients.summary': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/clients/summary'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['summary']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['summary']>>>
+    }
+  }
+  'clients.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/clients'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['index']>>>
+    }
+  }
+  'clients.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/clients/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['show']>>>
+    }
+  }
+  'clients.store': {
+    methods: ["POST"]
+    pattern: '/v1/clients'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/client').createClientValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/client').createClientValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'clients.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/v1/clients/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/client').updateClientValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/client').updateClientValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'clients.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/clients/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clients_controller').default['destroy']>>>
+    }
+  }
+  'subscriptions.store': {
+    methods: ["POST"]
+    pattern: '/v1/subscriptions'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/subscription').createSubscriptionValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/subscription').createSubscriptionValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/subscriptions_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/subscriptions_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'subscriptions.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/subscriptions/:userId/:fastPassId'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { userId: ParamValue; fastPassId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/subscriptions_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/subscriptions_controller').default['destroy']>>>
     }
   }
   'vouchers.index': {

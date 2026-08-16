@@ -156,6 +156,12 @@ const routes = {
     tokens: [{"old":"/v1/products/:id/ingredients","type":0,"val":"v1","end":""},{"old":"/v1/products/:id/ingredients","type":0,"val":"products","end":""},{"old":"/v1/products/:id/ingredients","type":1,"val":"id","end":""},{"old":"/v1/products/:id/ingredients","type":0,"val":"ingredients","end":""}],
     types: placeholder as Registry['products.ingredients']['types'],
   },
+  'products.recipe_pdf': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/products/:id/recipe/pdf',
+    tokens: [{"old":"/v1/products/:id/recipe/pdf","type":0,"val":"v1","end":""},{"old":"/v1/products/:id/recipe/pdf","type":0,"val":"products","end":""},{"old":"/v1/products/:id/recipe/pdf","type":1,"val":"id","end":""},{"old":"/v1/products/:id/recipe/pdf","type":0,"val":"recipe","end":""},{"old":"/v1/products/:id/recipe/pdf","type":0,"val":"pdf","end":""}],
+    types: placeholder as Registry['products.recipe_pdf']['types'],
+  },
   'products.index': {
     methods: ["GET","HEAD"],
     pattern: '/v1/products',
@@ -305,6 +311,18 @@ const routes = {
     pattern: '/v1/stock-batches',
     tokens: [{"old":"/v1/stock-batches","type":0,"val":"v1","end":""},{"old":"/v1/stock-batches","type":0,"val":"stock-batches","end":""}],
     types: placeholder as Registry['stock_batches.store']['types'],
+  },
+  'stock_batches.inventory_pdf': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/stock-batches/inventory/pdf',
+    tokens: [{"old":"/v1/stock-batches/inventory/pdf","type":0,"val":"v1","end":""},{"old":"/v1/stock-batches/inventory/pdf","type":0,"val":"stock-batches","end":""},{"old":"/v1/stock-batches/inventory/pdf","type":0,"val":"inventory","end":""},{"old":"/v1/stock-batches/inventory/pdf","type":0,"val":"pdf","end":""}],
+    types: placeholder as Registry['stock_batches.inventory_pdf']['types'],
+  },
+  'stock_batches.labels_pdf': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/stock-batches/labels/pdf',
+    tokens: [{"old":"/v1/stock-batches/labels/pdf","type":0,"val":"v1","end":""},{"old":"/v1/stock-batches/labels/pdf","type":0,"val":"stock-batches","end":""},{"old":"/v1/stock-batches/labels/pdf","type":0,"val":"labels","end":""},{"old":"/v1/stock-batches/labels/pdf","type":0,"val":"pdf","end":""}],
+    types: placeholder as Registry['stock_batches.labels_pdf']['types'],
   },
   'stock_batches.show': {
     methods: ["GET","HEAD"],
@@ -462,6 +480,12 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/shopping-list","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/shopping-list","type":0,"val":"events","end":""},{"old":"/v1/events/:id/shopping-list","type":1,"val":"id","end":""},{"old":"/v1/events/:id/shopping-list","type":0,"val":"shopping-list","end":""}],
     types: placeholder as Registry['event_products.shopping_list']['types'],
   },
+  'event_products.shopping_list_pdf': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/shopping-list/pdf',
+    tokens: [{"old":"/v1/events/:id/shopping-list/pdf","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/shopping-list/pdf","type":0,"val":"events","end":""},{"old":"/v1/events/:id/shopping-list/pdf","type":1,"val":"id","end":""},{"old":"/v1/events/:id/shopping-list/pdf","type":0,"val":"shopping-list","end":""},{"old":"/v1/events/:id/shopping-list/pdf","type":0,"val":"pdf","end":""}],
+    types: placeholder as Registry['event_products.shopping_list_pdf']['types'],
+  },
   'production_runs.index': {
     methods: ["GET","HEAD"],
     pattern: '/v1/events/:id/production-runs',
@@ -473,6 +497,12 @@ const routes = {
     pattern: '/v1/events/:id/production-runs',
     tokens: [{"old":"/v1/events/:id/production-runs","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/production-runs","type":0,"val":"events","end":""},{"old":"/v1/events/:id/production-runs","type":1,"val":"id","end":""},{"old":"/v1/events/:id/production-runs","type":0,"val":"production-runs","end":""}],
     types: placeholder as Registry['production_runs.store']['types'],
+  },
+  'production_runs.production_plan_pdf': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/production-plan/pdf',
+    tokens: [{"old":"/v1/events/:id/production-plan/pdf","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/production-plan/pdf","type":0,"val":"events","end":""},{"old":"/v1/events/:id/production-plan/pdf","type":1,"val":"id","end":""},{"old":"/v1/events/:id/production-plan/pdf","type":0,"val":"production-plan","end":""},{"old":"/v1/events/:id/production-plan/pdf","type":0,"val":"pdf","end":""}],
+    types: placeholder as Registry['production_runs.production_plan_pdf']['types'],
   },
   'production_runs.return_state': {
     methods: ["GET","HEAD"],
@@ -486,6 +516,12 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/production-returns","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/production-returns","type":0,"val":"events","end":""},{"old":"/v1/events/:id/production-returns","type":1,"val":"id","end":""},{"old":"/v1/events/:id/production-returns","type":0,"val":"production-returns","end":""}],
     types: placeholder as Registry['production_runs.returns']['types'],
   },
+  'production_runs.production_returns_pdf': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/production-returns/pdf',
+    tokens: [{"old":"/v1/events/:id/production-returns/pdf","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/production-returns/pdf","type":0,"val":"events","end":""},{"old":"/v1/events/:id/production-returns/pdf","type":1,"val":"id","end":""},{"old":"/v1/events/:id/production-returns/pdf","type":0,"val":"production-returns","end":""},{"old":"/v1/events/:id/production-returns/pdf","type":0,"val":"pdf","end":""}],
+    types: placeholder as Registry['production_runs.production_returns_pdf']['types'],
+  },
   'events.run_matching': {
     methods: ["POST"],
     pattern: '/v1/events/:id/matching',
@@ -497,6 +533,12 @@ const routes = {
     pattern: '/v1/events/:id/settle',
     tokens: [{"old":"/v1/events/:id/settle","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/settle","type":0,"val":"events","end":""},{"old":"/v1/events/:id/settle","type":1,"val":"id","end":""},{"old":"/v1/events/:id/settle","type":0,"val":"settle","end":""}],
     types: placeholder as Registry['events.settle']['types'],
+  },
+  'assignments.pdf': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/assignments/pdf',
+    tokens: [{"old":"/v1/events/:id/assignments/pdf","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/assignments/pdf","type":0,"val":"events","end":""},{"old":"/v1/events/:id/assignments/pdf","type":1,"val":"id","end":""},{"old":"/v1/events/:id/assignments/pdf","type":0,"val":"assignments","end":""},{"old":"/v1/events/:id/assignments/pdf","type":0,"val":"pdf","end":""}],
+    types: placeholder as Registry['assignments.pdf']['types'],
   },
   'jobs.index': {
     methods: ["GET","HEAD"],
@@ -653,6 +695,54 @@ const routes = {
     pattern: '/v1/transactions',
     tokens: [{"old":"/v1/transactions","type":0,"val":"v1","end":""},{"old":"/v1/transactions","type":0,"val":"transactions","end":""}],
     types: placeholder as Registry['transactions.index']['types'],
+  },
+  'clients.summary': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/clients/summary',
+    tokens: [{"old":"/v1/clients/summary","type":0,"val":"v1","end":""},{"old":"/v1/clients/summary","type":0,"val":"clients","end":""},{"old":"/v1/clients/summary","type":0,"val":"summary","end":""}],
+    types: placeholder as Registry['clients.summary']['types'],
+  },
+  'clients.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/clients',
+    tokens: [{"old":"/v1/clients","type":0,"val":"v1","end":""},{"old":"/v1/clients","type":0,"val":"clients","end":""}],
+    types: placeholder as Registry['clients.index']['types'],
+  },
+  'clients.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/clients/:id',
+    tokens: [{"old":"/v1/clients/:id","type":0,"val":"v1","end":""},{"old":"/v1/clients/:id","type":0,"val":"clients","end":""},{"old":"/v1/clients/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['clients.show']['types'],
+  },
+  'clients.store': {
+    methods: ["POST"],
+    pattern: '/v1/clients',
+    tokens: [{"old":"/v1/clients","type":0,"val":"v1","end":""},{"old":"/v1/clients","type":0,"val":"clients","end":""}],
+    types: placeholder as Registry['clients.store']['types'],
+  },
+  'clients.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/v1/clients/:id',
+    tokens: [{"old":"/v1/clients/:id","type":0,"val":"v1","end":""},{"old":"/v1/clients/:id","type":0,"val":"clients","end":""},{"old":"/v1/clients/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['clients.update']['types'],
+  },
+  'clients.destroy': {
+    methods: ["DELETE"],
+    pattern: '/v1/clients/:id',
+    tokens: [{"old":"/v1/clients/:id","type":0,"val":"v1","end":""},{"old":"/v1/clients/:id","type":0,"val":"clients","end":""},{"old":"/v1/clients/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['clients.destroy']['types'],
+  },
+  'subscriptions.store': {
+    methods: ["POST"],
+    pattern: '/v1/subscriptions',
+    tokens: [{"old":"/v1/subscriptions","type":0,"val":"v1","end":""},{"old":"/v1/subscriptions","type":0,"val":"subscriptions","end":""}],
+    types: placeholder as Registry['subscriptions.store']['types'],
+  },
+  'subscriptions.destroy': {
+    methods: ["DELETE"],
+    pattern: '/v1/subscriptions/:userId/:fastPassId',
+    tokens: [{"old":"/v1/subscriptions/:userId/:fastPassId","type":0,"val":"v1","end":""},{"old":"/v1/subscriptions/:userId/:fastPassId","type":0,"val":"subscriptions","end":""},{"old":"/v1/subscriptions/:userId/:fastPassId","type":1,"val":"userId","end":""},{"old":"/v1/subscriptions/:userId/:fastPassId","type":1,"val":"fastPassId","end":""}],
+    types: placeholder as Registry['subscriptions.destroy']['types'],
   },
   'vouchers.index': {
     methods: ["GET","HEAD"],
