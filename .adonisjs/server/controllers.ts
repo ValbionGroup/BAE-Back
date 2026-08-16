@@ -38,6 +38,7 @@ export const controllers = {
   Stocks: () => import('#controllers/stocks_controller'),
   Subscriptions: () => import('#controllers/subscriptions_controller'),
   Suppliers: () => import('#controllers/suppliers_controller'),
+  Tickets: () => import('#controllers/tickets_controller'),
   Transactions: () => import('#controllers/transactions_controller'),
   Vouchers: () => import('#controllers/vouchers_controller'),
 }

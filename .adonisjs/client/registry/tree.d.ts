@@ -133,6 +133,7 @@ export interface ApiDefinition {
     index: typeof routes['orders.index']
     store: typeof routes['orders.store']
     sellable: typeof routes['orders.sellable']
+    summary: typeof routes['orders.summary']
     setStatus: typeof routes['orders.set_status']
     destroy: typeof routes['orders.destroy']
   }
@@ -235,6 +236,15 @@ export interface ApiDefinition {
       index: typeof routes['notifications.notifications.index']
       markRead: typeof routes['notifications.notifications.mark_read']
       markAllRead: typeof routes['notifications.notifications.mark_all_read']
+    }
+  }
+  tickets: {
+    tickets: {
+      index: typeof routes['tickets.tickets.index']
+      store: typeof routes['tickets.tickets.store']
+      show: typeof routes['tickets.tickets.show']
+      reply: typeof routes['tickets.tickets.reply']
+      setStatus: typeof routes['tickets.tickets.set_status']
     }
   }
   eventStream: typeof routes['event_stream']
