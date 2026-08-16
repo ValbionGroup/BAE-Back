@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import ApiException from '#exceptions/api_exception'
 import Event from '#models/event'
 import Member from '#models/member'
+import { recordEvent } from '#services/notification_service'
+import Product from '#models/product'
 import ProductionRun from '#models/production_run'
 import {
   commitProduction,
@@ -107,6 +109,24 @@ export default class ProductionRunsController {
     // creation — `POST /products` and `POST /vouchers` both return the
     // serialized row with a 200. Diverging would make the API answer two
     // different codes for the same kind of gesture.
+    // Trace pour le fil d'activité. Hors transaction et sans destinataire : ce
+    // n'est pas une notification, personne n'a à être prévenu — et un incident
+    // de journalisation ne doit pas annuler une production déjà écrite en stock.
+    if (author !== null) {
+      const product = await Product.find(productId)
+      await recordEvent({
+        verb: 'production.launched',
+        actorId: author.id,
+        subjectType: 'event',
+        subjectId: Number(params.id),
+        payload: {
+          what: 'a lancé la production de',
+          emphasis: product?.name ?? `recette #${productId}`,
+          tail: `× ${quantity}`,
+        },
+      })
+    }
+
     return serialize({ id: run.id, productId, quantity, lines })
   }
 
