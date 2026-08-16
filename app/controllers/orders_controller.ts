@@ -7,12 +7,18 @@ import {
   sellableForEvent,
   setStatus,
 } from '#services/order_service'
+import { summaryForEvent } from '#services/event_summary_service'
 import { orderCheckoutValidator, orderStatusValidator } from '#validators/order'
 import { broadcastOrder } from '#services/orders_realtime'
 
 export default class OrdersController {
   async index({ params, serialize }: HttpContext) {
     return serialize(await listForEvent(Number(params.id)))
+  }
+
+  /** Le bilan d'une soirée : ce qui a été produit, vendu, et réellement encaissé. */
+  async summary({ params, serialize }: HttpContext) {
+    return serialize(await summaryForEvent(Number(params.id)))
   }
 
   async store({ params, request, response, serialize, auth }: HttpContext) {
