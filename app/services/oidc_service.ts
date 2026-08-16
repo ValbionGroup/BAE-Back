@@ -5,10 +5,14 @@ import env from '#start/env'
  * Le SSO en mode BFF : c'est Adonis qui porte le flow OAuth, jamais le navigateur.
  * Le front n'obtient donc aucun jeton lisible.
  *
- * ⚠️ **`@adonisjs/ally` ne peut pas faire ce travail** et reste inutilisé :
- * Ally v6 n'implémente pas PKCE (`Oauth2Driver` ne pose ni `code_challenge` à la
- * redirection, ni `code_verifier` à l'échange), or EirbConnect l'exige et le realm
- * ne nous appartient pas — on ne peut pas assouplir sa politique.
+ * ⚠️ **Ne pas réintroduire `@adonisjs/ally` en croyant compléter ce fichier.**
+ * Il a été retiré des dépendances le 2026-08-16, après avoir traîné inutilisé :
+ * Ally v6 n'implémente pas PKCE — `Oauth2Driver` ne pose ni `code_challenge` à la
+ * redirection, ni `code_verifier` à l'échange. Or EirbConnect l'exige
+ * (`code_challenge_method: S256`) et le realm ne nous appartient pas : sa
+ * politique n'est pas assouplissable. `openid-client` porte donc le flux, et
+ * c'est aussi la bibliothèque de l'exemple d'implémentation d'EirbConnect — le
+ * jour où quelque chose bloque, on parle le même langage qu'EirbWare.
  */
 
 /** Les claims d'EirbConnect ne sont **pas** les claims standards. */
