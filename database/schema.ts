@@ -377,15 +377,7 @@ export class PreOrderItemSchema extends BaseModel {
 }
 
 export class PreOrderSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'eventId',
-    'id',
-    'pickupAt',
-    'status',
-    'pickupAt', 'status', 'transactionId',
-    'userId',
-  ] as const
+  static $columns = ['createdAt', 'eventId', 'id', 'pickupAt', 'status', 'transactionId', 'userId'] as const
   $columns = PreOrderSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
