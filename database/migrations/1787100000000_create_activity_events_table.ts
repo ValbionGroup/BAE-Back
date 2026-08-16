@@ -12,13 +12,10 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      // `null` quand c'est le système qui agit, ce qui est le cas de tous les rappels.
       table.integer('actor_id').unsigned().references('id').inTable('users').onDelete('SET NULL')
       table.string('verb').notNullable()
       table.string('subject_type').notNullable()
       table.integer('subject_id').notNullable()
-      // Figé à l'émission : un rappel raconte la soirée telle qu'elle était au
-      // moment du fait, même si son nom change ensuite.
       table.jsonb('payload').notNullable().defaultTo('{}')
       table.timestamp('occurred_at', { useTz: true }).notNullable()
       table.index(['subject_type', 'subject_id'])
