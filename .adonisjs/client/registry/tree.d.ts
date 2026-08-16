@@ -197,10 +197,6 @@ export interface ApiDefinition {
   transactions: {
     index: typeof routes['transactions.index']
   }
-  qrs: {
-    verify: typeof routes['qrs.verify']
-    search: typeof routes['qrs.search']
-  }
   clients: {
     summary: typeof routes['clients.summary']
     index: typeof routes['clients.index']
@@ -211,6 +207,10 @@ export interface ApiDefinition {
   subscriptions: {
     store: typeof routes['subscriptions.store']
     destroy: typeof routes['subscriptions.destroy']
+  }
+  qrs: {
+    verify: typeof routes['qrs.verify']
+    search: typeof routes['qrs.search']
   }
   vouchers: {
     index: typeof routes['vouchers.index']

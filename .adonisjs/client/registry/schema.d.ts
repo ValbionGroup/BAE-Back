@@ -1483,78 +1483,6 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/transactions_controller').default['index']>>>
     }
   }
-  'qrs.verify': {
-    methods: ["POST"]
-    pattern: '/v1/qr/verify'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/qr').qrVerifyValidator)>>
-      paramsTuple: []
-      params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/qr').qrVerifyValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['verify']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['verify']>>> | { status: 422; response: { errors: SimpleError[] } }
-    }
-  }
-  'qrs.search': {
-    methods: ["GET","HEAD"]
-    pattern: '/v1/buyers'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: ExtractQueryForGet<InferInput<(typeof import('#validators/qr').buyerSearchValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['search']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['search']>>> | { status: 422; response: { errors: SimpleError[] } }
-    }
-  }
-  'orders.set_status': {
-    methods: ["PATCH"]
-    pattern: '/v1/orders/:id/status'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/order').orderStatusValidator)>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#validators/order').orderStatusValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['setStatus']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['setStatus']>>> | { status: 422; response: { errors: SimpleError[] } }
-    }
-  }
-  'orders.destroy': {
-    methods: ["DELETE"]
-    pattern: '/v1/orders/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['destroy']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['destroy']>>>
-    }
-  }
-  'pre_orders.set_status': {
-    methods: ["PATCH"]
-    pattern: '/v1/pre-orders/:id/status'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/order').orderStatusValidator)>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#validators/order').orderStatusValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/pre_orders_controller').default['setStatus']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/pre_orders_controller').default['setStatus']>>> | { status: 422; response: { errors: SimpleError[] } }
-    }
-  }
-  'pre_orders.collect': {
-    methods: ["POST"]
-    pattern: '/v1/pre-orders/:id/collect'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/pre_orders_controller').default['collect']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/pre_orders_controller').default['collect']>>>
-    }
-  }
   'clients.summary': {
     methods: ["GET","HEAD"]
     pattern: '/v1/clients/summary'
@@ -1637,6 +1565,78 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/subscriptions_controller').default['destroy']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/subscriptions_controller').default['destroy']>>>
+    }
+  }
+  'qrs.verify': {
+    methods: ["POST"]
+    pattern: '/v1/qr/verify'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/qr').qrVerifyValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/qr').qrVerifyValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['verify']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['verify']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'qrs.search': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/buyers'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: ExtractQueryForGet<InferInput<(typeof import('#validators/qr').buyerSearchValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['search']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['search']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'orders.set_status': {
+    methods: ["PATCH"]
+    pattern: '/v1/orders/:id/status'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/order').orderStatusValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/order').orderStatusValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['setStatus']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['setStatus']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'orders.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/orders/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/orders_controller').default['destroy']>>>
+    }
+  }
+  'pre_orders.set_status': {
+    methods: ["PATCH"]
+    pattern: '/v1/pre-orders/:id/status'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/order').orderStatusValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/order').orderStatusValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/pre_orders_controller').default['setStatus']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/pre_orders_controller').default['setStatus']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'pre_orders.collect': {
+    methods: ["POST"]
+    pattern: '/v1/pre-orders/:id/collect'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/pre_orders_controller').default['collect']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/pre_orders_controller').default['collect']>>>
     }
   }
   'vouchers.index': {
