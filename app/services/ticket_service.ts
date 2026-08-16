@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import Ticket from '#models/ticket'
 import type { TicketStatus } from '#models/ticket'
 import TicketMessage from '#models/ticket_message'
-import { emit } from '#services/notification_service'
+import { emit, recordEvent } from '#services/notification_service'
 
 /**
  * Les destinataires d'un ticket ouvert : toute personne autorisée à les lire —
@@ -49,17 +49,29 @@ export async function openTicket(input: {
   // annuler l'ouverture du ticket. Perdre l'alerte est ennuyeux, perdre la
   // demande de l'utilisateur l'est bien davantage.
   const recipients = await supportRecipients()
+
+  const fact = {
+    verb: 'ticket.opened',
+    actorId: input.authorId,
+    subjectType: 'ticket',
+    subjectId: ticket.id,
+    payload: {
+      subject: 'Nouveau ticket',
+      lines: [ticket.subject],
+      what: 'a ouvert le ticket',
+      emphasis: ticket.subject,
+    },
+    dedupeKey: `ticket.opened:${ticket.id}`,
+  } as const
+
+  // ⚠️ Le fait est enregistré **même sans destinataire**. Le lier à l'existence
+  // d'un lecteur ferait disparaître l'ouverture du fil d'activité le jour où
+  // personne ne porte `ticket:read` — l'action a eu lieu, qu'on la notifie ou
+  // non. C'est toute la raison d'être de `recordEvent` à côté d'`emit`.
   if (recipients.length > 0) {
-    await emit({
-      verb: 'ticket.opened',
-      actorId: input.authorId,
-      subjectType: 'ticket',
-      subjectId: ticket.id,
-      payload: { subject: 'Nouveau ticket', lines: [ticket.subject] },
-      recipients,
-      channels: ['in_app', 'mail'],
-      dedupeKey: `ticket.opened:${ticket.id}`,
-    })
+    await emit({ ...fact, recipients, channels: ['in_app', 'mail'] })
+  } else {
+    await recordEvent(fact)
   }
 
   return ticket

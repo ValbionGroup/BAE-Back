@@ -119,6 +119,30 @@ test.group('Tickets — les deux notifications du cahier des charges', (group) =
     assert.notInclude(notified, user.id, 'on ne se notifie pas sa propre demande')
   })
 
+  /**
+   * ⚠️ Le fait doit exister **même si personne n'est notifié**. Le lier à
+   * l'existence d'un porteur de `ticket:read` ferait disparaître l'ouverture du
+   * fil d'activité le jour où le rôle change — l'action a eu lieu quand même.
+   */
+  test('enregistre l’ouverture même sans personne à notifier', async ({ client, assert }) => {
+    const author = await MemberFactory.create()
+    const user = await grantPermissions(author, [])
+
+    const created = await client
+      .post('/v1/tickets')
+      .json({ subject: 'Personne pour lire', body: 'x' })
+      .loginAs(user)
+    const id = (created.body() as { data: { id: number } }).data.id
+
+    const facts = await db
+      .from('activity_events')
+      .where('subject_type', 'ticket')
+      .where('subject_id', id)
+      .where('verb', 'ticket.opened')
+
+    assert.lengthOf(facts, 1, 'le fait doit être tracé indépendamment de sa livraison')
+  })
+
   test('changer le statut notifie l’auteur', async ({ client, assert }) => {
     const support = await MemberFactory.create()
     const agent = await grantPermissions(support, ['ticket:read', 'ticket:write'])
