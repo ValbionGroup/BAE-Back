@@ -143,6 +143,9 @@ jobs:
       SESSION_DRIVER: cookie
       JWT_PRIVATE_KEY: test-jwt-private-key-for-ci-only-not-secure
       JWT_PUBLIC_KEY: test-jwt
+      MAIL_MAILER: log
+      MAIL_FROM_NAME: BAE
+      MAIL_FROM_ADDRESS: no-reply@bae.eirb.fr
     services:
       postgres:
         image: postgres:17-alpine
