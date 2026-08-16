@@ -7,6 +7,25 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class ActivityEventSchema extends BaseModel {
+  static $columns = ['actorId', 'id', 'occurredAt', 'payload', 'subjectId', 'subjectType', 'verb'] as const
+  $columns = ActivityEventSchema.$columns
+  @column()
+  declare actorId: number | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare occurredAt: DateTime
+  @column()
+  declare payload: any
+  @column()
+  declare subjectId: number
+  @column()
+  declare subjectType: string
+  @column()
+  declare verb: string
+}
+
 export class AuthAccessTokenSchema extends BaseModel {
   static $columns = ['abilities', 'createdAt', 'expiresAt', 'hash', 'id', 'ipAddress', 'lastUsedAt', 'name', 'tokenableId', 'type', 'updatedAt', 'userAgent'] as const
   $columns = AuthAccessTokenSchema.$columns
@@ -314,6 +333,23 @@ export class MemberSchema extends BaseModel {
   declare roleId: number | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+}
+
+export class NotificationSchema extends BaseModel {
+  static $columns = ['channel', 'eventId', 'id', 'readAt', 'sentAt', 'userId'] as const
+  $columns = NotificationSchema.$columns
+  @column()
+  declare channel: string
+  @column()
+  declare eventId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare readAt: DateTime | null
+  @column.dateTime()
+  declare sentAt: DateTime | null
+  @column()
+  declare userId: number
 }
 
 export class OrderProductSchema extends BaseModel {
