@@ -65,4 +65,4 @@ router
       .use(middleware.can('restock:delete'))
   })
   .prefix('/v1')
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.audience('member')])

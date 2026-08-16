@@ -6,6 +6,7 @@ import User from '#models/user'
 import Client from '#models/client'
 import Member from '#models/member'
 import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 import { isSsoApp, provision } from '#services/sso_provisioning_service'
 import type { SsoClaims } from '#services/oidc_service'
 
@@ -153,5 +154,34 @@ test.group('SSO — les deux zones ont des politiques opposées', (group) => {
     assert.equal(outcome.user.id, existing.id)
     assert.isNotNull(await Member.find(existing.id))
     assert.isNotNull(await Client.find(existing.id))
+  })
+})
+
+test.group('Gardes d’audience — la sécurité réelle', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('un client authentifié n’atteint pas les routes du dashboard', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    // Exactement ce que produit une connexion SSO côté public : un `user` avec
+    // une ligne `clients`, et aucune ligne `members`.
+    const outcome = await provision('public', claimsFor())
+    assert.equal(outcome.status, 'ok')
+
+    const response = await httpClient.get('/v1/members').loginAs(outcome.user)
+
+    // ⚠️ Le lieu de connexion ne protège rien : les trois origines partagent un
+    // domaine, donc le cookie voyage. C'est CE garde qui sépare les deux zones.
+    response.assertStatus(403)
+  })
+
+  test('un membre atteint bien les routes du dashboard', async ({ client: httpClient, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['member:read'])
+
+    const response = await httpClient.get('/v1/members').loginAs(user)
+
+    assert.notEqual(response.status(), 403)
   })
 })
