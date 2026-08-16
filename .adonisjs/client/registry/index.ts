@@ -882,6 +882,24 @@ const routes = {
     tokens: [{"old":"/v1/account/sessions/:id","type":0,"val":"v1","end":""},{"old":"/v1/account/sessions/:id","type":0,"val":"account","end":""},{"old":"/v1/account/sessions/:id","type":0,"val":"sessions","end":""},{"old":"/v1/account/sessions/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['sessions.sessions.destroy']['types'],
   },
+  'notifications.notifications.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/account/notifications',
+    tokens: [{"old":"/v1/account/notifications","type":0,"val":"v1","end":""},{"old":"/v1/account/notifications","type":0,"val":"account","end":""},{"old":"/v1/account/notifications","type":0,"val":"notifications","end":""}],
+    types: placeholder as Registry['notifications.notifications.index']['types'],
+  },
+  'notifications.notifications.mark_read': {
+    methods: ["PATCH"],
+    pattern: '/v1/account/notifications/:id/read',
+    tokens: [{"old":"/v1/account/notifications/:id/read","type":0,"val":"v1","end":""},{"old":"/v1/account/notifications/:id/read","type":0,"val":"account","end":""},{"old":"/v1/account/notifications/:id/read","type":0,"val":"notifications","end":""},{"old":"/v1/account/notifications/:id/read","type":1,"val":"id","end":""},{"old":"/v1/account/notifications/:id/read","type":0,"val":"read","end":""}],
+    types: placeholder as Registry['notifications.notifications.mark_read']['types'],
+  },
+  'notifications.notifications.mark_all_read': {
+    methods: ["POST"],
+    pattern: '/v1/account/notifications/read-all',
+    tokens: [{"old":"/v1/account/notifications/read-all","type":0,"val":"v1","end":""},{"old":"/v1/account/notifications/read-all","type":0,"val":"account","end":""},{"old":"/v1/account/notifications/read-all","type":0,"val":"notifications","end":""},{"old":"/v1/account/notifications/read-all","type":0,"val":"read-all","end":""}],
+    types: placeholder as Registry['notifications.notifications.mark_all_read']['types'],
+  },
   'event_stream': {
     methods: ["GET","HEAD"],
     pattern: '/__transmit/events',
