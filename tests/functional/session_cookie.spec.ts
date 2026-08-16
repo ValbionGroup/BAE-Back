@@ -49,17 +49,28 @@ test.group('Authentification par cookie', (group) => {
     response.assertStatus(401)
   })
 
-  test('la déconnexion efface le cookie', async ({ client, assert }) => {
+  /**
+   * ⚠️ Le tour complet du CSRF (lecture qui amorce le cookie, puis écriture qui
+   * le recopie) n'est **pas** testé ici : le client de Japa re-signe les cookies
+   * qu'on lui rejoue, ce qui casse la session et fait échouer un jeton pourtant
+   * valide. Le tester malgré tout aurait mesuré le harnais, pas le produit.
+   *
+   * Ce chemin a été vérifié contre le serveur réel, avec un vrai bocal à cookies
+   * (voir le §0 octodecies du handoff). Ce qui suit garde la moitié qui compte
+   * pour la sécurité : le refus.
+   */
+  /**
+   * ⚠️ Le test qui garde la protection elle-même : sans en-tête, une écriture
+   * authentifiée par cookie doit être **refusée**. S'il passe au vert par
+   * accident, c'est que le CSRF a été désactivé sans qu'on s'en aperçoive.
+   */
+  test('une écriture par cookie sans jeton CSRF est refusée', async ({ client }) => {
     const login = await passwordLogin(client)
     const token = login.cookie(SESSION_COOKIE)!.value
 
     const response = await client.post('/v1/auth/logout').withCookie(SESSION_COOKIE, token)
 
-    response.assertStatus(204)
-    const cleared = response.cookie(SESSION_COOKIE)
-    // Un cookie effacé est renvoyé vide et/ou expiré — dans les deux cas il ne
-    // doit plus porter le jeton.
-    assert.notEqual(cleared?.value, token, 'le jeton ne doit plus être présenté')
+    response.assertStatus(403)
   })
 
   test('un en-tête explicite garde la priorité sur le cookie', async ({ client, assert }) => {
