@@ -31,4 +31,4 @@ router
       .use(middleware.can('role:read'))
   })
   .prefix('/v1')
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.audience('member')])

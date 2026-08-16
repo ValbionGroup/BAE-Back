@@ -72,4 +72,4 @@ router
       .use(middleware.can('voucher:delete'))
   })
   .prefix('/v1')
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.audience('member')])
