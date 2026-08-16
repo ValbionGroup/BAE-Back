@@ -21,6 +21,7 @@ import JobSeeder from './job_seeder.js'
 import TransactionSeeder from './transaction_seeder.js'
 import FastPassSeeder from './fast_pass_seeder.js'
 import SubscriptionSeeder from './subscription_seeder.js'
+import ClientSeeder from './client_seeder.js'
 
 export default class extends BaseSeeder {
   private async runSeeder(Seeder: typeof BaseSeeder) {
@@ -47,6 +48,9 @@ export default class extends BaseSeeder {
     await this.runSeeder(LogSeeder)
 
     await this.runSeeder(SubscriptionSeeder)
+    // Après SubscriptionSeeder, qui fait un `sync()` sur tous les comptes
+    // existants : il écraserait les cotisations échelonnées semées ici.
+    await this.runSeeder(ClientSeeder)
     await this.runSeeder(ProductGoodSeeder)
     await this.runSeeder(ProductFurnitureSeeder)
     await this.runSeeder(EventProductSeeder)
