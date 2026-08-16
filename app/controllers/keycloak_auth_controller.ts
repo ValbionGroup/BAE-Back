@@ -5,6 +5,7 @@ import logger from '@adonisjs/core/services/logger'
 import User from '#models/user'
 import { authorizationRequest, exchange } from '#services/oidc_service'
 import { isSsoApp, provision } from '#services/sso_provisioning_service'
+import { setSessionCookie } from '#services/session_cookie'
 import type { SsoApp } from '#services/sso_provisioning_service'
 
 /** Une seule entrée de session porte les trois valeurs — voir `redirect()`. */
@@ -106,12 +107,7 @@ export default class KeycloakAuthController {
 
     // Le jeton transite par un cookie `httpOnly` : le front n'obtient jamais de
     // jeton lisible, c'est tout l'objet du mode BFF.
-    response.cookie('bae_token', token.value!.release(), {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: env.get('NODE_ENV') === 'production',
-      path: '/',
-    })
+    setSessionCookie(response, token.value!.release())
 
     return response.redirect(front)
   }
