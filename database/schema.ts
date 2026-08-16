@@ -8,10 +8,12 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 export class ActivityEventSchema extends BaseModel {
-  static $columns = ['actorId', 'id', 'occurredAt', 'payload', 'subjectId', 'subjectType', 'verb'] as const
+  static $columns = ['actorId', 'dedupeKey', 'id', 'occurredAt', 'payload', 'subjectId', 'subjectType', 'verb'] as const
   $columns = ActivityEventSchema.$columns
   @column()
   declare actorId: number | null
+  @column()
+  declare dedupeKey: string | null
   @column({ isPrimary: true })
   declare id: number
   @column.dateTime()

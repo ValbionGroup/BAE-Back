@@ -31,4 +31,8 @@ export default class ActivityEvent extends BaseModel {
 
   @column.dateTime()
   declare occurredAt: DateTime
+
+  /** Identité métier d'un fait rejouable — voir la migration qui l'ajoute. */
+  @column()
+  declare dedupeKey: string | null
 }
