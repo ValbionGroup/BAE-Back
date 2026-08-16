@@ -12,8 +12,7 @@ export const MemberFactory = factory
   })
   .before('create', async (builder, member, ctx) => {
     const requestedBelongsTo = (builder as any).withBelongsToRelations as
-      | undefined
-      | Array<{ name: string }>
+      undefined | Array<{ name: string }>
     const willCreateUserViaRelation = requestedBelongsTo?.some(
       (relation) => relation.name === 'user'
     )
