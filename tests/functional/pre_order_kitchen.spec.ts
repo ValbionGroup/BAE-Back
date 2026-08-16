@@ -69,6 +69,17 @@ test.group('Précommandes — file cuisine', (group) => {
     assert.equal(ticket.client_name, 'Tom Bessiere')
   })
 
+  // Épingle le seuil lui-même : à 20 minutes, la précommande attend encore.
+  // Sans ce cas, remonter `PREPARE_LEAD_MINUTES` ne casserait aucun test.
+  test('une précommande au-delà du délai de préparation attend', async ({ client, assert }) => {
+    const { event } = await seed({ pickupInMinutes: 20 })
+    const user = await grantPermissions(await MemberFactory.create(), ['order:read'])
+
+    const response = await client.get(`/v1/events/${event.id}/pre-orders`).loginAs(user)
+
+    assert.isFalse(response.body().data[0].due)
+  })
+
   test('une précommande lointaine n’encombre pas encore la cuisine', async ({ client, assert }) => {
     const { event } = await seed({ pickupInMinutes: 240 })
     const user = await grantPermissions(await MemberFactory.create(), ['order:read'])

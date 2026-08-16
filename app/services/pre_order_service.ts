@@ -12,7 +12,7 @@ import { resolveBuyerNames } from '#services/buyer_service'
  * Une précommande **sans** heure (`pickup_at` nul) est due dès l'ouverture :
  * mieux vaut la préparer trop tôt que la voir disparaître de la file.
  */
-export const PREPARE_LEAD_MINUTES = 30
+export const PREPARE_LEAD_MINUTES = 15
 
 export type PreOrderLine = {
   productId: number
