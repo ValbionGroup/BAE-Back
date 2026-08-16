@@ -150,6 +150,9 @@ export type ScannedRoutes = {
     'logs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.index': { paramsTuple?: []; params?: {} }
     'sessions.sessions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'notifications.notifications.index': { paramsTuple?: []; params?: {} }
+    'notifications.notifications.mark_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'notifications.notifications.mark_all_read': { paramsTuple?: []; params?: {} }
     'event_stream': { paramsTuple?: []; params?: {} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
@@ -187,6 +190,7 @@ export type ScannedRoutes = {
     'subscriptions.store': { paramsTuple?: []; params?: {} }
     'vouchers.store': { paramsTuple?: []; params?: {} }
     'logs.store': { paramsTuple?: []; params?: {} }
+    'notifications.notifications.mark_all_read': { paramsTuple?: []; params?: {} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
   }
@@ -284,6 +288,7 @@ export type ScannedRoutes = {
     'logs.index': { paramsTuple?: []; params?: {} }
     'logs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.index': { paramsTuple?: []; params?: {} }
+    'notifications.notifications.index': { paramsTuple?: []; params?: {} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
@@ -354,6 +359,7 @@ export type ScannedRoutes = {
     'logs.index': { paramsTuple?: []; params?: {} }
     'logs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.index': { paramsTuple?: []; params?: {} }
+    'notifications.notifications.index': { paramsTuple?: []; params?: {} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   PUT: {
@@ -400,6 +406,7 @@ export type ScannedRoutes = {
     'clients.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'notifications.notifications.mark_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

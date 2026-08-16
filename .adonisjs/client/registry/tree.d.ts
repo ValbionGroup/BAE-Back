@@ -230,6 +230,13 @@ export interface ApiDefinition {
       destroy: typeof routes['sessions.sessions.destroy']
     }
   }
+  notifications: {
+    notifications: {
+      index: typeof routes['notifications.notifications.index']
+      markRead: typeof routes['notifications.notifications.mark_read']
+      markAllRead: typeof routes['notifications.notifications.mark_all_read']
+    }
+  }
   eventStream: typeof routes['event_stream']
   subscribe: typeof routes['subscribe']
   unsubscribe: typeof routes['unsubscribe']
