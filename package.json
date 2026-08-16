@@ -75,6 +75,7 @@
     "jose": "^6.2.9",
     "luxon": "^3.7.2",
     "mysql2": "^3.23.3",
+    "openid-client": "^6.8.5",
     "pg": "^8.23.0",
     "puppeteer": "^24.43.1",
     "reflect-metadata": "^0.2.2"

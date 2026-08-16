@@ -22,4 +22,8 @@ router.use([
 export const middleware = router.named({
   auth: () => import('#middleware/auth_middleware'),
   can: () => import('#middleware/permission_middleware'),
+  // `auth()` ne prouve que l'identité : `audience()` prouve l'appartenance
+  // (`member` pour le dashboard, `client` pour la zone publique). Les deux fronts
+  // partagent un domaine, donc un même cookie — la distinction se fait ici.
+  audience: () => import('#middleware/audience_middleware'),
 })

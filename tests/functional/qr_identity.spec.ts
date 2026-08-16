@@ -6,6 +6,7 @@ import FastPass from '#models/fast_pass'
 import JwtService from '#services/jwt_service'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
+import { errorCodeOf } from '#tests/helpers/api_error'
 
 async function subscribe(userId: number, label: string, duration: number, startedDaysAgo: number) {
   const pass = await FastPass.create({ label, duration, price: 15, description: null })
@@ -95,7 +96,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
       .loginAs(user)
 
     expiredResponse.assertStatus(401)
-    assert.equal(expiredResponse.body().error.code, 'E_QR_EXPIRED')
+    assert.equal(errorCodeOf(expiredResponse), 'E_QR_EXPIRED')
 
     const garbageResponse = await client
       .post('/v1/qr/verify')
@@ -103,7 +104,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
       .loginAs(user)
 
     garbageResponse.assertStatus(401)
-    assert.equal(garbageResponse.body().error.code, 'E_QR_INVALID')
+    assert.equal(errorCodeOf(garbageResponse), 'E_QR_INVALID')
   })
 
   test('un QR de fast pass valide identifie son porteur', async ({ client, assert }) => {
@@ -140,7 +141,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
     const response = await client.post('/v1/qr/verify').json({ token }).loginAs(user)
 
     response.assertStatus(422)
-    assert.equal(response.body().error.code, 'E_FAST_PASS_EXPIRED')
+    assert.equal(errorCodeOf(response), 'E_FAST_PASS_EXPIRED')
   })
 
   test('vérifier un QR exige order:write', async ({ client, assert }) => {
@@ -149,7 +150,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
     const response = await client.post('/v1/qr/verify').json({ token: 'peu importe' }).loginAs(user)
 
     response.assertStatus(403)
-    assert.equal(response.body().error.code, 'E_FORBIDDEN')
+    assert.equal(errorCodeOf(response), 'E_FORBIDDEN')
   })
 })
 

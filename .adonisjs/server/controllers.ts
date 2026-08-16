@@ -16,6 +16,7 @@ export const controllers = {
   Goods: () => import('#controllers/goods_controller'),
   JobEligibleMembers: () => import('#controllers/job_eligible_members_controller'),
   Jobs: () => import('#controllers/jobs_controller'),
+  KeycloakAuth: () => import('#controllers/keycloak_auth_controller'),
   Logs: () => import('#controllers/logs_controller'),
   Members: () => import('#controllers/members_controller'),
   NewAccount: () => import('#controllers/new_account_controller'),

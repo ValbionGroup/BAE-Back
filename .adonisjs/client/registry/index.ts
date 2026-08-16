@@ -30,11 +30,29 @@ const routes = {
     tokens: [{"old":"/v1/auth/logout-all","type":0,"val":"v1","end":""},{"old":"/v1/auth/logout-all","type":0,"val":"auth","end":""},{"old":"/v1/auth/logout-all","type":0,"val":"logout-all","end":""}],
     types: placeholder as Registry['auth.access_token.destroy_all']['types'],
   },
+  'auth.keycloak_auth.redirect': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/auth/keycloak/redirect',
+    tokens: [{"old":"/v1/auth/keycloak/redirect","type":0,"val":"v1","end":""},{"old":"/v1/auth/keycloak/redirect","type":0,"val":"auth","end":""},{"old":"/v1/auth/keycloak/redirect","type":0,"val":"keycloak","end":""},{"old":"/v1/auth/keycloak/redirect","type":0,"val":"redirect","end":""}],
+    types: placeholder as Registry['auth.keycloak_auth.redirect']['types'],
+  },
+  'auth.keycloak_auth.callback': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/auth/keycloak/callback',
+    tokens: [{"old":"/v1/auth/keycloak/callback","type":0,"val":"v1","end":""},{"old":"/v1/auth/keycloak/callback","type":0,"val":"auth","end":""},{"old":"/v1/auth/keycloak/callback","type":0,"val":"keycloak","end":""},{"old":"/v1/auth/keycloak/callback","type":0,"val":"callback","end":""}],
+    types: placeholder as Registry['auth.keycloak_auth.callback']['types'],
+  },
   'profile.profile.show': {
     methods: ["GET","HEAD"],
     pattern: '/v1/account/profile',
     tokens: [{"old":"/v1/account/profile","type":0,"val":"v1","end":""},{"old":"/v1/account/profile","type":0,"val":"account","end":""},{"old":"/v1/account/profile","type":0,"val":"profile","end":""}],
     types: placeholder as Registry['profile.profile.show']['types'],
+  },
+  'profile.qrs.mine': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/account/qr',
+    tokens: [{"old":"/v1/account/qr","type":0,"val":"v1","end":""},{"old":"/v1/account/qr","type":0,"val":"account","end":""},{"old":"/v1/account/qr","type":0,"val":"qr","end":""}],
+    types: placeholder as Registry['profile.qrs.mine']['types'],
   },
   'members.index': {
     methods: ["GET","HEAD"],
@@ -486,6 +504,30 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/shopping-list/pdf","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/shopping-list/pdf","type":0,"val":"events","end":""},{"old":"/v1/events/:id/shopping-list/pdf","type":1,"val":"id","end":""},{"old":"/v1/events/:id/shopping-list/pdf","type":0,"val":"shopping-list","end":""},{"old":"/v1/events/:id/shopping-list/pdf","type":0,"val":"pdf","end":""}],
     types: placeholder as Registry['event_products.shopping_list_pdf']['types'],
   },
+  'orders.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/orders',
+    tokens: [{"old":"/v1/events/:id/orders","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/orders","type":0,"val":"events","end":""},{"old":"/v1/events/:id/orders","type":1,"val":"id","end":""},{"old":"/v1/events/:id/orders","type":0,"val":"orders","end":""}],
+    types: placeholder as Registry['orders.index']['types'],
+  },
+  'orders.store': {
+    methods: ["POST"],
+    pattern: '/v1/events/:id/orders',
+    tokens: [{"old":"/v1/events/:id/orders","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/orders","type":0,"val":"events","end":""},{"old":"/v1/events/:id/orders","type":1,"val":"id","end":""},{"old":"/v1/events/:id/orders","type":0,"val":"orders","end":""}],
+    types: placeholder as Registry['orders.store']['types'],
+  },
+  'orders.sellable': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/sellable',
+    tokens: [{"old":"/v1/events/:id/sellable","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/sellable","type":0,"val":"events","end":""},{"old":"/v1/events/:id/sellable","type":1,"val":"id","end":""},{"old":"/v1/events/:id/sellable","type":0,"val":"sellable","end":""}],
+    types: placeholder as Registry['orders.sellable']['types'],
+  },
+  'pre_orders.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/events/:id/pre-orders',
+    tokens: [{"old":"/v1/events/:id/pre-orders","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/pre-orders","type":0,"val":"events","end":""},{"old":"/v1/events/:id/pre-orders","type":1,"val":"id","end":""},{"old":"/v1/events/:id/pre-orders","type":0,"val":"pre-orders","end":""}],
+    types: placeholder as Registry['pre_orders.index']['types'],
+  },
   'production_runs.index': {
     methods: ["GET","HEAD"],
     pattern: '/v1/events/:id/production-runs',
@@ -696,6 +738,42 @@ const routes = {
     tokens: [{"old":"/v1/transactions","type":0,"val":"v1","end":""},{"old":"/v1/transactions","type":0,"val":"transactions","end":""}],
     types: placeholder as Registry['transactions.index']['types'],
   },
+  'qrs.verify': {
+    methods: ["POST"],
+    pattern: '/v1/qr/verify',
+    tokens: [{"old":"/v1/qr/verify","type":0,"val":"v1","end":""},{"old":"/v1/qr/verify","type":0,"val":"qr","end":""},{"old":"/v1/qr/verify","type":0,"val":"verify","end":""}],
+    types: placeholder as Registry['qrs.verify']['types'],
+  },
+  'qrs.search': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/buyers',
+    tokens: [{"old":"/v1/buyers","type":0,"val":"v1","end":""},{"old":"/v1/buyers","type":0,"val":"buyers","end":""}],
+    types: placeholder as Registry['qrs.search']['types'],
+  },
+  'orders.set_status': {
+    methods: ["PATCH"],
+    pattern: '/v1/orders/:id/status',
+    tokens: [{"old":"/v1/orders/:id/status","type":0,"val":"v1","end":""},{"old":"/v1/orders/:id/status","type":0,"val":"orders","end":""},{"old":"/v1/orders/:id/status","type":1,"val":"id","end":""},{"old":"/v1/orders/:id/status","type":0,"val":"status","end":""}],
+    types: placeholder as Registry['orders.set_status']['types'],
+  },
+  'orders.destroy': {
+    methods: ["DELETE"],
+    pattern: '/v1/orders/:id',
+    tokens: [{"old":"/v1/orders/:id","type":0,"val":"v1","end":""},{"old":"/v1/orders/:id","type":0,"val":"orders","end":""},{"old":"/v1/orders/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['orders.destroy']['types'],
+  },
+  'pre_orders.set_status': {
+    methods: ["PATCH"],
+    pattern: '/v1/pre-orders/:id/status',
+    tokens: [{"old":"/v1/pre-orders/:id/status","type":0,"val":"v1","end":""},{"old":"/v1/pre-orders/:id/status","type":0,"val":"pre-orders","end":""},{"old":"/v1/pre-orders/:id/status","type":1,"val":"id","end":""},{"old":"/v1/pre-orders/:id/status","type":0,"val":"status","end":""}],
+    types: placeholder as Registry['pre_orders.set_status']['types'],
+  },
+  'pre_orders.collect': {
+    methods: ["POST"],
+    pattern: '/v1/pre-orders/:id/collect',
+    tokens: [{"old":"/v1/pre-orders/:id/collect","type":0,"val":"v1","end":""},{"old":"/v1/pre-orders/:id/collect","type":0,"val":"pre-orders","end":""},{"old":"/v1/pre-orders/:id/collect","type":1,"val":"id","end":""},{"old":"/v1/pre-orders/:id/collect","type":0,"val":"collect","end":""}],
+    types: placeholder as Registry['pre_orders.collect']['types'],
+  },
   'clients.summary': {
     methods: ["GET","HEAD"],
     pattern: '/v1/clients/summary',
@@ -803,6 +881,24 @@ const routes = {
     pattern: '/v1/account/sessions/:id',
     tokens: [{"old":"/v1/account/sessions/:id","type":0,"val":"v1","end":""},{"old":"/v1/account/sessions/:id","type":0,"val":"account","end":""},{"old":"/v1/account/sessions/:id","type":0,"val":"sessions","end":""},{"old":"/v1/account/sessions/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['sessions.sessions.destroy']['types'],
+  },
+  'event_stream': {
+    methods: ["GET","HEAD"],
+    pattern: '/__transmit/events',
+    tokens: [{"old":"/__transmit/events","type":0,"val":"__transmit","end":""},{"old":"/__transmit/events","type":0,"val":"events","end":""}],
+    types: placeholder as Registry['event_stream']['types'],
+  },
+  'subscribe': {
+    methods: ["POST"],
+    pattern: '/__transmit/subscribe',
+    tokens: [{"old":"/__transmit/subscribe","type":0,"val":"__transmit","end":""},{"old":"/__transmit/subscribe","type":0,"val":"subscribe","end":""}],
+    types: placeholder as Registry['subscribe']['types'],
+  },
+  'unsubscribe': {
+    methods: ["POST"],
+    pattern: '/__transmit/unsubscribe',
+    tokens: [{"old":"/__transmit/unsubscribe","type":0,"val":"__transmit","end":""},{"old":"/__transmit/unsubscribe","type":0,"val":"unsubscribe","end":""}],
+    types: placeholder as Registry['unsubscribe']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 
