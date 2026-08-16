@@ -46,7 +46,7 @@ test.group('Product CRUD', (group) => {
     assert.deepEqual(
       rows.map((row) => ({
         goodId: row.good_id,
-        quantity: row.quantity,
+        quantity: Number(row.quantity),
         rank: row.rank,
         instruction: row.instruction,
       })),
@@ -94,12 +94,36 @@ test.group('Product CRUD', (group) => {
     response.assertStatus(200)
     const rows = await db.from('product_goods').where('product_id', product.id).orderBy('rank')
     assert.deepEqual(
-      rows.map((row) => ({ goodId: row.good_id, quantity: row.quantity, rank: row.rank })),
+      rows.map((row) => ({ goodId: row.good_id, quantity: Number(row.quantity), rank: row.rank })),
       [
         { goodId: kept.id, quantity: 3, rank: 1 },
         { goodId: added.id, quantity: 4, rank: 2 },
       ]
     )
+  })
+
+  /**
+   * Une recette consomme une fraction d'unité d'achat : un hot-dog prend 1/12
+   * de paquet de pains. L'entier rendait le coût de revient douze fois trop
+   * élevé, et la production sortait douze fois trop de stock.
+   */
+  test('accepte une quantité fractionnaire et la relit fidèlement', async ({ client, assert }) => {
+    const user = await asProductManager()
+    const product = await ProductFactory.create()
+    const good = await GoodFactory.create()
+
+    const response = await client
+      .put(`/v1/products/${product.id}`)
+      .json({
+        name: product.name,
+        goods: [{ goodId: good.id, quantity: 1 / 12, instruction: null }],
+      })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    const [row] = await db.from('product_goods').where('product_id', product.id)
+    // Quatre décimales : deux dériveraient de 4 % sur une fournée de 200.
+    assert.closeTo(Number(row.quantity), 0.0833, 0.0001)
   })
 
   test('leaves the ingredients alone when the payload carries no goods key', async ({
@@ -133,7 +157,11 @@ test.group('Product CRUD', (group) => {
           { goodId, quantity: 2 },
         ],
       },
-      { label: 'a fractional quantity', line: (goodId: number) => [{ goodId, quantity: 1.5 }] },
+      { label: 'a negative quantity', line: (goodId: number) => [{ goodId, quantity: -1 }] },
+      {
+        label: 'a quantity that is not a number',
+        line: (goodId: number) => [{ goodId, quantity: 'x' }],
+      },
       { label: 'a zero quantity', line: (goodId: number) => [{ goodId, quantity: 0 }] },
       { label: 'an unknown good', line: () => [{ goodId: 999_999, quantity: 1 }] },
     ])

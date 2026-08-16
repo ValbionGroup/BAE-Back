@@ -1,0 +1,447 @@
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import Event from '#models/event'
+import Order from '#models/order'
+import Transaction from '#models/transaction'
+import ApiException from '#exceptions/api_exception'
+import { ANONYMOUS_BUYER, resolveBuyerName, resolveBuyerNames } from '#services/buyer_service'
+
+export const ORDER_STATUSES = ['pending', 'in_progress', 'ready', 'completed', 'cancelled'] as const
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number]
+
+/** Libellés lus au comptoir : un refus nomme un état, pas un code. */
+export const STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'en attente',
+  in_progress: 'en préparation',
+  ready: 'prête',
+  completed: 'servie',
+  cancelled: 'annulée',
+}
+
+/**
+ * Le serveur arbitre, pas l'écran : caisse et cuisine regardent la même commande,
+ * et sans cette table un rafraîchissement tardif la ferait reculer. Une commande
+ * servie ne s'annule plus — ce serait un remboursement, pas une annulation.
+ */
+export const ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
+  pending: ['in_progress', 'cancelled'],
+  in_progress: ['ready', 'cancelled'],
+  ready: ['completed', 'cancelled'],
+  completed: [],
+  cancelled: [],
+}
+
+// `type` et non `interface` : seuls les alias reçoivent une signature d'index
+// implicite, sans laquelle ces charges utiles ne satisfont pas le
+// `Broadcastable` de Transmit (`orders_realtime.ts`).
+export type OrderLinePayload = {
+  productId: number
+  productName: string
+  quantity: number
+  /** En **centimes**, relu du menu de la soirée. */
+  unitPrice: number
+}
+
+export type OrderPayload = {
+  id: number
+  /** Dérivé par soirée — voir `numberOf`. Aucune colonne ne le porte. */
+  number: number
+  eventId: number | null
+  status: string
+  clientName: string
+  lines: OrderLinePayload[]
+  totalCents: number
+  createdAt: string | null
+  /** Dernière transition — alimente le temps moyen de préparation. */
+  updatedAt: string | null
+}
+
+export interface CheckoutLine {
+  productId: number
+  quantity: number
+}
+
+interface MenuEntry {
+  price: number
+  name: string
+}
+
+/** ⚠️ `price` est un entier **en centimes** ; `transactions.amount` est en euros. */
+async function menuOf(
+  eventId: number,
+  trx?: TransactionClientContract
+): Promise<Map<number, MenuEntry>> {
+  const rows = await (trx ?? db)
+    .from('event_products')
+    .join('products', 'products.id', 'event_products.product_id')
+    .where('event_products.event_id', eventId)
+    .select('event_products.product_id', 'event_products.price', 'products.name')
+
+  return new Map(
+    rows.map((row) => [
+      Number(row.product_id),
+      { price: Number(row.price), name: String(row.name) },
+    ])
+  )
+}
+
+/**
+ * Dérivé plutôt que stocké : on annule une commande sans la supprimer, donc
+ * aucune ligne ne disparaît et la numérotation reste stable.
+ */
+async function numberOf(order: Order, trx?: TransactionClientContract): Promise<number> {
+  const row = await (trx ?? db)
+    .from('orders')
+    .where('event_id', order.eventId!)
+    .where('id', '<=', order.id)
+    .count('* as total')
+    .first()
+
+  return Number(row?.total ?? 1)
+}
+
+/** Fusionne les lignes par produit et refuse les quantités non positives. */
+function mergeLines(lines: readonly CheckoutLine[]): Map<number, number> {
+  const merged = new Map<number, number>()
+  for (const line of lines) {
+    if (line.quantity <= 0) {
+      throw new ApiException('E_ORDER_INVALID_QUANTITY', 'Une quantité doit être positive.', 422)
+    }
+    merged.set(line.productId, (merged.get(line.productId) ?? 0) + line.quantity)
+  }
+  return merged
+}
+
+function buildPayload(
+  order: Order,
+  quantities: Map<number, number>,
+  menu: Map<number, MenuEntry>,
+  orderNumber: number,
+  clientName: string
+): OrderPayload {
+  const lines: OrderLinePayload[] = []
+  let totalCents = 0
+
+  for (const [productId, quantity] of quantities) {
+    const entry = menu.get(productId)
+    const unitPrice = entry?.price ?? 0
+    totalCents += unitPrice * quantity
+    lines.push({
+      productId,
+      productName: entry?.name ?? `Produit #${productId}`,
+      quantity,
+      unitPrice,
+    })
+  }
+
+  lines.sort((a, b) => a.productName.localeCompare(b.productName, 'fr'))
+
+  return {
+    id: order.id,
+    number: orderNumber,
+    eventId: order.eventId,
+    status: order.status,
+    clientName,
+    lines,
+    totalCents,
+    createdAt: order.createdAt?.toISO() ?? null,
+    updatedAt: order.updatedAt?.toISO() ?? null,
+  }
+}
+
+/**
+ * Refuse de vendre plus que ce qui a été produit.
+ *
+ * ⚠️ `produced = 0` laisse passer : une soirée qui ne déclare aucune production
+ * aurait sinon toute sa carte en rupture et ne pourrait rien encaisser. Absence
+ * d'information n'est pas absence de stock — même règle que la caisse.
+ */
+async function assertSellable(
+  quantities: Map<number, number>,
+  eventId: number,
+  menu: Map<number, { name: string }>,
+  trx: TransactionClientContract
+): Promise<void> {
+  const productIds = [...quantities.keys()]
+
+  const produced = await trx
+    .from('production_runs')
+    .where('event_id', eventId)
+    .whereIn('product_id', productIds)
+    .groupBy('product_id')
+    .select('product_id')
+    .sum('quantity as total')
+
+  const sold = await trx
+    .from('order_products')
+    .join('orders', 'orders.id', 'order_products.order_id')
+    .where('orders.event_id', eventId)
+    .whereNot('orders.status', 'cancelled')
+    .whereIn('order_products.product_id', productIds)
+    .groupBy('order_products.product_id')
+    .select('order_products.product_id')
+    .sum('order_products.quantity as total')
+
+  const producedBy = new Map(produced.map((row) => [Number(row.product_id), Number(row.total)]))
+  const soldBy = new Map(sold.map((row) => [Number(row.product_id), Number(row.total)]))
+
+  for (const [productId, quantity] of quantities) {
+    const producedQty = producedBy.get(productId) ?? 0
+    if (producedQty === 0) continue
+
+    const remaining = Math.max(0, producedQty - (soldBy.get(productId) ?? 0))
+    if (quantity <= remaining) continue
+
+    const label = menu.get(productId)?.name ?? `#${productId}`
+    throw new ApiException(
+      'E_INSUFFICIENT_STOCK',
+      remaining === 0
+        ? `« ${label} » est en rupture : relancez une production avant de vendre.`
+        : `Il ne reste que ${remaining} « ${label} » : impossible d'en vendre ${quantity}.`,
+      422
+    )
+  }
+}
+
+/**
+ * Transaction, commande et lignes en une seule écriture : un échec à mi-chemin
+ * laisserait de l'argent sans commande, ou l'inverse.
+ */
+export async function checkout(
+  eventId: number,
+  lines: readonly CheckoutLine[],
+  memberId: number | null,
+  clientId: number | null,
+  paymentMethod: 'cash' | 'lydia' = 'cash'
+): Promise<OrderPayload> {
+  const quantities = mergeLines(lines)
+
+  return db.transaction(async (trx) => {
+    // Verrou sur la soirée : il sérialise les encaissements concurrents, sans
+    // quoi deux caisses lisant le même « vendu » vendraient le dernier article
+    // deux fois. `FOR UPDATE` ne peut pas porter sur l'agrégat lui-même.
+    const event = await Event.query({ client: trx }).where('id', eventId).forUpdate().first()
+    if (!event) {
+      throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
+    }
+
+    const menu = await menuOf(eventId, trx)
+
+    // Total recalculé depuis le menu : rien de ce que le client annonce n'est lu.
+    let totalCents = 0
+    for (const [productId, quantity] of quantities) {
+      const entry = menu.get(productId)
+      if (!entry) {
+        const row = await trx.from('products').where('id', productId).select('name').first()
+        const label = row ? String(row.name) : `#${productId}`
+        throw new ApiException(
+          'E_PRODUCT_NOT_ON_MENU',
+          `« ${label} » n'est pas au menu de cette soirée.`,
+          422
+        )
+      }
+      totalCents += entry.price * quantity
+    }
+
+    await assertSellable(quantities, eventId, menu, trx)
+
+    const transaction = new Transaction()
+    transaction.useTransaction(trx)
+    transaction.type = paymentMethod
+    // Centimes → euros, en chaîne : `decimal` transite en string dans les deux sens.
+    transaction.amount = (totalCents / 100).toFixed(2)
+    await transaction.save()
+
+    const order = new Order()
+    order.useTransaction(trx)
+    order.eventId = eventId
+    order.memberId = memberId
+    order.clientId = clientId
+    order.transactionId = transaction.id
+    order.status = 'pending'
+    await order.save()
+
+    await trx.table('order_products').insert(
+      [...quantities].map(([productId, quantity]) => ({
+        order_id: order.id,
+        product_id: productId,
+        quantity,
+      }))
+    )
+
+    const names = await resolveBuyerNames(clientId === null ? [] : [clientId], trx)
+    const clientName =
+      clientId === null ? ANONYMOUS_BUYER : (names.get(clientId) ?? ANONYMOUS_BUYER)
+
+    return buildPayload(order, quantities, menu, await numberOf(order, trx), clientName)
+  })
+}
+
+/**
+ * ⚠️ Le prix unitaire est relu du menu **actuel** — assumé, les prix étant fixés
+ * par soirée. Le chiffre qui fait foi reste `transactions.amount`.
+ */
+export async function listForEvent(eventId: number): Promise<OrderPayload[]> {
+  const orders = await Order.query().where('eventId', eventId).orderBy('id', 'asc')
+  if (orders.length === 0) return []
+
+  const menu = await menuOf(eventId)
+
+  const pivots = await db
+    .from('order_products')
+    .whereIn(
+      'order_id',
+      orders.map((order) => order.id)
+    )
+    .select('order_id', 'product_id', 'quantity')
+
+  const byOrder = new Map<number, Map<number, number>>()
+  for (const row of pivots) {
+    const orderId = Number(row.order_id)
+    if (!byOrder.has(orderId)) byOrder.set(orderId, new Map())
+    byOrder.get(orderId)!.set(Number(row.product_id), Number(row.quantity))
+  }
+
+  const clientIds = orders
+    .map((order) => order.clientId)
+    .filter((id): id is number => id !== null && id !== undefined)
+  const names = await resolveBuyerNames(clientIds)
+
+  // Le numéro est le rang dans la soirée : les commandes sont déjà triées par id.
+  return orders
+    .map((order, index) =>
+      buildPayload(
+        order,
+        byOrder.get(order.id) ?? new Map(),
+        menu,
+        index + 1,
+        order.clientId === null || order.clientId === undefined
+          ? ANONYMOUS_BUYER
+          : (names.get(order.clientId) ?? ANONYMOUS_BUYER)
+      )
+    )
+    .reverse()
+}
+
+export interface SellableLine {
+  productId: number
+  productName: string
+  /** Quantité inscrite au menu de la soirée (`event_products.quantity`). */
+  plannedQty: number
+  /** Ce que la cuisine a réellement assemblé (`Σ production_runs.quantity`). */
+  producedQty: number
+  /** Ce qui a été vendu, **commandes annulées exclues**. */
+  soldQty: number
+  remainingQty: number
+}
+
+/**
+ * ⚠️ Les commandes annulées sont exclues du vendu : les compter rendrait
+ * invendables des articles qui n'ont jamais quitté le comptoir. Le plancher à
+ * zéro est voulu — on assemble à la demande, donc vendre plus que produit arrive.
+ */
+export async function sellableForEvent(eventId: number): Promise<SellableLine[]> {
+  const menuRows = await db
+    .from('event_products')
+    .join('products', 'products.id', 'event_products.product_id')
+    .where('event_products.event_id', eventId)
+    .select('event_products.product_id', 'event_products.quantity', 'products.name')
+    .orderBy('products.name')
+
+  if (menuRows.length === 0) return []
+
+  const produced = await db
+    .from('production_runs')
+    .where('event_id', eventId)
+    .groupBy('product_id')
+    .select('product_id')
+    .sum('quantity as total')
+
+  const sold = await db
+    .from('order_products')
+    .join('orders', 'orders.id', 'order_products.order_id')
+    .where('orders.event_id', eventId)
+    .whereNot('orders.status', 'cancelled')
+    .groupBy('order_products.product_id')
+    .select('order_products.product_id')
+    .sum('order_products.quantity as total')
+
+  const producedBy = new Map(produced.map((row) => [Number(row.product_id), Number(row.total)]))
+  const soldBy = new Map(sold.map((row) => [Number(row.product_id), Number(row.total)]))
+
+  return menuRows.map((row) => {
+    const productId = Number(row.product_id)
+    const producedQty = producedBy.get(productId) ?? 0
+    const soldQty = soldBy.get(productId) ?? 0
+
+    return {
+      productId,
+      productName: String(row.name),
+      plannedQty: Number(row.quantity),
+      producedQty,
+      soldQty,
+      remainingQty: Math.max(0, producedQty - soldQty),
+    }
+  })
+}
+
+/** Recompose la charge utile d'une commande déjà écrite. */
+async function payloadOf(order: Order): Promise<OrderPayload> {
+  const menu = await menuOf(order.eventId!)
+
+  const pivots = await db
+    .from('order_products')
+    .where('order_id', order.id)
+    .select('product_id', 'quantity')
+
+  const quantities = new Map(
+    pivots.map((row) => [Number(row.product_id), Number(row.quantity)] as const)
+  )
+
+  return buildPayload(
+    order,
+    quantities,
+    menu,
+    await numberOf(order),
+    await resolveBuyerName(order.clientId ?? null)
+  )
+}
+
+export function assertTransition(from: string, to: OrderStatus): void {
+  const allowed = ALLOWED_TRANSITIONS[from as OrderStatus] ?? []
+  if (allowed.includes(to)) return
+
+  const fromLabel = STATUS_LABELS[from as OrderStatus] ?? from
+  throw new ApiException(
+    'E_ORDER_INVALID_TRANSITION',
+    `Une commande ${fromLabel} ne peut pas passer ${STATUS_LABELS[to]}.`,
+    409
+  )
+}
+
+/**
+ * Statut relu sous verrou de ligne : deux postes validant simultanément la même
+ * commande verraient sinon tous deux l'état d'avant.
+ */
+export async function setStatus(orderId: number, next: OrderStatus): Promise<OrderPayload> {
+  const order = await db.transaction(async (trx) => {
+    const locked = await Order.query({ client: trx }).where('id', orderId).forUpdate().first()
+    if (!locked) {
+      throw new ApiException('E_ORDER_NOT_FOUND', "Cette commande n'existe pas.", 404)
+    }
+
+    assertTransition(locked.status, next)
+
+    locked.status = next
+    await locked.save()
+    return locked
+  })
+
+  return payloadOf(order)
+}
+
+/** Une transition, pas une suppression : la ligne reste, la numérotation tient. */
+export async function cancel(orderId: number): Promise<OrderPayload> {
+  return setStatus(orderId, 'cancelled')
+}

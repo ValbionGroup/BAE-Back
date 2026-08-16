@@ -24,6 +24,26 @@ router
       .get('/transactions', [controllers.Transactions, 'index'])
       .use(middleware.can('transaction:read'))
 
+    router.post('/qr/verify', [controllers.Qrs, 'verify']).use(middleware.can('order:write'))
+    router.get('/buyers', [controllers.Qrs, 'search']).use(middleware.can('order:write'))
+
+    router
+      .patch('/orders/:id/status', [controllers.Orders, 'setStatus'])
+      .use(middleware.can('order:write'))
+
+    // Annuler porte sur de l'argent encaissé : permission distincte.
+    router
+      .delete('/orders/:id', [controllers.Orders, 'destroy'])
+      .use(middleware.can('order:delete'))
+
+    router
+      .patch('/pre-orders/:id/status', [controllers.PreOrders, 'setStatus'])
+      .use(middleware.can('order:write'))
+
+    router
+      .post('/pre-orders/:id/collect', [controllers.PreOrders, 'collect'])
+      .use(middleware.can('order:write'))
+
     router.get('/vouchers', [controllers.Vouchers, 'index']).use(middleware.can('voucher:read'))
     router.post('/vouchers', [controllers.Vouchers, 'store']).use(middleware.can('voucher:write'))
     router

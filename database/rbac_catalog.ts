@@ -49,6 +49,12 @@ export const PERMISSIONS = [
   'fast-pass:write',
   'fast-pass:delete',
   'transaction:read',
+  // `order:write` couvre la prise de commande **et** l'avancement de statut en
+  // cuisine : c'est le même geste de service. `order:delete` est séparée parce
+  // qu'annuler porte sur de l'argent déjà encaissé.
+  'order:read',
+  'order:write',
+  'order:delete',
 ] as const
 
 export type PermissionName = (typeof PERMISSIONS)[number]
@@ -97,6 +103,9 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'fast-pass:write',
     'fast-pass:delete',
     'transaction:read',
+    'order:read',
+    'order:write',
+    'order:delete',
   ],
   'Coordinateur': [
     'event:matching',
@@ -111,6 +120,9 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'job:read',
     'job:write',
     'job:delete',
+    'order:read',
+    'order:write',
+    'order:delete',
   ],
   'Secretaire': ['log:read', 'role:read'],
   'Pole Log': [
@@ -138,7 +150,10 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'furniture:read',
     'furniture:write',
     'furniture:delete',
+    'order:read',
   ],
+  // Le pôle BBQ tient la cuisine : il lit la file de commandes et la fait
+  // avancer, mais n'annule pas — c'est l'annulation qui touche à la caisse.
   'Pole BBQ': [
     'stock:read',
     'stock:write',
@@ -147,6 +162,8 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'restock:write',
     'good:read',
     'furniture:read',
+    'order:read',
+    'order:write',
   ],
   'Membre': [],
 }

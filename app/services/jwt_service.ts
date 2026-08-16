@@ -14,6 +14,13 @@ export type QrTokenPayload = JWTPayload &
         preOrderId: number
         eventId: number
       }
+    // Reconnaître une personne au comptoir sans qu'elle ait ni fast pass ni
+    // précommande — le cas courant. Le §11.3 prescrivait ce troisième membre
+    // plutôt que de détourner `fast_pass`, qui affirmerait un droit inexistant.
+    | {
+        type: 'identity'
+        userId: number
+      }
   )
 
 export default class JwtService {
@@ -39,11 +46,18 @@ export default class JwtService {
     return payload
   }
 
+  /**
+   * ⚠️ `setExpirationTime()` de `jose` lit un **nombre** comme un horodatage UNIX
+   * absolu, pas comme une durée. Passer `ttlSeconds` tel quel datait donc chaque
+   * jeton de janvier 1970 : tous naissaient expirés. On calcule l'échéance
+   * explicitement.
+   */
   async generateQrToken(
     data: Omit<QrTokenPayload, keyof JWTPayload>,
     ttlSeconds = 60
   ): Promise<string> {
-    return this.sign(data, { expiresIn: ttlSeconds })
+    const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds
+    return this.sign(data, { expiresIn: expiresAt })
   }
 
   async verifyQrToken(token: string): Promise<QrTokenPayload> {
