@@ -1,5 +1,7 @@
 import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/cors'
+import env from '#start/env'
+import { allowedOrigins } from '#services/cors_origins'
 
 /**
  * Configuration options to tweak the CORS policy. The following
@@ -14,11 +16,12 @@ const corsConfig = defineConfig({
   enabled: true,
 
   /**
-   * In development, allow every origin to simplify local front/backend setup.
-   * In production, keep an explicit allowlist (empty by default, so no
-   * cross-origin browser access is allowed until configured).
+   * En développement, toute origine est acceptée pour simplifier le duo
+   * front/back local. En production, l'allowlist est **dérivée des URL des deux
+   * fronts** — voir `allowedOrigins`, qui explique pourquoi elle n'est pas écrite
+   * à la main.
    */
-  origin: app.inDev ? true : ['bae.eirb.fr', 'dashboard.bae.eirb.fr', 'order.bae.eirb.fr'],
+  origin: app.inDev ? true : allowedOrigins([env.get('DASHBOARD_URL'), env.get('PUBLIC_APP_URL')]),
 
   /**
    * HTTP methods accepted for cross-origin requests.
