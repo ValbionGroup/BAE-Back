@@ -121,9 +121,10 @@ function parseIngredients(raw: unknown): IngredientInput[] {
     }
     seen.add(goodId)
 
+    // Fractionnaire : une recette consomme 1/12 de paquet de pains, pas 12.
     const quantity = Number(line?.quantity)
-    if (!Number.isInteger(quantity) || quantity < 1) {
-      badRequest("La quantité d'un ingrédient doit être un entier supérieur à zéro.")
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      badRequest("La quantité d'un ingrédient doit être un nombre supérieur à zéro.")
     }
 
     return { goodId, quantity, instruction: normalizeText(line?.instruction) }

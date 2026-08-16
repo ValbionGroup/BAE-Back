@@ -501,7 +501,7 @@ export class ProductGoodSchema extends BaseModel {
   @column({ isPrimary: true })
   declare productId: number
   @column()
-  declare quantity: number
+  declare quantity: string
   @column()
   declare rank: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
