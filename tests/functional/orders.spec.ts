@@ -263,3 +263,116 @@ test.group('Orders — lecture', (group) => {
     assert.equal(response.body().error.code, 'E_FORBIDDEN')
   })
 })
+
+test.group('Orders — garde de stock', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  async function seller() {
+    return grantPermissions(await MemberFactory.create(), ['order:write', 'order:read'])
+  }
+
+  async function produce(eventId: number, productId: number, quantity: number, memberId: number) {
+    await db
+      .table('production_runs')
+      .insert({ event_id: eventId, product_id: productId, quantity, member_id: memberId })
+  }
+
+  /**
+   * La garde front ne protège rien : un appel direct à l'API la contourne.
+   */
+  test('refuse de vendre au-delà de ce qui a été produit', async ({ client, assert }) => {
+    const { event, hotdog } = await seedMenu()
+    const user = await seller()
+    await produce(event.id, hotdog.id, 10, user.id)
+
+    const response = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: hotdog.id, quantity: 11 }] })
+      .loginAs(user)
+
+    response.assertStatus(422)
+    assert.equal(response.body().error.code, 'E_INSUFFICIENT_STOCK')
+    assert.include(response.body().error.message, '10')
+    assert.lengthOf(await Order.query().where('eventId', event.id), 0)
+  })
+
+  test('laisse vendre exactement ce qui reste', async ({ client }) => {
+    const { event, hotdog } = await seedMenu()
+    const user = await seller()
+    await produce(event.id, hotdog.id, 3, user.id)
+
+    await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: hotdog.id, quantity: 3 }] })
+      .loginAs(user)
+      .then((r) => r.assertStatus(201))
+
+    const response = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: hotdog.id, quantity: 1 }] })
+      .loginAs(user)
+
+    response.assertStatus(422)
+  })
+
+  /**
+   * Sans cette tolérance, une soirée qui ne suit pas sa production ne pourrait
+   * plus rien encaisser du tout.
+   */
+  test('laisse vendre quand aucune production n’est déclarée', async ({ client }) => {
+    const { event, hotdog } = await seedMenu()
+    const user = await seller()
+
+    const response = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: hotdog.id, quantity: 50 }] })
+      .loginAs(user)
+
+    response.assertStatus(201)
+  })
+
+  test('ne compte pas les commandes annulées dans le vendu', async ({ client }) => {
+    const { event, hotdog } = await seedMenu()
+    const user = await grantPermissions(await MemberFactory.create(), [
+      'order:write',
+      'order:read',
+      'order:delete',
+    ])
+    await produce(event.id, hotdog.id, 5, user.id)
+
+    const first = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: hotdog.id, quantity: 5 }] })
+      .loginAs(user)
+    first.assertStatus(201)
+
+    await client.delete(`/v1/orders/${first.body().data.id}`).loginAs(user)
+
+    const response = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: hotdog.id, quantity: 5 }] })
+      .loginAs(user)
+
+    response.assertStatus(201)
+  })
+
+  test('nomme le produit en rupture', async ({ client, assert }) => {
+    const { event, hotdog } = await seedMenu()
+    const user = await seller()
+    await produce(event.id, hotdog.id, 1, user.id)
+
+    await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: hotdog.id, quantity: 1 }] })
+      .loginAs(user)
+
+    const response = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: hotdog.id, quantity: 1 }] })
+      .loginAs(user)
+
+    response.assertStatus(422)
+    assert.include(response.body().error.message, 'Hot-dog classique')
+    assert.include(response.body().error.message, 'rupture')
+  })
+})

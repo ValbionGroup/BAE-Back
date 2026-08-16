@@ -151,6 +151,60 @@ function buildPayload(
 }
 
 /**
+ * Refuse de vendre plus que ce qui a été produit.
+ *
+ * ⚠️ `produced = 0` laisse passer : une soirée qui ne déclare aucune production
+ * aurait sinon toute sa carte en rupture et ne pourrait rien encaisser. Absence
+ * d'information n'est pas absence de stock — même règle que la caisse.
+ */
+async function assertSellable(
+  quantities: Map<number, number>,
+  eventId: number,
+  menu: Map<number, { name: string }>,
+  trx: TransactionClientContract
+): Promise<void> {
+  const productIds = [...quantities.keys()]
+
+  const produced = await trx
+    .from('production_runs')
+    .where('event_id', eventId)
+    .whereIn('product_id', productIds)
+    .groupBy('product_id')
+    .select('product_id')
+    .sum('quantity as total')
+
+  const sold = await trx
+    .from('order_products')
+    .join('orders', 'orders.id', 'order_products.order_id')
+    .where('orders.event_id', eventId)
+    .whereNot('orders.status', 'cancelled')
+    .whereIn('order_products.product_id', productIds)
+    .groupBy('order_products.product_id')
+    .select('order_products.product_id')
+    .sum('order_products.quantity as total')
+
+  const producedBy = new Map(produced.map((row) => [Number(row.product_id), Number(row.total)]))
+  const soldBy = new Map(sold.map((row) => [Number(row.product_id), Number(row.total)]))
+
+  for (const [productId, quantity] of quantities) {
+    const producedQty = producedBy.get(productId) ?? 0
+    if (producedQty === 0) continue
+
+    const remaining = Math.max(0, producedQty - (soldBy.get(productId) ?? 0))
+    if (quantity <= remaining) continue
+
+    const label = menu.get(productId)?.name ?? `#${productId}`
+    throw new ApiException(
+      'E_INSUFFICIENT_STOCK',
+      remaining === 0
+        ? `« ${label} » est en rupture : relancez une production avant de vendre.`
+        : `Il ne reste que ${remaining} « ${label} » : impossible d'en vendre ${quantity}.`,
+      422
+    )
+  }
+}
+
+/**
  * Transaction, commande et lignes en une seule écriture : un échec à mi-chemin
  * laisserait de l'argent sans commande, ou l'inverse.
  */
@@ -164,7 +218,10 @@ export async function checkout(
   const quantities = mergeLines(lines)
 
   return db.transaction(async (trx) => {
-    const event = await Event.query({ client: trx }).where('id', eventId).first()
+    // Verrou sur la soirée : il sérialise les encaissements concurrents, sans
+    // quoi deux caisses lisant le même « vendu » vendraient le dernier article
+    // deux fois. `FOR UPDATE` ne peut pas porter sur l'agrégat lui-même.
+    const event = await Event.query({ client: trx }).where('id', eventId).forUpdate().first()
     if (!event) {
       throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
     }
@@ -186,6 +243,8 @@ export async function checkout(
       }
       totalCents += entry.price * quantity
     }
+
+    await assertSellable(quantities, eventId, menu, trx)
 
     const transaction = new Transaction()
     transaction.useTransaction(trx)
