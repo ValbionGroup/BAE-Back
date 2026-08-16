@@ -20,6 +20,7 @@ export const controllers = {
   NewAccount: () => import('#controllers/new_account_controller'),
   Orders: () => import('#controllers/orders_controller'),
   Permissions: () => import('#controllers/permissions_controller'),
+  PreOrders: () => import('#controllers/pre_orders_controller'),
   Preferences: () => import('#controllers/preferences_controller'),
   ProductionRuns: () => import('#controllers/production_runs_controller'),
   Products: () => import('#controllers/products_controller'),

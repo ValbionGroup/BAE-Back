@@ -440,7 +440,15 @@ export class PreOrderItemSchema extends BaseModel {
 }
 
 export class PreOrderSchema extends BaseModel {
-  static $columns = ['createdAt', 'eventId', 'id', 'transactionId', 'userId'] as const
+  static $columns = [
+    'createdAt',
+    'eventId',
+    'id',
+    'pickupAt',
+    'status',
+    'transactionId',
+    'userId',
+  ] as const
   $columns = PreOrderSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -448,6 +456,10 @@ export class PreOrderSchema extends BaseModel {
   declare eventId: number
   @column({ isPrimary: true })
   declare id: number
+  @column.dateTime()
+  declare pickupAt: DateTime | null
+  @column()
+  declare status: string
   @column()
   declare transactionId: number | null
   @column()

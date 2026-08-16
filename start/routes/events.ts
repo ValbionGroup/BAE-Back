@@ -58,6 +58,10 @@ router
       .use(middleware.can('order:read'))
 
     router
+      .get('/events/:id/pre-orders', [controllers.PreOrders, 'index'])
+      .use(middleware.can('order:read'))
+
+    router
       .get('/events/:id/production-runs', [controllers.ProductionRuns, 'index'])
       .use(middleware.can('stock:read'))
 

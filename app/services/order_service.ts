@@ -11,7 +11,7 @@ export const ORDER_STATUSES = ['pending', 'in_progress', 'ready', 'completed', '
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
 /** Libellés lus au comptoir : un refus nomme un état, pas un code. */
-const STATUS_LABELS: Record<OrderStatus, string> = {
+export const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'en attente',
   in_progress: 'en préparation',
   ready: 'prête',
@@ -24,7 +24,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
  * et sans cette table un rafraîchissement tardif la ferait reculer. Une commande
  * servie ne s'annule plus — ce serait un remboursement, pas une annulation.
  */
-const ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
+export const ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   pending: ['in_progress', 'cancelled'],
   in_progress: ['ready', 'cancelled'],
   ready: ['completed', 'cancelled'],
@@ -349,7 +349,7 @@ async function payloadOf(order: Order): Promise<OrderPayload> {
   )
 }
 
-function assertTransition(from: string, to: OrderStatus): void {
+export function assertTransition(from: string, to: OrderStatus): void {
   const allowed = ALLOWED_TRANSITIONS[from as OrderStatus] ?? []
   if (allowed.includes(to)) return
 

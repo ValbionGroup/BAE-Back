@@ -36,6 +36,14 @@ router
       .delete('/orders/:id', [controllers.Orders, 'destroy'])
       .use(middleware.can('order:delete'))
 
+    router
+      .patch('/pre-orders/:id/status', [controllers.PreOrders, 'setStatus'])
+      .use(middleware.can('order:write'))
+
+    router
+      .post('/pre-orders/:id/collect', [controllers.PreOrders, 'collect'])
+      .use(middleware.can('order:write'))
+
     router.get('/vouchers', [controllers.Vouchers, 'index']).use(middleware.can('voucher:read'))
     router.post('/vouchers', [controllers.Vouchers, 'store']).use(middleware.can('voucher:write'))
     router
