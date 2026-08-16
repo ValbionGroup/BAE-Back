@@ -146,6 +146,13 @@ jobs:
       MAIL_MAILER: log
       MAIL_FROM_NAME: BAE
       MAIL_FROM_ADDRESS: no-reply@bae.eirb.fr
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/bae
+      KEYCLOAK_CLIENT_ID: bae-back
+      KEYCLOAK_CLIENT_SECRET: keycloak-secret
+      KEYCLOAK_CALLBACK_URL: http://localhost:3333/v1/auth/keycloak/callback
+      KEYCLOAK_ALLOW_INSECURE: true
+      DASHBOARD_URL: http://localhost:4200
+      PUBLIC_APP_URL: http://localhost:4201
     services:
       postgres:
         image: postgres:17-alpine
