@@ -3,6 +3,7 @@ import { DateTime } from 'luxon'
 import ActivityEvent from '#models/activity_event'
 import Notification from '#models/notification'
 import type { NotificationChannel } from '#models/notification'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /** Code Postgres d'une violation de contrainte d'unicité. */
 const UNIQUE_VIOLATION = '23505'
@@ -28,6 +29,41 @@ export type EmitInput = {
 }
 
 export type EmitResult = { eventId: number; created: number; skipped: number }
+
+export type RecordInput = Omit<EmitInput, 'recipients' | 'channels'>
+
+/**
+ * Enregistre un **fait** sans le livrer à personne.
+ *
+ * Le fil d'activité est global : il montre ce que l'équipe a fait, il ne
+ * s'adresse à personne en particulier. `emit()` sert quand une notification doit
+ * partir ; celle-ci quand seul le fait compte. Confondre les deux obligerait à
+ * inventer des destinataires pour chaque action tracée.
+ */
+export async function recordEvent(
+  input: RecordInput,
+  trx?: TransactionClientContract
+): Promise<ActivityEvent | null> {
+  if (input.dedupeKey !== undefined) {
+    const existing = await ActivityEvent.query(trx ? { client: trx } : {})
+      .where('dedupeKey', input.dedupeKey)
+      .first()
+    if (existing !== null) return existing
+  }
+
+  return ActivityEvent.create(
+    {
+      actorId: input.actorId ?? null,
+      verb: input.verb,
+      subjectType: input.subjectType,
+      subjectId: input.subjectId,
+      payload: input.payload ?? {},
+      occurredAt: DateTime.now(),
+      dedupeKey: input.dedupeKey ?? null,
+    },
+    trx ? { client: trx } : {}
+  )
+}
 
 /**
  * Un fait sans livraison, ou l'inverse, n'a pas de sens : d'où la transaction.

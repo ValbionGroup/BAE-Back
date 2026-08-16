@@ -936,6 +936,12 @@ const routes = {
     tokens: [{"old":"/v1/tickets/:id/status","type":0,"val":"v1","end":""},{"old":"/v1/tickets/:id/status","type":0,"val":"tickets","end":""},{"old":"/v1/tickets/:id/status","type":1,"val":"id","end":""},{"old":"/v1/tickets/:id/status","type":0,"val":"status","end":""}],
     types: placeholder as Registry['tickets.tickets.set_status']['types'],
   },
+  'activity.activity.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/activity',
+    tokens: [{"old":"/v1/activity","type":0,"val":"v1","end":""},{"old":"/v1/activity","type":0,"val":"activity","end":""}],
+    types: placeholder as Registry['activity.activity.index']['types'],
+  },
   'event_stream': {
     methods: ["GET","HEAD"],
     pattern: '/__transmit/events',

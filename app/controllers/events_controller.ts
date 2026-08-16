@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Event from '#models/event'
+import { recordEvent } from '#services/notification_service'
 import Job from '#models/job'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
@@ -355,7 +356,7 @@ export default class EventsController {
     return serialize(summary)
   }
 
-  async settle({ params, serialize }: HttpContext) {
+  async settle({ params, serialize, auth }: HttpContext) {
     const event = await Event.findOrFail(params.id)
 
     const summary = await db.transaction(async (trx) => {
@@ -397,6 +398,20 @@ export default class EventsController {
         totalDelta,
       }
     })
+
+    // Trace pour le fil d'activité : la clôture est le geste le plus notable
+    // d'une soirée. Volontairement pas d'événement par commande — quelques
+    // centaines de ventes noieraient les actions qui méritent d'être vues.
+    if (auth.user) {
+      await recordEvent({
+        verb: 'event.settled',
+        actorId: auth.user.id,
+        subjectType: 'event',
+        subjectId: event.id,
+        payload: { what: 'a clôturé la soirée', emphasis: event.name },
+        dedupeKey: `event.settled:${event.id}`,
+      })
+    }
 
     return serialize(summary)
   }

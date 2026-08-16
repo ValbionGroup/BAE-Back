@@ -159,6 +159,7 @@ export type ScannedRoutes = {
     'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tickets.tickets.reply': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tickets.tickets.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity.activity.index': { paramsTuple?: []; params?: {} }
     'event_stream': { paramsTuple?: []; params?: {} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
@@ -300,6 +301,7 @@ export type ScannedRoutes = {
     'notifications.notifications.index': { paramsTuple?: []; params?: {} }
     'tickets.tickets.index': { paramsTuple?: []; params?: {} }
     'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity.activity.index': { paramsTuple?: []; params?: {} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
@@ -374,6 +376,7 @@ export type ScannedRoutes = {
     'notifications.notifications.index': { paramsTuple?: []; params?: {} }
     'tickets.tickets.index': { paramsTuple?: []; params?: {} }
     'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity.activity.index': { paramsTuple?: []; params?: {} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   PUT: {

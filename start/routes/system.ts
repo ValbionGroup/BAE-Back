@@ -52,3 +52,13 @@ router
   .prefix('/v1')
   .as('tickets')
   .use(middleware.auth())
+
+// Le fil d'activité de l'équipe. Aucune permission dédiée : c'est le panneau de
+// l'accueil, visible par tout membre — le contrôle d'accès est l'appartenance.
+router
+  .group(() => {
+    router.get('/activity', [controllers.Activity, 'index'])
+  })
+  .prefix('/v1')
+  .as('activity')
+  .use([middleware.auth(), middleware.audience('member')])

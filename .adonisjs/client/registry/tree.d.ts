@@ -247,6 +247,11 @@ export interface ApiDefinition {
       setStatus: typeof routes['tickets.tickets.set_status']
     }
   }
+  activity: {
+    activity: {
+      index: typeof routes['activity.activity.index']
+    }
+  }
   eventStream: typeof routes['event_stream']
   subscribe: typeof routes['subscribe']
   unsubscribe: typeof routes['unsubscribe']
