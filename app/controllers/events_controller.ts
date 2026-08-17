@@ -24,8 +24,33 @@ import {
 } from '#services/matching_service'
 
 export default class EventsController {
+  /**
+   * `assigneeCount` compte les **personnes** affectées, pas les lignes : tenir
+   * deux postes sur la même soirée ne fait pas deux membres.
+   *
+   * Il vit ici, et non sur `/assignments`, parce que c'est un fait de la soirée.
+   * L'accueil le reconstituait côté client depuis `GET /assignments`, réservé à
+   * la coordination — un membre ordinaire y lisait « 0 membres affectés ».
+   */
   async index({ serialize }: HttpContext) {
-    return serialize(await Event.query())
+    const events = await Event.query()
+
+    const counts = await db
+      .from('member_event_assigned_jobs')
+      .select('event_id')
+      .countDistinct('member_id as assignees')
+      .groupBy('event_id')
+
+    const byEvent = new Map<number, number>(
+      counts.map((row) => [Number(row.event_id), Number(row.assignees)])
+    )
+
+    return serialize(
+      events.map((event) => ({
+        ...event.serialize(),
+        assigneeCount: byEvent.get(event.id) ?? 0,
+      }))
+    )
   }
 
   async store({ request, serialize }: HttpContext) {
