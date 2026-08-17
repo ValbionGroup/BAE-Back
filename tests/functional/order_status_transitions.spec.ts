@@ -23,7 +23,7 @@ test.group('Orders — transitions de statut', (group) => {
 
   test('suit le cycle nominal de la cuisine', async ({ client, assert }) => {
     const { order } = await makeOrder('pending')
-    const user = await grantPermissions(await MemberFactory.create(), ['order:write', 'order:read'])
+    const user = await grantPermissions(await MemberFactory.create(), ['order:serve', 'order:read'])
 
     for (const next of ['in_progress', 'ready', 'completed']) {
       const response = await client
@@ -41,7 +41,7 @@ test.group('Orders — transitions de statut', (group) => {
 
   test('refuse un retour en arrière', async ({ client, assert }) => {
     const { order } = await makeOrder('ready')
-    const user = await grantPermissions(await MemberFactory.create(), ['order:write', 'order:read'])
+    const user = await grantPermissions(await MemberFactory.create(), ['order:serve', 'order:read'])
 
     // Deux écrans touchent la même commande : sans cette règle, un
     // rafraîchissement tardif ferait reculer une commande déjà prête.
@@ -61,7 +61,7 @@ test.group('Orders — transitions de statut', (group) => {
 
   test('une commande servie est immuable', async ({ client, assert }) => {
     const { order } = await makeOrder('completed')
-    const user = await grantPermissions(await MemberFactory.create(), ['order:write', 'order:read'])
+    const user = await grantPermissions(await MemberFactory.create(), ['order:serve', 'order:read'])
 
     for (const next of ['pending', 'in_progress', 'ready', 'cancelled']) {
       const response = await client
@@ -76,7 +76,7 @@ test.group('Orders — transitions de statut', (group) => {
 
   test('une commande annulée est immuable', async ({ client, assert }) => {
     const { order } = await makeOrder('cancelled')
-    const user = await grantPermissions(await MemberFactory.create(), ['order:write', 'order:read'])
+    const user = await grantPermissions(await MemberFactory.create(), ['order:serve', 'order:read'])
 
     const response = await client
       .patch(`/v1/orders/${order.id}/status`)
@@ -117,7 +117,7 @@ test.group('Orders — transitions de statut', (group) => {
   })
 
   test('404 explicite sur une commande inconnue', async ({ client, assert }) => {
-    const user = await grantPermissions(await MemberFactory.create(), ['order:write', 'order:read'])
+    const user = await grantPermissions(await MemberFactory.create(), ['order:serve', 'order:read'])
 
     const response = await client
       .patch('/v1/orders/999999/status')
@@ -130,7 +130,7 @@ test.group('Orders — transitions de statut', (group) => {
 
   test('refuse un statut hors de la liste', async ({ client }) => {
     const { order } = await makeOrder('pending')
-    const user = await grantPermissions(await MemberFactory.create(), ['order:write', 'order:read'])
+    const user = await grantPermissions(await MemberFactory.create(), ['order:serve', 'order:read'])
 
     const response = await client
       .patch(`/v1/orders/${order.id}/status`)
