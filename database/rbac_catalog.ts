@@ -50,6 +50,11 @@ export const PERMISSIONS = [
   'fast-pass:delete',
   'transaction:read',
   'order:read',
+  // Servir et encaisser sont deux gestes, tenus par deux postes : le pôle BBQ
+  // fait avancer un ticket en cuisine sans jamais toucher au comptoir.
+  // `order:serve` est dans BASE — tout membre peut tenir le kitchen display —
+  // là où `order:write` reste aux rôles qui encaissent.
+  'order:serve',
   'order:write',
   'order:delete',
   'client:read',
@@ -89,6 +94,8 @@ const BASE: readonly PermissionName[] = [
   'member:read',
   'menu:read',
   'event:read',
+  'order:read',
+  'order:serve',
 ]
 
 const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
@@ -172,8 +179,10 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'furniture:delete',
     'order:read',
   ],
-  // Le pôle BBQ tient la cuisine : il lit la file de commandes et la fait
-  // avancer, mais n'annule pas — c'est l'annulation qui touche à la caisse.
+  // Le pôle BBQ tient la cuisine, pas le comptoir : `order:read` et
+  // `order:serve` lui viennent de BASE et lui suffisent pour lire la file et la
+  // faire avancer. Ni `order:write` ni `order:delete` — prendre une commande et
+  // l'annuler touchent l'argent, et l'argent est un autre poste.
   'Pole BBQ': [
     'stock:read',
     'stock:write',
@@ -182,8 +191,6 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'restock:write',
     'good:read',
     'furniture:read',
-    'order:read',
-    'order:write',
   ],
   'Membre': [],
 }

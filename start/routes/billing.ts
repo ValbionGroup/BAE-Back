@@ -48,7 +48,7 @@ router
 
     router
       .patch('/orders/:id/status', [controllers.Orders, 'setStatus'])
-      .use(middleware.can('order:write'))
+      .use(middleware.can('order:serve'))
 
     router
       .delete('/orders/:id', [controllers.Orders, 'destroy'])
