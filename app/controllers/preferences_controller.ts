@@ -18,6 +18,20 @@ export default class PreferencesController {
     return serialize(preferences)
   }
 
+  /**
+   * Les postes qu'un membre peut classer.
+   *
+   * Doublon apparent de `Jobs.index`, et c'est délibéré : celui-là porte
+   * `job:read`, une permission d'administration du catalogue. Se classer est un
+   * geste personnel, au même titre que `mine()` et `updateMine()` — il n'a rien
+   * à exiger de plus qu'un compte. On n'expose ici que ce que le classement
+   * réclame, un identifiant et un nom, pas la ligne `jobs` entière.
+   */
+  async rankableJobs({ serialize }: HttpContext) {
+    const jobs = await Job.query().orderBy('id')
+    return serialize(jobs.map((job) => ({ id: job.id, name: job.name })))
+  }
+
   async mine({ auth, serialize }: HttpContext) {
     const user = auth.getUserOrFail()
     const member = await Member.query().where('id', user.id).preload('preferences').first()

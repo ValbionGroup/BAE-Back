@@ -128,3 +128,50 @@ test.group('My job preferences', (group) => {
     response.assertStatus(401)
   })
 })
+
+/**
+ * Se classer sur des postes suppose de pouvoir les lire. `GET /jobs` porte
+ * `job:read`, une permission d'administration du catalogue que seule la
+ * coordination détient : un membre ordinaire n'obtenait donc jamais la liste
+ * qu'on lui demande d'ordonner. La liste à classer suit désormais la même règle
+ * que le classement lui-même — sous `/account`, sans permission.
+ */
+test.group('Jobs to rank — lisibles par le membre qui se classe', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  async function plainMember() {
+    const member = await MemberFactory.create()
+    return User.findOrFail(member.id)
+  }
+
+  test('un membre sans aucune permission obtient les postes à classer', async ({
+    client,
+    assert,
+  }) => {
+    const user = await plainMember()
+    await JobFactory.merge({ name: 'Barman' }).create()
+    await JobFactory.merge({ name: 'Caissier' }).create()
+
+    const response = await client.get('/v1/account/preferences/jobs').loginAs(user)
+
+    response.assertStatus(200)
+    const body = response.body() as { data: Array<{ id: number; name: string }> }
+    assert.includeMembers(
+      body.data.map((job) => job.name),
+      ['Barman', 'Caissier']
+    )
+  })
+
+  test('le catalogue des postes reste, lui, réservé à la coordination', async ({ client }) => {
+    const user = await plainMember()
+
+    const response = await client.get('/v1/jobs').loginAs(user)
+
+    response.assertStatus(403)
+  })
+
+  test('exige tout de même d’être connecté', async ({ client }) => {
+    const response = await client.get('/v1/account/preferences/jobs')
+    response.assertStatus(401)
+  })
+})
