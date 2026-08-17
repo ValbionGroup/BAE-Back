@@ -36,18 +36,15 @@ export default class KeycloakAuthController {
       return response.badRequest({ error: { code: 'E_INVALID_APP', message: 'Zone inconnue.' } })
     }
 
-    const { url, state, codeVerifier } = await authorizationRequest()
+    let authorization
+    try {
+      authorization = await authorizationRequest()
+    } catch (error) {
+      logger.error({ err: error, app }, 'IdP injoignable à la demande d’autorisation')
+      return response.redirect(`${frontendUrl(app)}/login?sso_error=idp_unavailable`)
+    }
 
-    // `state`, `code_verifier` et l'intention vivent dans **la même** entrée de
-    // session : les séparer (un cookie `sso_app` à part) créerait deux états
-    // désynchronisables — un callback valide sans destination. Ici, si la session
-    // est perdue, la validation du `state` échoue de toute façon : un seul mode
-    // d'échec au lieu de deux.
-    //
-    // ⚠️ Le cookie de session est en `SameSite=Lax`, ce qui le fait survivre au
-    // retour depuis l'IdP (navigation GET de premier niveau). En `Strict` il
-    // serait perdu et **toutes** les connexions échoueraient sur une erreur
-    // d'état — symptôme classique et très déroutant.
+    const { url, state, codeVerifier } = authorization
     session.put(PENDING_KEY, { state, codeVerifier, app } satisfies PendingLogin)
 
     return response.redirect(url)
@@ -61,8 +58,6 @@ export default class KeycloakAuthController {
     const pending = session.get(PENDING_KEY) as PendingLogin | undefined
     session.forget(PENDING_KEY)
 
-    // La destination n'est connue que par la session : sans elle, on ne sait même
-    // pas vers quel front renvoyer l'erreur. Le dashboard est le repli.
     const app: SsoApp = pending?.app ?? 'dashboard'
     const front = frontendUrl(app)
 
@@ -81,10 +76,6 @@ export default class KeycloakAuthController {
       const currentUrl = new URL(request.completeUrl(true))
       claims = await exchange(currentUrl, pending)
     } catch (error) {
-      // `state` incohérent, code déjà consommé, `uid` absent : tous mènent ici.
-      // Le détail va dans les logs et **jamais** dans l'URL du navigateur — mais
-      // il doit y aller vraiment : un échec SSO muet est indiagnosticable, et
-      // c'est exactement le genre de panne qu'on découvre en production.
       logger.error({ err: error, app }, 'échec de l’échange de code SSO')
       return response.redirect(`${front}/login?sso_error=exchange_failed`)
     }
@@ -105,10 +96,7 @@ export default class KeycloakAuthController {
         user_agent: request.header('user-agent') ?? null,
       })
 
-    // Le jeton transite par un cookie `httpOnly` : le front n'obtient jamais de
-    // jeton lisible, c'est tout l'objet du mode BFF.
     setSessionCookie(response, token.value!.release())
-
     return response.redirect(front)
   }
 }
