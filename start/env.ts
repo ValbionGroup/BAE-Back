@@ -44,7 +44,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   // Les endpoints ne sont **pas** à écrire à la main : ils se découvrent depuis
   // l'issuer, via `/.well-known/openid-configuration`.
+  // Adresse **publique** : c'est celle que suit le navigateur, et celle que le
+  // claim `iss` doit porter.
   KEYCLOAK_ISSUER: Env.schema.string({ format: 'url', tld: false }),
+  // Chemin **serveur → IdP**, quand il diffère du public : API en conteneur,
+  // réseau interne. Seules les requêtes sortantes du serveur y sont réécrites.
+  // Vide quand les deux adresses coïncident.
+  KEYCLOAK_INTERNAL_URL: Env.schema.string.optional({ format: 'url', tld: false }),
   KEYCLOAK_CLIENT_ID: Env.schema.string(),
   KEYCLOAK_CLIENT_SECRET: Env.schema.string(),
   KEYCLOAK_CALLBACK_URL: Env.schema.string({ format: 'url', tld: false }),

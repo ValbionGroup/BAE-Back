@@ -1,5 +1,6 @@
 import * as client from 'openid-client'
 import env from '#start/env'
+import { backchannelUrl } from '#services/oidc_backchannel'
 
 /**
  * Le SSO en mode BFF : c'est Adonis qui porte le flow OAuth, jamais le navigateur.
@@ -35,6 +36,21 @@ export type AuthorizationRequest = {
 let cached: client.Configuration | null = null
 
 /**
+ * `fetch` des seules requêtes **serveur → IdP** : découverte, échange du code,
+ * `/userinfo`. L'origine y est remplacée par `KEYCLOAK_INTERNAL_URL` quand elle
+ * est fournie, de sorte que les métadonnées — et donc la redirection du
+ * navigateur — gardent l'adresse publique.
+ *
+ * Sans variable, la fonction est l'identité : le comportement d'origine est
+ * conservé partout où l'IdP est joignable à la même adresse des deux côtés.
+ */
+function backchannelFetch(): client.CustomFetch {
+  const internal = env.get('KEYCLOAK_INTERNAL_URL')
+
+  return (url, options) => fetch(backchannelUrl(url, internal), options)
+}
+
+/**
  * Découverte via `/.well-known/openid-configuration`, faite **une fois** et non à
  * chaque requête : c'est un aller-retour réseau vers l'IdP, et sa configuration
  * ne change pas entre deux connexions.
@@ -52,13 +68,24 @@ export async function configuration(): Promise<client.Configuration> {
   // Développement uniquement — l'IdP local est en clair. Jamais en production, où
   // cela annulerait la protection du transport.
   const insecure = env.get('KEYCLOAK_ALLOW_INSECURE', false) === true
+  const fetcher = backchannelFetch()
+
   const config = await client.discovery(
     issuer,
     env.get('KEYCLOAK_CLIENT_ID'),
     env.get('KEYCLOAK_CLIENT_SECRET'),
     undefined,
-    insecure ? { execute: [client.allowInsecureRequests] } : undefined
+    {
+      // La découverte est elle-même un appel serveur : elle doit passer par le
+      // même chemin, sans quoi elle échouerait avant que la configuration existe.
+      [client.customFetch]: fetcher,
+      ...(insecure ? { execute: [client.allowInsecureRequests] } : {}),
+    }
   )
+
+  // À poser **aussi** sur la configuration : l'option de découverte ne couvre que
+  // la requête de métadonnées, pas l'échange du code ni `/userinfo`.
+  config[client.customFetch] = fetcher
 
   cached = config
   return config

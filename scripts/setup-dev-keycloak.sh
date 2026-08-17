@@ -36,6 +36,24 @@ else
   say "realm $REALM : créé"
 fi
 
+# --- Adresse publique du realm ----------------------------------------------
+# ⚠️ Sans `frontendUrl`, Keycloak dérive `issuer` et **tous** ses endpoints de
+# l'en-tête `Host` de l'appelant. Une API en conteneur qui l'interroge via
+# `host.docker.internal` reçoit donc des métadonnées portant ce nom, et y renvoie
+# le navigateur — qui ne le résout pas. Le figer rend les métadonnées
+# indépendantes du chemin emprunté ; le serveur passe par `KEYCLOAK_INTERNAL_URL`.
+PUBLIC_URL="${KC_PUBLIC_URL:-$KC}"
+auth "$KC/admin/realms/$REALM" > /tmp/bae-kc-realm.json
+PUBLIC_URL="$PUBLIC_URL" python3 - << 'PY'
+import json, os
+path = '/tmp/bae-kc-realm.json'
+realm = json.load(open(path))
+realm.setdefault('attributes', {})['frontendUrl'] = os.environ['PUBLIC_URL']
+json.dump(realm, open(path, 'w'))
+PY
+auth -X PUT "$KC/admin/realms/$REALM" -d @/tmp/bae-kc-realm.json > /dev/null
+say "adresse publique du realm : $PUBLIC_URL"
+
 # --- Profil utilisateur -----------------------------------------------------
 # ⚠️ Depuis Keycloak 24, le « declarative user profile » **supprime
 # silencieusement** tout attribut non déclaré : l'API admin renvoie 204 et jette

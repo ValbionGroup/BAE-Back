@@ -44,6 +44,24 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_DATABASE: ${DB_DATABASE:-adonis}
       SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      # `KEYCLOAK_ISSUER` reste l'adresse **publique**, celle que suit le
+      # navigateur. `KEYCLOAK_INTERNAL_URL` décrit le chemin conteneur → IdP :
+      # ici `localhost` désigne le conteneur lui-même, jamais l'hôte.
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
+      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://host.docker.internal:8080}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_CALLBACK_URL: ${KEYCLOAK_CALLBACK_URL}
+      KEYCLOAK_ALLOW_INSECURE: ${KEYCLOAK_ALLOW_INSECURE:-true}
+      DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:4200}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:4201}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+    # Fourni d'office par Docker Desktop, absent sous Linux : sans lui l'API n'a
+    # aucun moyen de nommer l'hôte.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     ports:
       - '${PORT:-3333}:3333'
     user: root
