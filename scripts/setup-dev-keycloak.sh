@@ -20,6 +20,16 @@ CLIENT=bae-back
 TEST_USER=ttest
 TEST_PASSWORD=bae-dev-password
 
+# ⚠️ **Une seule URI de callback, quel que soit le nombre de fronts.** En mode BFF
+# le `redirect_uri` est celui du back : l'URL d'un front n'entre jamais dans le
+# flux OAuth, la destination est résolue côté serveur depuis la session (§9.5).
+# C'est ce qui évite d'en faire whitelister une seconde chez EirbWare.
+CALLBACK_URL="${KEYCLOAK_CALLBACK_URL:-http://localhost:3333/v1/auth/keycloak/callback}"
+
+# La déconnexion, elle, ramène bien sur un front : les deux sont donc à déclarer.
+DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:4200}"
+PUBLIC_APP_URL="${PUBLIC_APP_URL:-http://localhost:4201}"
+
 say() { printf '  %s\n' "$1"; }
 
 TOKEN=$(curl -s -X POST "$KC/realms/master/protocol/openid-connect/token" \
@@ -85,24 +95,39 @@ say "profil utilisateur : attributs uid/prenom/nom autorisés"
 CLIENT_UUID=$(auth "$KC/admin/realms/$REALM/clients?clientId=$CLIENT" \
   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['id'] if d else '')")
 
+# ⚠️ Sans `post.logout.redirect.uris`, Keycloak valide la redirection de
+# déconnexion contre les `redirectUris` — donc contre le seul callback du back.
+# Le logout global (`id_token_hint`) serait alors refusé sur les deux fronts.
+# Séparateur `##`, c'est la convention de l'API admin.
+CLIENT_PAYLOAD="{
+  \"clientId\": \"$CLIENT\",
+  \"enabled\": true,
+  \"protocol\": \"openid-connect\",
+  \"publicClient\": false,
+  \"standardFlowEnabled\": true,
+  \"directAccessGrantsEnabled\": false,
+  \"redirectUris\": [\"$CALLBACK_URL\"],
+  \"webOrigins\": [\"+\"],
+  \"attributes\": {
+    \"pkce.code.challenge.method\": \"S256\",
+    \"post.logout.redirect.uris\": \"$DASHBOARD_URL/*##$PUBLIC_APP_URL/*\"
+  }
+}"
+
+# Appliqué à chaque exécution, création **ou** mise à jour : un bloc réservé à la
+# création laisse tout realm déjà monté sans les réglages ajoutés depuis, et le
+# script cesse alors de décrire ce qu'il configure.
 if [ -z "$CLIENT_UUID" ]; then
-  auth -X POST "$KC/admin/realms/$REALM/clients" -d "{
-    \"clientId\": \"$CLIENT\",
-    \"enabled\": true,
-    \"protocol\": \"openid-connect\",
-    \"publicClient\": false,
-    \"standardFlowEnabled\": true,
-    \"directAccessGrantsEnabled\": false,
-    \"redirectUris\": [\"http://localhost:3333/v1/auth/keycloak/callback\"],
-    \"webOrigins\": [\"+\"],
-    \"attributes\": { \"pkce.code.challenge.method\": \"S256\" }
-  }" > /dev/null
+  auth -X POST "$KC/admin/realms/$REALM/clients" -d "$CLIENT_PAYLOAD" > /dev/null
   CLIENT_UUID=$(auth "$KC/admin/realms/$REALM/clients?clientId=$CLIENT" \
     | python3 -c "import json,sys; print(json.load(sys.stdin)[0]['id'])")
   say "client $CLIENT : créé (confidentiel, PKCE S256)"
 else
-  say "client $CLIENT : déjà présent"
+  auth -X PUT "$KC/admin/realms/$REALM/clients/$CLIENT_UUID" -d "$CLIENT_PAYLOAD" > /dev/null
+  say "client $CLIENT : mis à jour"
 fi
+say "  callback   : $CALLBACK_URL"
+say "  post-logout: $DASHBOARD_URL/* et $PUBLIC_APP_URL/*"
 
 # --- Mappers : les claims d'EirbConnect ne sont PAS les claims standards -----
 for pair in "uid:uid" "prenom:prenom" "nom:nom"; do
@@ -157,10 +182,14 @@ cat << EOF
 
 À reporter dans .env :
 
-  KEYCLOAK_ISSUER=$KC/realms/$REALM
+  KEYCLOAK_ISSUER=$PUBLIC_URL/realms/$REALM
   KEYCLOAK_CLIENT_ID=$CLIENT
   KEYCLOAK_CLIENT_SECRET=$SECRET
-  KEYCLOAK_CALLBACK_URL=http://localhost:3333/v1/auth/keycloak/callback
+  KEYCLOAK_CALLBACK_URL=$CALLBACK_URL
   KEYCLOAK_ALLOW_INSECURE=true
+
+  # Vide si l'API tourne sur l'hôte. En conteneur, \`localhost\` désigne le
+  # conteneur lui-même : il lui faut ce second chemin vers l'IdP.
+  KEYCLOAK_INTERNAL_URL=
 
 EOF
