@@ -1399,6 +1399,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['mine']>>>
     }
   }
+  'account_preferences.preferences.rankable_jobs': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/account/preferences/jobs'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['rankableJobs']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['rankableJobs']>>>
+    }
+  }
   'account_preferences.preferences.update_mine': {
     methods: ["PUT","PATCH"]
     pattern: '/v1/account/preferences'
@@ -1409,6 +1421,18 @@ export interface Registry {
       query: ExtractQuery<InferInput<(typeof import('#validators/coordination').jobPreferencesValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['updateMine']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/preferences_controller').default['updateMine']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'account_assignments.assignments.mine': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/account/assignments'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['mine']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/assignments_controller').default['mine']>>>
     }
   }
   'fast_passes.index': {

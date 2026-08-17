@@ -184,7 +184,13 @@ export interface ApiDefinition {
   accountPreferences: {
     preferences: {
       mine: typeof routes['account_preferences.preferences.mine']
+      rankableJobs: typeof routes['account_preferences.preferences.rankable_jobs']
       updateMine: typeof routes['account_preferences.preferences.update_mine']
+    }
+  }
+  accountAssignments: {
+    assignments: {
+      mine: typeof routes['account_assignments.assignments.mine']
     }
   }
   fastPasses: {

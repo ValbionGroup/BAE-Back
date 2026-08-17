@@ -120,7 +120,9 @@ export type ScannedRoutes = {
     'job_eligible_members.store': { paramsTuple?: []; params?: {} }
     'job_eligible_members.destroy': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.mine': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.rankable_jobs': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.update_mine': { paramsTuple?: []; params?: {} }
+    'account_assignments.assignments.mine': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.store': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -287,6 +289,8 @@ export type ScannedRoutes = {
     'preferences.index': { paramsTuple?: []; params?: {} }
     'job_eligible_members.index': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.mine': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.rankable_jobs': { paramsTuple?: []; params?: {} }
+    'account_assignments.assignments.mine': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
@@ -362,6 +366,8 @@ export type ScannedRoutes = {
     'preferences.index': { paramsTuple?: []; params?: {} }
     'job_eligible_members.index': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.mine': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.rankable_jobs': { paramsTuple?: []; params?: {} }
+    'account_assignments.assignments.mine': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
