@@ -24,14 +24,6 @@ import {
 } from '#services/matching_service'
 
 export default class EventsController {
-  /**
-   * `assigneeCount` compte les **personnes** affectées, pas les lignes : tenir
-   * deux postes sur la même soirée ne fait pas deux membres.
-   *
-   * Il vit ici, et non sur `/assignments`, parce que c'est un fait de la soirée.
-   * L'accueil le reconstituait côté client depuis `GET /assignments`, réservé à
-   * la coordination — un membre ordinaire y lisait « 0 membres affectés ».
-   */
   async index({ serialize }: HttpContext) {
     const events = await Event.query()
 
@@ -85,10 +77,6 @@ export default class EventsController {
   async destroy({ params, response }: HttpContext) {
     const event = await Event.query().where('id', params.id).firstOrFail()
 
-    // `members.points` is a DERIVED total: the sum of the settled `points_delta`,
-    // which `points:recompute` rebuilds. A settled row therefore may not vanish,
-    // or the next recompute would wipe a credit that had genuinely been earned.
-    // `node ace event:unsettle` is the way through.
     await db.transaction(async (trx) => {
       const settled = await MemberEventAssignedJob.query({ client: trx })
         .where('eventId', event.id)

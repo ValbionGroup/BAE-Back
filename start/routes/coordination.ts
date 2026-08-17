@@ -51,9 +51,6 @@ router
 router
   .group(() => {
     router.get('/preferences', [controllers.Preferences, 'mine'])
-    // Sans permission, comme le reste du groupe : lire les postes qu'on va
-    // classer fait partie du geste de se classer. Le catalogue administrable
-    // reste sur `GET /jobs`, derrière `job:read`.
     router.get('/preferences/jobs', [controllers.Preferences, 'rankableJobs'])
     router.route('/preferences', ['PUT', 'PATCH'], [controllers.Preferences, 'updateMine'])
   })

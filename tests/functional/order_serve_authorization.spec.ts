@@ -35,7 +35,10 @@ test.group('order:serve — servir n’est pas encaisser', (group) => {
   test('order:serve n’ouvre pas la caisse', async ({ client }) => {
     const { user, event } = await scene(['order:serve'])
 
-    const response = await client.post(`/v1/events/${event.id}/orders`).json({ lines: [] }).loginAs(user)
+    const response = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [] })
+      .loginAs(user)
 
     response.assertStatus(403)
   })
