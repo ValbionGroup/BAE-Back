@@ -50,10 +50,6 @@ export const PERMISSIONS = [
   'fast-pass:delete',
   'transaction:read',
   'order:read',
-  // Servir et encaisser sont deux gestes, tenus par deux postes : le pôle BBQ
-  // fait avancer un ticket en cuisine sans jamais toucher au comptoir.
-  // `order:serve` est dans BASE — tout membre peut tenir le kitchen display —
-  // là où `order:write` reste aux rôles qui encaissent.
   'order:serve',
   'order:write',
   'order:delete',
@@ -63,8 +59,6 @@ export const PERMISSIONS = [
   'subscription:read',
   'subscription:write',
   'subscription:delete',
-  // Voir **tous** les tickets et y répondre. Ouvrir le sien et le suivre n'exige
-  // aucune permission : c'est une question de propriété, pas de rôle.
   'ticket:read',
   'ticket:write',
 ] as const
