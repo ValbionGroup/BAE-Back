@@ -56,4 +56,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   // paramètre : ce serait une redirection ouverte offerte à qui veut hameçonner.
   DASHBOARD_URL: Env.schema.string({ format: 'url', tld: false }),
   PUBLIC_APP_URL: Env.schema.string({ format: 'url', tld: false }),
+
+  // Domaine du cookie de session. **Optionnel, et vide en développement** : sans
+  // lui le cookie est `host-only`, ce qui convient tant que tout tient sur
+  // `localhost` (le port n'entre pas dans l'identité d'un cookie).
+  //
+  // En production les trois origines sont distinctes — `api.`, `dashboard.` et
+  // `order.bae.eirb.fr` — et un cookie posé par l'API ne serait alors envoyé par
+  // aucun des deux fronts. Il faut y valoir `.bae.eirb.fr`.
+  COOKIE_DOMAIN: Env.schema.string.optional(),
 })
