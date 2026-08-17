@@ -17,24 +17,9 @@ function options() {
 
   return {
     httpOnly: true,
-    // `lax` et non `strict` : le retour depuis l'IdP est une navigation GET de
-    // premier niveau, et `strict` ferait perdre le cookie à chaque connexion SSO.
     sameSite: 'lax' as const,
     secure: env.get('NODE_ENV') === 'production',
     path: '/',
-    /**
-     * Sans `domain`, un cookie est **host-only** : il ne repart que vers l'hôte
-     * exact qui l'a posé. En développement tout tient sur `localhost`, où le port
-     * n'entre pas dans l'identité d'un cookie, donc l'absence passe inaperçue.
-     *
-     * En production les trois origines diffèrent (`api.`, `dashboard.`,
-     * `order.bae.eirb.fr`) et le cookie posé par l'API ne serait envoyé par aucun
-     * des deux fronts : la session serait muette, sans la moindre erreur. D'où
-     * `.bae.eirb.fr`, qui est aussi ce que suppose l'allowlist CORS.
-     *
-     * Laissé de côté quand la variable est vide, plutôt que passé à `undefined` :
-     * certaines piles sérialisent `Domain=undefined`, ce qui casse le cookie.
-     */
     ...(domain ? { domain } : {}),
   }
 }
