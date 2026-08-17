@@ -36,6 +36,71 @@ export default class AssignmentsController {
     return serialize(assignments.map(toWire))
   }
 
+  /**
+   * Mes postes, résolus : « où suis-je attendu, avec qui, et combien
+   * sommes-nous censés être ».
+   *
+   * L'écran d'accueil reconstituait ça côté client à partir de sept requêtes de
+   * coordination, dont quatre derrière `job:read` — un membre ordinaire n'y
+   * arrivait donc jamais. Tout ce qui est renvoyé ici est ou bien à l'appelant,
+   * ou bien à propos d'un poste qu'il tient : aucune permission à exiger.
+   *
+   * Les coéquipiers sont nommés parce que l'écran les nomme ; on ne descend pas
+   * au-delà (ni rôle, ni points, ni identifiant de compte).
+   */
+  async mine({ auth, serialize }: HttpContext) {
+    const user = auth.getUserOrFail()
+
+    const mine = await MemberEventAssignedJob.query()
+      .where('memberId', user.id)
+      .preload('job')
+      .orderBy('eventId')
+      .orderBy('jobId')
+
+    if (mine.length === 0) return serialize([])
+
+    const eventIds = [...new Set(mine.map((row) => row.eventId))]
+    const jobIds = [...new Set(mine.map((row) => row.jobId))]
+
+    // Le filtre porte sur le produit des deux listes, pas sur les seuls couples
+    // que je tiens : on écarte donc explicitement les couples qui ne sont pas
+    // les miens plus bas, à la lecture.
+    const others = await MemberEventAssignedJob.query()
+      .whereIn('eventId', eventIds)
+      .whereIn('jobId', jobIds)
+      .whereNot('memberId', user.id)
+      .preload('member', (query) => query.preload('user'))
+
+    const events = await Event.query().whereIn('id', eventIds).preload('jobs')
+    const needed = new Map<string, number>()
+    for (const event of events) {
+      for (const job of event.jobs) {
+        needed.set(`${event.id}:${job.id}`, Number(job.$extras.pivot_count))
+      }
+    }
+
+    return serialize(
+      mine.map((row) => {
+        const key = `${row.eventId}:${row.jobId}`
+        return {
+          eventId: row.eventId,
+          jobId: row.jobId,
+          jobName: row.job.name,
+          jobType: row.job.type,
+          pointsDelta: row.pointsDelta,
+          needed: needed.get(key) ?? null,
+          teammates: others
+            .filter((other) => other.eventId === row.eventId && other.jobId === row.jobId)
+            .map((other) => ({
+              id: other.memberId,
+              firstName: other.member.user.firstName,
+              lastName: other.member.user.lastName,
+            })),
+        }
+      })
+    )
+  }
+
   async store({ request, response, serialize }: HttpContext) {
     const { memberId, eventId, jobId, locked } = await request.validateUsing(assignmentValidator)
     await Member.findOrFail(memberId)

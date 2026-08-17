@@ -60,3 +60,11 @@ router
   .prefix('v1/account')
   .as('account_preferences')
   .use([middleware.auth(), middleware.audience('member')])
+
+router
+  .group(() => {
+    router.get('/assignments', [controllers.Assignments, 'mine'])
+  })
+  .prefix('v1/account')
+  .as('account_assignments')
+  .use([middleware.auth(), middleware.audience('member')])
