@@ -4,8 +4,18 @@
 # confidentiel PKCE et un utilisateur de test.
 #
 # Il existe parce que **EirbConnect n'est pas disponible** : ses identifiants sont
-# une demande en attente chez EirbWare. Ce realm en tient lieu, et n'imite qu'une
-# chose — mais la bonne : les claims **non standards** `uid`, `prenom`, `nom`.
+# une demande en attente chez EirbWare. Ce realm en tient lieu, et doit imiter le
+# contrat réel de la DSI : `email`, `firstName`, `lastName` et `username` passent
+# par le modèle utilisateur du realm — donc par les claims standards
+# `email`, `given_name`, `family_name`, `preferred_username` — tandis que `ecole`
+# et `diplome`, qui n'ont pas d'équivalent standard, sont des attributs custom
+# avec leurs propres mappers.
+#
+# ⚠️ Ce script a longtemps posé des mappers `uid`/`prenom`/`nom`, calqués sur une
+# lecture erronée du contrat. Le realm était alors conforme au code plutôt qu'à
+# l'IdP : la suite passait au vert contre un IdP imaginaire. Il se corrige
+# toujours en même temps que `app/services/oidc_service.ts`.
+#
 # Passer à EirbConnect ne demandera que de changer les variables `KEYCLOAK_*`.
 #
 # Prérequis : un Keycloak joignable (par défaut http://localhost:8080) dont le
@@ -67,9 +77,12 @@ say "adresse publique du realm : $PUBLIC_URL"
 # --- Profil utilisateur -----------------------------------------------------
 # ⚠️ Depuis Keycloak 24, le « declarative user profile » **supprime
 # silencieusement** tout attribut non déclaré : l'API admin renvoie 204 et jette
-# la valeur. `uid`, `prenom` et `nom` n'atteignaient donc jamais les mappers, et
-# le seul symptôme était un claim absent en bout de chaîne. À déclarer AVANT
+# la valeur. `ecole` et `diplome` n'atteindraient donc jamais les mappers, et le
+# seul symptôme serait un claim absent en bout de chaîne. À déclarer AVANT
 # d'écrire le moindre attribut.
+#
+# `firstName`, `lastName`, `email` et `username` ne sont pas concernés : ce sont
+# des champs du modèle utilisateur, pas des attributs libres.
 auth "$KC/admin/realms/$REALM/users/profile" > /tmp/bae-kc-profile.json
 python3 - << 'PY'
 import json
@@ -77,7 +90,7 @@ path = '/tmp/bae-kc-profile.json'
 profile = json.load(open(path))
 profile['unmanagedAttributePolicy'] = 'ENABLED'
 known = {attribute['name'] for attribute in profile.get('attributes', [])}
-for name in ('uid', 'prenom', 'nom'):
+for name in ('ecole', 'diplome'):
     if name not in known:
         profile.setdefault('attributes', []).append({
             'name': name,
@@ -89,7 +102,7 @@ json.dump(profile, open(path, 'w'))
 PY
 auth -X PUT "$KC/admin/realms/$REALM/users/profile" \
   --data-binary @/tmp/bae-kc-profile.json > /dev/null
-say "profil utilisateur : attributs uid/prenom/nom autorisés"
+say "profil utilisateur : attributs ecole/diplome autorisés"
 
 # --- Client confidentiel, PKCE S256 obligatoire ------------------------------
 CLIENT_UUID=$(auth "$KC/admin/realms/$REALM/clients?clientId=$CLIENT" \
@@ -129,8 +142,11 @@ fi
 say "  callback   : $CALLBACK_URL"
 say "  post-logout: $DASHBOARD_URL/* et $PUBLIC_APP_URL/*"
 
-# --- Mappers : les claims d'EirbConnect ne sont PAS les claims standards -----
-for pair in "uid:uid" "prenom:prenom" "nom:nom"; do
+# --- Mappers : uniquement les deux claims sans équivalent standard -----------
+# `preferred_username`, `given_name`, `family_name` et `email` sont déjà portés
+# par les mappers intégrés des scopes `profile` et `email` : en reposer un ici
+# créerait un doublon.
+for pair in "ecole:ecole" "diplome:diplome"; do
   attribute="${pair%%:*}"
   claim="${pair##*:}"
   auth -X POST "$KC/admin/realms/$REALM/clients/$CLIENT_UUID/protocol-mappers/models" -d "{
@@ -147,7 +163,7 @@ for pair in "uid:uid" "prenom:prenom" "nom:nom"; do
     }
   }" > /dev/null 2>&1 || true
 done
-say "mappers uid / prenom / nom : posés"
+say "mappers ecole / diplome : posés"
 
 # --- Utilisateur de test ----------------------------------------------------
 USER_ID=$(auth "$KC/admin/realms/$REALM/users?username=$TEST_USER" \
@@ -164,14 +180,17 @@ if [ -z "$USER_ID" ]; then
 fi
 
 # `firstName`/`lastName` sont requis par la politique de profil : sans eux
-# Keycloak impose l'action VERIFY_PROFILE et n'atteint jamais le callback.
+# Keycloak impose l'action VERIFY_PROFILE et n'atteint jamais le callback. Ce
+# sont aussi eux qui alimentent `given_name`/`family_name`, et le `username` du
+# compte qui alimente `preferred_username` — d'où l'absence d'attribut custom
+# pour ces trois-là.
 auth -X PUT "$KC/admin/realms/$REALM/users/$USER_ID" -d "{
   \"firstName\": \"Tom\",
   \"lastName\": \"Test\",
   \"email\": \"tom.test@bordeaux-inp.fr\",
   \"emailVerified\": true,
   \"requiredActions\": [],
-  \"attributes\": { \"uid\": [\"$TEST_USER\"], \"prenom\": [\"Tom\"], \"nom\": [\"Test\"] }
+  \"attributes\": { \"ecole\": [\"ENSEIRB-MATMECA\"], \"diplome\": [\"3A Informatique\"] }
 }" > /dev/null
 say "utilisateur $TEST_USER : prêt (mot de passe $TEST_PASSWORD)"
 

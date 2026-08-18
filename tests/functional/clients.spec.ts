@@ -251,6 +251,36 @@ test.group('Adhérents — écriture', (group) => {
     assert.equal(person.promotion, '2A · Alt.', 'un corps partiel ne doit rien effacer')
   })
 
+  /**
+   * `promotion` dérive du claim `diplome` depuis que la DSI le transmet. Le
+   * validateur ne la connaît plus, donc VineJS l'écarte du corps validé : le
+   * bureau ne peut plus saisir une valeur que la prochaine connexion SSO
+   * effacerait sans un mot.
+   */
+  test('a PATCH carrying promotion leaves it untouched: the field derives from the IdP', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['client:write', 'client:read'])
+    const person = await makeClient({
+      email: 'derive@test.fr',
+      firstName: 'Inès',
+      lastName: 'Dubreuil',
+      promotion: '2A · Alt.',
+    })
+
+    const response = await httpClient
+      .patch(`/v1/clients/${person.id}`)
+      .json({ promotion: 'saisie manuelle', phone: '06 24 31 88 02' })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    await person.refresh()
+    assert.equal(person.phone, '06 24 31 88 02', 'le téléphone, lui, reste éditable')
+    assert.equal(person.promotion, '2A · Alt.')
+  })
+
   test('an internal note records its author and its date', async ({
     client: httpClient,
     assert,

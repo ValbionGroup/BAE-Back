@@ -16,15 +16,30 @@ import { backchannelUrl } from '#services/oidc_backchannel'
  * jour où quelque chose bloque, on parle le même langage qu'EirbWare.
  */
 
-/** Les claims d'EirbConnect ne sont **pas** les claims standards. */
+/**
+ * Ce que la DSI transmet : `email`, `firstName`, `lastName`, `ecole`, `diplome`
+ * et `username`. Les quatre premiers alimentent le modèle utilisateur du realm,
+ * qui les ré-expose donc sous les claims **standards** du scope `profile` ;
+ * `ecole` et `diplome` n'ont pas d'équivalent standard et restent des claims
+ * custom.
+ */
 export type SsoClaims = {
   /** `sub` — UUID interne du realm. Clé technique, change si le realm est ré-importé. */
   subject: string
-  /** `uid` — le login école. Identité métier, c'est elle qui réconcilie l'existant. */
+  /**
+   * `preferred_username` — le login école. Côté DSI l'attribut s'appelle
+   * `username` ; le *username template importer* du realm en extrait la partie
+   * qui est l'identifiant CAS, et c'est cette valeur-là qui arrive ici.
+   * Identité métier : c'est elle qui réconcilie un compte existant.
+   */
   casId: string
   email: string
   firstName: string | null
   lastName: string | null
+  /** `ecole` — claim custom, sans équivalent OIDC standard. */
+  school: string | null
+  /** `diplome` — claim custom. Alimente `clients.promotion`, qui en dérive. */
+  degree: string | null
 }
 
 export type AuthorizationRequest = {
@@ -98,8 +113,9 @@ export function resetConfigurationCache(): void {
 
 /**
  * ⚠️ `openid` doit figurer dans les scopes. Sans lui la réponse est de l'OAuth2
- * pur : pas de `sub`, et `/userinfo` refuse. `profile` est ce qui porte `uid`,
- * `prenom` et `nom`.
+ * pur : pas de `sub`, et `/userinfo` refuse. `profile` est ce qui porte
+ * `preferred_username`, `given_name` et `family_name`. `ecole` et `diplome`
+ * viennent de mappers custom, portés par le client lui-même.
  */
 const SCOPES = 'openid profile email'
 
@@ -129,11 +145,14 @@ function claimString(claims: Record<string, unknown>, key: string): string | nul
 /**
  * Échange le code contre les jetons, puis lit les claims.
  *
- * ⚠️ Les claims d'EirbConnect sont `uid`, `prenom`, `nom` — **pas**
- * `preferred_username`, `given_name`, `family_name`. Écrire les noms standards
- * par réflexe donne `undefined` partout, **sans erreur**.
+ * ⚠️ Ce commentaire a longtemps affirmé le contraire — que les claims étaient
+ * `uid`, `prenom`, `nom`. C'était faux, et le symptôme d'un tel contresens est
+ * silencieux : les claims mal nommés valent `undefined`, sans la moindre erreur.
+ * Le script `scripts/setup-dev-keycloak.sh` fabrique le realm de dev conforme à
+ * ce fichier — les deux se corrigent donc ensemble, sous peine de tests verts
+ * contre un IdP imaginaire.
  *
- * ⚠️ Un `uid` absent est traité comme un échec explicite, jamais comme un `null`
+ * ⚠️ Un `preferred_username` absent est traité comme un échec explicite, jamais comme un `null`
  * qu'on écrirait en base : sans lui la réconciliation avec un compte existant est
  * impossible, et l'utilisateur se retrouverait avec un second compte vierge.
  */
@@ -156,17 +175,17 @@ export async function exchange(
   const subject = idClaims.sub
   const merged: Record<string, unknown> = { ...idClaims }
 
-  // `uid`, `prenom` et `nom` peuvent n'être exposés que sur `/userinfo` selon les
-  // mappers du realm : on complète plutôt que de supposer où ils vivent.
-  if (claimString(merged, 'uid') === null) {
+  // Selon les mappers du realm, une partie de ces claims peut n'exister que sur
+  // `/userinfo` : on complète plutôt que de supposer où ils vivent.
+  if (claimString(merged, 'preferred_username') === null) {
     const info = await client.fetchUserInfo(config, tokens.access_token, subject)
     Object.assign(merged, info)
   }
 
-  const casId = claimString(merged, 'uid')
+  const casId = claimString(merged, 'preferred_username')
   if (casId === null) {
     throw new Error(
-      "Le claim `uid` est absent : impossible de rattacher ce compte à l'annuaire de l'école."
+      "Le claim `preferred_username` est absent : impossible de rattacher ce compte à l'annuaire de l'école."
     )
   }
 
@@ -179,7 +198,9 @@ export async function exchange(
     subject,
     casId,
     email,
-    firstName: claimString(merged, 'prenom'),
-    lastName: claimString(merged, 'nom'),
+    firstName: claimString(merged, 'given_name'),
+    lastName: claimString(merged, 'family_name'),
+    school: claimString(merged, 'ecole'),
+    degree: claimString(merged, 'diplome'),
   }
 }

@@ -83,16 +83,26 @@ export async function provision(app: SsoApp, claims: SsoClaims): Promise<Resolut
 
     // Zone publique : JIT provisioning. C'est **l'unique chemin de création d'un
     // compte client** — le dashboard n'en a aucun, et `POST /clients` n'existe pas.
+    // `promotion` et `school` sont **dérivés de l'IdP**, pas saisis : `diplome` et
+    // `ecole` sont désormais transmis, donc le bureau ne les édite plus (ils ont
+    // été retirés du validateur `client`). Ils suivent la même règle que le nom —
+    // écrasés quand le claim est là, préservés quand il manque, car un claim
+    // absent est une information manquante et non un ordre d'effacement.
     const existing = await Client.find(user.id)
     if (existing === null) {
       await Client.create({
         id: user.id,
         phone: null,
-        promotion: null,
+        promotion: claims.degree,
+        school: claims.school,
         registeredAt: DateTime.now(),
         note: null,
         noteAuthorId: null,
       })
+    } else {
+      if (claims.degree !== null) existing.promotion = claims.degree
+      if (claims.school !== null) existing.school = claims.school
+      await existing.save()
     }
 
     return { status: 'ok', user } as const

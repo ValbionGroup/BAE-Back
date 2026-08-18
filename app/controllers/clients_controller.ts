@@ -26,6 +26,8 @@ interface ClientRow {
 }
 
 interface ClientDetail extends ClientRow {
+  /** Dérivé du claim `ecole`, en lecture seule comme `promotion`. */
+  school: string | null
   phone: string | null
   registeredAt: string
   note: string | null
@@ -120,6 +122,7 @@ export default class ClientsController {
 
     const detail: ClientDetail = {
       ...toRow(client, views),
+      school: client.school,
       phone: client.phone,
       registeredAt: client.registeredAt.toISODate()!,
       note: client.note,
@@ -150,10 +153,10 @@ export default class ClientsController {
       throw new ApiException('E_CLIENT_NOT_FOUND', 'Adhérent introuvable.', 404)
     }
 
-    // Le nom n'est pas modifiable ici : il vient des claims EirbConnect, et la
-    // prochaine connexion écraserait toute correction saisie au bureau.
+    // Ni le nom, ni la promotion, ni l'école : tous viennent des claims
+    // EirbConnect, et la prochaine connexion écraserait une correction saisie au
+    // bureau. Seuls le téléphone et la note lui appartiennent vraiment.
     if ('phone' in payload) client.phone = payload.phone ?? null
-    if ('promotion' in payload) client.promotion = payload.promotion ?? null
 
     // La note porte son auteur et sa date : l'écran les affiche
     // (« Sarah K. · 12 jan. »), et les recalculer à l'affichage serait faux.

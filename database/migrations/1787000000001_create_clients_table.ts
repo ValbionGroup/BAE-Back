@@ -23,14 +23,12 @@ export default class extends BaseSchema {
 
       table.string('phone').nullable()
 
-      // ⚠️ Colonne dont la **nature** n'est pas tranchée : dérivée de l'IdP ou
-      // saisie à la main. La documentation EirbConnect ne liste aucun claim de
-      // promotion (`uid`, `prenom`, `nom`, `sub` seulement) ; la demande à
-      // EirbWare est ouverte, et si le claim existe cette colonne devient
-      // dérivée et ne doit plus être éditable au bureau. Voir `HANDOFF.md`
-      // §9.2 et §12.4. Nullable et en texte libre en attendant — la maquette y
-      // met « 2A · Alt. », « Alumni » et « Ext. (invité) », qui ne sont pas la
-      // même notion.
+      // ⚠️ Colonne **dérivée de l'IdP**, et non saisie : la question laissée
+      // ouverte ici a été tranchée par `add_school_to_clients_table`. La DSI
+      // transmet `diplome`, qui l'alimente, donc elle n'est plus éditable au
+      // bureau — elle est absente du validateur `client`. Texte libre : le
+      // format côté DSI n'est pas celui de la maquette, qui y mettait
+      // « 2A · Alt. », « Alumni » et « Ext. (invité) ».
       table.string('promotion').nullable()
 
       table.date('registered_at').notNullable()

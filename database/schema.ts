@@ -102,6 +102,7 @@ export class ClientSchema extends BaseModel {
     'phone',
     'promotion',
     'registeredAt',
+    'school',
     'updatedAt',
   ] as const
   $columns = ClientSchema.$columns
@@ -121,6 +122,8 @@ export class ClientSchema extends BaseModel {
   declare promotion: string | null
   @column.date()
   declare registeredAt: DateTime
+  @column()
+  declare school: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
