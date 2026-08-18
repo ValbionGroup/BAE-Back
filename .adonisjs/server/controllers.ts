@@ -5,6 +5,7 @@
 
 export const controllers = {
   AccessToken: () => import('#controllers/access_token_controller'),
+  AccountPurchases: () => import('#controllers/account_purchases_controller'),
   Activity: () => import('#controllers/activity_controller'),
   Assignments: () => import('#controllers/assignments_controller'),
   Categories: () => import('#controllers/categories_controller'),
@@ -29,6 +30,7 @@ export const controllers = {
   ProductionRuns: () => import('#controllers/production_runs_controller'),
   Products: () => import('#controllers/products_controller'),
   Profile: () => import('#controllers/profile_controller'),
+  PublicCatalog: () => import('#controllers/public_catalog_controller'),
   Qrs: () => import('#controllers/qrs_controller'),
   Responses: () => import('#controllers/responses_controller'),
   Restocks: () => import('#controllers/restocks_controller'),

@@ -159,6 +159,7 @@ export class EventProductSchema extends BaseModel {
 
 export class EventSchema extends BaseModel {
   static $columns = [
+    'capacity',
     'createdAt',
     'date',
     'description',
@@ -169,6 +170,8 @@ export class EventSchema extends BaseModel {
     'updatedAt',
   ] as const
   $columns = EventSchema.$columns
+  @column()
+  declare capacity: number
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
   @column.dateTime()

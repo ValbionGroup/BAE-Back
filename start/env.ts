@@ -71,4 +71,21 @@ export default await Env.create(new URL('../', import.meta.url), {
   // `order.bae.eirb.fr` — et un cookie posé par l'API ne serait alors envoyé par
   // aucun des deux fronts. Il faut y valoir `.bae.eirb.fr`.
   COOKIE_DOMAIN: Env.schema.string.optional(),
+
+  // Remise consentie sur une précommande, en pourcentage du tarif public.
+  // Optionnelle : `public_catalog_service` retombe sur 10 %. Elle ne touche pas
+  // le tarif de la caisse — elle récompense le fait de commander à l'avance,
+  // pas l'achat lui-même.
+  PRE_ORDER_DISCOUNT_PERCENT: Env.schema.number.optional(),
+
+  // Réduction **supplémentaire** accordée aux détenteurs d'une adhésion sur
+  // leurs précommandes, en points de pourcentage. Optionnelle : le service
+  // retombe sur 5 %. C'est un argument de vente de la page Fastpass, donc il
+  // vit ici plutôt qu'écrit en dur dans le front.
+  FAST_PASS_PRE_ORDER_BONUS_PERCENT: Env.schema.number.optional(),
+
+  // Combien d'heures avant le début d'une soirée les précommandes ferment.
+  // Optionnelle : le service retombe sur 12 h. C'est le délai dont la cuisine a
+  // besoin pour produire — il se règle donc sans redéploiement.
+  PRE_ORDER_CLOSE_LEAD_HOURS: Env.schema.number.optional(),
 })

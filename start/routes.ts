@@ -21,6 +21,7 @@ import '#start/routes/coordination'
 import '#start/routes/billing'
 import '#start/routes/system'
 import '#start/routes/realtime'
+import '#start/routes/public'
 
 const appVersion = (() => {
   const fromEnv = process.env.APP_VERSION
