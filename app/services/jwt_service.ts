@@ -21,6 +21,13 @@ export type QrTokenPayload = JWTPayload &
         type: 'identity'
         userId: number
       }
+    // Le seul jeton qui ne désigne personne : il ouvre une grille tarifaire, pas
+    // un compte. Il n'expire pas non plus — `qr_nonce` est sa seule révocation.
+    | {
+        type: 'sponsorship_category'
+        categoryId: number
+        nonce: string
+      }
   )
 
 export default class JwtService {
@@ -54,8 +61,12 @@ export default class JwtService {
    */
   async generateQrToken(
     data: Omit<QrTokenPayload, keyof JWTPayload>,
-    ttlSeconds = 60
+    ttlSeconds: number | null = 60
   ): Promise<string> {
+    // `null` et non `0` : `0` serait lu comme une échéance absolue et daterait le
+    // jeton de janvier 1970.
+    if (ttlSeconds === null) return this.sign(data)
+
     const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds
     return this.sign(data, { expiresIn: expiresAt })
   }
