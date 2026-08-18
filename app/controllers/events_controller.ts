@@ -1,12 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Event from '#models/event'
+import ApiException from '#exceptions/api_exception'
 import { recordEvent } from '#services/notification_service'
 import Job from '#models/job'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
-import { availabilityValidator } from '#validators/event'
+import { availabilityValidator, eventUpdateValidator, eventValidator } from '#validators/event'
 import {
   type BackfillJobInput,
   type CandidateInput,
@@ -22,6 +23,14 @@ import {
   sortByJobRanking,
   stableMatch,
 } from '#services/matching_service'
+
+function parseEventDate(value: string): DateTime {
+  const parsed = DateTime.fromISO(value)
+  if (!parsed.isValid) {
+    throw new ApiException('E_EVENT_INVALID_DATE', 'Cette date est illisible.', 422)
+  }
+  return parsed
+}
 
 export default class EventsController {
   async index({ serialize }: HttpContext) {
@@ -46,14 +55,8 @@ export default class EventsController {
   }
 
   async store({ request, serialize }: HttpContext) {
-    const { name, date, duration, description, status } = request.all()
-    const event = new Event()
-    event.name = name
-    event.date = date
-    event.duration = duration
-    event.description = description
-    event.status = status
-    await event.save()
+    const { date, ...rest } = await request.validateUsing(eventValidator)
+    const event = await Event.create({ ...rest, date: parseEventDate(date) })
     return serialize(event)
   }
 
@@ -64,12 +67,11 @@ export default class EventsController {
 
   async update({ params, request, serialize }: HttpContext) {
     const event = await Event.query().where('id', params.id).firstOrFail()
-    const { name, date, duration, description, status } = request.all()
-    event.name = name
-    event.date = date
-    event.duration = duration
-    event.description = description
-    event.status = status
+    const { date, ...rest } = await request.validateUsing(eventUpdateValidator)
+    // `merge` et non des affectations : une clé absente du payload validé doit
+    // laisser sa colonne intacte, sans quoi un PATCH partiel efface le reste.
+    event.merge(rest)
+    if (date !== undefined) event.date = parseEventDate(date)
     await event.save()
     return serialize(event)
   }
