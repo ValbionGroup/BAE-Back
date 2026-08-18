@@ -954,6 +954,48 @@ const routes = {
     tokens: [{"old":"/v1/activity","type":0,"val":"v1","end":""},{"old":"/v1/activity","type":0,"val":"activity","end":""}],
     types: placeholder as Registry['activity.activity.index']['types'],
   },
+  'public_catalog.public_catalog.events': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/public/events',
+    tokens: [{"old":"/v1/public/events","type":0,"val":"v1","end":""},{"old":"/v1/public/events","type":0,"val":"public","end":""},{"old":"/v1/public/events","type":0,"val":"events","end":""}],
+    types: placeholder as Registry['public_catalog.public_catalog.events']['types'],
+  },
+  'public_catalog.public_catalog.menu': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/public/events/:id/menu',
+    tokens: [{"old":"/v1/public/events/:id/menu","type":0,"val":"v1","end":""},{"old":"/v1/public/events/:id/menu","type":0,"val":"public","end":""},{"old":"/v1/public/events/:id/menu","type":0,"val":"events","end":""},{"old":"/v1/public/events/:id/menu","type":1,"val":"id","end":""},{"old":"/v1/public/events/:id/menu","type":0,"val":"menu","end":""}],
+    types: placeholder as Registry['public_catalog.public_catalog.menu']['types'],
+  },
+  'public_catalog.public_catalog.fast_passes': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/public/fast-passes',
+    tokens: [{"old":"/v1/public/fast-passes","type":0,"val":"v1","end":""},{"old":"/v1/public/fast-passes","type":0,"val":"public","end":""},{"old":"/v1/public/fast-passes","type":0,"val":"fast-passes","end":""}],
+    types: placeholder as Registry['public_catalog.public_catalog.fast_passes']['types'],
+  },
+  'account_purchases.account_purchases.pre_orders': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/account/pre-orders',
+    tokens: [{"old":"/v1/account/pre-orders","type":0,"val":"v1","end":""},{"old":"/v1/account/pre-orders","type":0,"val":"account","end":""},{"old":"/v1/account/pre-orders","type":0,"val":"pre-orders","end":""}],
+    types: placeholder as Registry['account_purchases.account_purchases.pre_orders']['types'],
+  },
+  'account_purchases.account_purchases.pre_order': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/account/pre-orders/:id',
+    tokens: [{"old":"/v1/account/pre-orders/:id","type":0,"val":"v1","end":""},{"old":"/v1/account/pre-orders/:id","type":0,"val":"account","end":""},{"old":"/v1/account/pre-orders/:id","type":0,"val":"pre-orders","end":""},{"old":"/v1/account/pre-orders/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['account_purchases.account_purchases.pre_order']['types'],
+  },
+  'account_purchases.account_purchases.pre_order_qr': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/account/pre-orders/:id/qr',
+    tokens: [{"old":"/v1/account/pre-orders/:id/qr","type":0,"val":"v1","end":""},{"old":"/v1/account/pre-orders/:id/qr","type":0,"val":"account","end":""},{"old":"/v1/account/pre-orders/:id/qr","type":0,"val":"pre-orders","end":""},{"old":"/v1/account/pre-orders/:id/qr","type":1,"val":"id","end":""},{"old":"/v1/account/pre-orders/:id/qr","type":0,"val":"qr","end":""}],
+    types: placeholder as Registry['account_purchases.account_purchases.pre_order_qr']['types'],
+  },
+  'account_purchases.account_purchases.subscriptions': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/account/subscriptions',
+    tokens: [{"old":"/v1/account/subscriptions","type":0,"val":"v1","end":""},{"old":"/v1/account/subscriptions","type":0,"val":"account","end":""},{"old":"/v1/account/subscriptions","type":0,"val":"subscriptions","end":""}],
+    types: placeholder as Registry['account_purchases.account_purchases.subscriptions']['types'],
+  },
   'event_stream': {
     methods: ["GET","HEAD"],
     pattern: '/__transmit/events',

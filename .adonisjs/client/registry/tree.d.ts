@@ -258,6 +258,21 @@ export interface ApiDefinition {
       index: typeof routes['activity.activity.index']
     }
   }
+  publicCatalog: {
+    publicCatalog: {
+      events: typeof routes['public_catalog.public_catalog.events']
+      menu: typeof routes['public_catalog.public_catalog.menu']
+      fastPasses: typeof routes['public_catalog.public_catalog.fast_passes']
+    }
+  }
+  accountPurchases: {
+    accountPurchases: {
+      preOrders: typeof routes['account_purchases.account_purchases.pre_orders']
+      preOrder: typeof routes['account_purchases.account_purchases.pre_order']
+      preOrderQr: typeof routes['account_purchases.account_purchases.pre_order_qr']
+      subscriptions: typeof routes['account_purchases.account_purchases.subscriptions']
+    }
+  }
   eventStream: typeof routes['event_stream']
   subscribe: typeof routes['subscribe']
   unsubscribe: typeof routes['unsubscribe']

@@ -36,6 +36,7 @@ export const controllers = {
   Restocks: () => import('#controllers/restocks_controller'),
   Roles: () => import('#controllers/roles_controller'),
   Sessions: () => import('#controllers/sessions_controller'),
+  SponsorshipCategories: () => import('#controllers/sponsorship_categories_controller'),
   StockBatches: () => import('#controllers/stock_batches_controller'),
   StockMovements: () => import('#controllers/stock_movements_controller'),
   Stocks: () => import('#controllers/stocks_controller'),

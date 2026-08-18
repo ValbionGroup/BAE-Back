@@ -38,6 +38,51 @@ router
       .use(middleware.can('menu:delete'))
 
     router
+      .get('/events/:id/sponsorship-categories', [controllers.SponsorshipCategories, 'index'])
+      .use(middleware.can('menu:read'))
+    router
+      .post('/events/:id/sponsorship-categories', [controllers.SponsorshipCategories, 'store'])
+      .use(middleware.can('menu:write'))
+    router
+      .patch('/events/:id/sponsorship-categories/:categoryId', [
+        controllers.SponsorshipCategories,
+        'update',
+      ])
+      .use(middleware.can('menu:write'))
+    router
+      .put('/events/:id/sponsorship-categories/:categoryId/prices', [
+        controllers.SponsorshipCategories,
+        'prices',
+      ])
+      .use(middleware.can('menu:write'))
+    // Émettre un QR coûte aussi cher que modifier la grille : c'est un porteur de droit.
+    router
+      .get('/events/:id/sponsorship-categories/:categoryId/qr', [
+        controllers.SponsorshipCategories,
+        'qr',
+      ])
+      .use(middleware.can('menu:write'))
+    router
+      .post('/events/:id/sponsorship-categories/:categoryId/qr/rotate', [
+        controllers.SponsorshipCategories,
+        'rotate',
+      ])
+      .use(middleware.can('menu:write'))
+    router
+      .delete('/events/:id/sponsorship-categories/:categoryId', [
+        controllers.SponsorshipCategories,
+        'destroy',
+      ])
+      .use(middleware.can('menu:delete'))
+
+    router
+      .get('/events/:id/receivables', [controllers.SponsorshipCategories, 'receivables'])
+      .use(middleware.can('order:read'))
+    router
+      .get('/events/:id/receivables/pdf', [controllers.SponsorshipCategories, 'receivablesPdf'])
+      .use(middleware.can('order:read'))
+
+    router
       .get('/events/:id/shopping-list', [controllers.EventProducts, 'shoppingList'])
       .use(middleware.can(['menu:read', 'stock:read']))
 

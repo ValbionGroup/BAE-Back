@@ -167,8 +167,10 @@ export class EventSchema extends BaseModel {
     'date',
     'description',
     'duration',
+    'expectedAttendees',
     'id',
     'name',
+    'payerName',
     'status',
     'updatedAt',
   ] as const
@@ -183,10 +185,14 @@ export class EventSchema extends BaseModel {
   declare description: string | null
   @column()
   declare duration: number | null
+  @column()
+  declare expectedAttendees: number | null
   @column({ isPrimary: true })
   declare id: number
   @column()
   declare name: string
+  @column()
+  declare payerName: string | null
   @column()
   declare status: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -437,15 +443,55 @@ export class NotificationSchema extends BaseModel {
   declare userId: number
 }
 
+export class OrderDiscountSchema extends BaseModel {
+  static $columns = [
+    'amountCents',
+    'appliedByUserId',
+    'createdAt',
+    'id',
+    'label',
+    'orderId',
+    'productId',
+    'updatedAt',
+  ] as const
+  $columns = OrderDiscountSchema.$columns
+  @column()
+  declare amountCents: number
+  @column()
+  declare appliedByUserId: number | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare label: string
+  @column()
+  declare orderId: number
+  @column()
+  declare productId: number | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class OrderProductSchema extends BaseModel {
-  static $columns = ['orderId', 'productId', 'quantity'] as const
+  static $columns = [
+    'listPriceCents',
+    'orderId',
+    'productId',
+    'quantity',
+    'unitPriceCents',
+  ] as const
   $columns = OrderProductSchema.$columns
+  @column()
+  declare listPriceCents: number
   @column({ isPrimary: true })
   declare orderId: number
   @column()
   declare productId: number
   @column()
   declare quantity: number
+  @column()
+  declare unitPriceCents: number
 }
 
 export class OrderSchema extends BaseModel {
@@ -455,6 +501,9 @@ export class OrderSchema extends BaseModel {
     'eventId',
     'id',
     'memberId',
+    'payerName',
+    'sponsorshipCategoryId',
+    'sponsorshipCategoryLabel',
     'status',
     'transactionId',
     'updatedAt',
@@ -470,6 +519,12 @@ export class OrderSchema extends BaseModel {
   declare id: number
   @column()
   declare memberId: number | null
+  @column()
+  declare payerName: string | null
+  @column()
+  declare sponsorshipCategoryId: number | null
+  @column()
+  declare sponsorshipCategoryLabel: string | null
   @column()
   declare status: string
   @column()
@@ -672,6 +727,38 @@ export class RolesPermissionSchema extends BaseModel {
   declare permissionId: string
   @column({ isPrimary: true })
   declare roleId: number
+}
+
+export class SponsorshipCategorySchema extends BaseModel {
+  static $columns = ['createdAt', 'eventId', 'id', 'label', 'qrNonce', 'updatedAt'] as const
+  $columns = SponsorshipCategorySchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare eventId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare label: string
+  @column()
+  declare qrNonce: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class SponsorshipPriceSchema extends BaseModel {
+  static $columns = ['categoryId', 'createdAt', 'priceCents', 'productId', 'updatedAt'] as const
+  $columns = SponsorshipPriceSchema.$columns
+  @column({ isPrimary: true })
+  declare categoryId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare priceCents: number
+  @column()
+  declare productId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
 }
 
 export class StockBatchSchema extends BaseModel {

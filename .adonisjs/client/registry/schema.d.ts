@@ -851,12 +851,12 @@ export interface Registry {
     methods: ["POST"]
     pattern: '/v1/events'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/event').eventValidator)>>
       paramsTuple: []
       params: {}
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/event').eventValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/events_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'events.show': {
@@ -875,12 +875,12 @@ export interface Registry {
     methods: ["PUT","PATCH"]
     pattern: '/v1/events/:id'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/event').eventUpdateValidator)>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/event').eventUpdateValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/events_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/events_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'events.destroy': {
@@ -1901,6 +1901,90 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/activity_controller').default['index']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/activity_controller').default['index']>>>
+    }
+  }
+  'public_catalog.public_catalog.events': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/public/events'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/public_catalog_controller').default['events']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/public_catalog_controller').default['events']>>>
+    }
+  }
+  'public_catalog.public_catalog.menu': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/public/events/:id/menu'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/public_catalog_controller').default['menu']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/public_catalog_controller').default['menu']>>>
+    }
+  }
+  'public_catalog.public_catalog.fast_passes': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/public/fast-passes'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/public_catalog_controller').default['fastPasses']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/public_catalog_controller').default['fastPasses']>>>
+    }
+  }
+  'account_purchases.account_purchases.pre_orders': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/account/pre-orders'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['preOrders']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['preOrders']>>>
+    }
+  }
+  'account_purchases.account_purchases.pre_order': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/account/pre-orders/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['preOrder']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['preOrder']>>>
+    }
+  }
+  'account_purchases.account_purchases.pre_order_qr': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/account/pre-orders/:id/qr'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['preOrderQr']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['preOrderQr']>>>
+    }
+  }
+  'account_purchases.account_purchases.subscriptions': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/account/subscriptions'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['subscriptions']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['subscriptions']>>>
     }
   }
   'event_stream': {
