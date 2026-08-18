@@ -64,7 +64,7 @@ test.group('Adhérents — lecture', (group) => {
     const formula = await FastPass.create({
       label: 'Année 2025-2026',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -105,7 +105,7 @@ test.group('Adhérents — lecture', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -115,7 +115,7 @@ test.group('Adhérents — lecture', (group) => {
     await makeClient({ email: 'd@test.fr', firstName: 'D', lastName: 'D' })
 
     await subscribe(active.id, formula.id, DateTime.now().minus({ days: 10 }))
-    // Souscrite il y a 350 jours sur 365 : expire dans 15 jours, donc « bientôt ».
+    // Souscrite il y a 350 jours sur un an : expire dans une quinzaine, donc « bientôt ».
     await subscribe(expiring.id, formula.id, DateTime.now().minus({ days: 350 }))
     await subscribe(expired.id, formula.id, DateTime.now().minus({ days: 400 }))
 
@@ -156,7 +156,7 @@ test.group('Adhérents — lecture', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
     const person = await makeClient({ email: 'e@test.fr', firstName: 'E', lastName: 'E' })

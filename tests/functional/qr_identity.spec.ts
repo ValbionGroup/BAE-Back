@@ -55,7 +55,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
 
   test('remonte le fast pass en cours de validité', async ({ client, assert }) => {
     const buyer = await MemberFactory.create()
-    await subscribe(buyer.id, 'Pass Annuel', 365, 10)
+    await subscribe(buyer.id, 'Pass Annuel', 1, 10)
     const user = await grantPermissions(await MemberFactory.create(), ['order:write'])
 
     const token = await new JwtService().generateQrToken({ type: 'identity', userId: buyer.id })
@@ -70,8 +70,8 @@ test.group('QR d’identité — émission et vérification', (group) => {
     assert,
   }) => {
     const buyer = await MemberFactory.create()
-    // Souscrit il y a 400 jours pour 365 jours : expiré depuis 35 jours.
-    await subscribe(buyer.id, 'Pass Annuel', 365, 400)
+    // Souscrit il y a 400 jours pour un an : expiré depuis plus d’un mois.
+    await subscribe(buyer.id, 'Pass Annuel', 1, 400)
     const user = await grantPermissions(await MemberFactory.create(), ['order:write'])
 
     const token = await new JwtService().generateQrToken({ type: 'identity', userId: buyer.id })
@@ -111,7 +111,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
     const buyer = await MemberFactory.with('user', 1, (u) =>
       u.merge({ firstName: 'Tom', lastName: 'Bessiere' })
     ).create()
-    const pass = await subscribe(buyer.id, 'Pass Annuel', 365, 10)
+    const pass = await subscribe(buyer.id, 'Pass Annuel', 1, 10)
     const user = await grantPermissions(await MemberFactory.create(), ['order:write'])
 
     const token = await new JwtService().generateQrToken({
@@ -129,7 +129,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
 
   test('un fast pass echu est refuse, meme signe', async ({ client, assert }) => {
     const buyer = await MemberFactory.create()
-    const pass = await subscribe(buyer.id, 'Pass Annuel', 365, 400)
+    const pass = await subscribe(buyer.id, 'Pass Annuel', 1, 400)
     const user = await grantPermissions(await MemberFactory.create(), ['order:write'])
 
     const token = await new JwtService().generateQrToken({
