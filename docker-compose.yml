@@ -1,5 +1,49 @@
 version: '3.8'
 
+# L'environnement de l'application, partagé par `api` et `cron` : les deux
+# démarrent le **même** AdonisJS, donc `start/env.ts` leur impose la même liste.
+# Deux blocs séparés divergeraient, et l'écart ne se verrait qu'au démarrage du
+# conteneur qu'on redéploie le moins souvent.
+#
+# ⚠️ Aucune valeur par défaut sur ce qui est obligatoire : un déploiement qui
+# oublie une variable doit échouer bruyamment plutôt qu'accepter des requêtes
+# qu'il ne saura pas honorer.
+x-app-environment: &app-environment
+  NODE_ENV: ${NODE_ENV:-production}
+  PORT: ${PORT:-3333}
+  HOST: 0.0.0.0
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  APP_KEY: ${APP_KEY}
+  APP_URL: ${APP_URL:-http://localhost:3333}
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_USER: ${DB_USER:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD:-postgres}
+  DB_DATABASE: ${DB_DATABASE:-adonis}
+  SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
+  JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+  JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+  MAIL_MAILER: ${MAIL_MAILER:-log}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-BAE}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@bae.eirb.fr}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
+  KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-}
+  KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+  KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+  KEYCLOAK_CALLBACK_URL: ${KEYCLOAK_CALLBACK_URL}
+  DASHBOARD_URL: ${DASHBOARD_URL}
+  PUBLIC_APP_URL: ${PUBLIC_APP_URL}
+  COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+  LYDIA_DRIVER: ${LYDIA_DRIVER}
+  LYDIA_URL: ${LYDIA_URL}
+  LYDIA_VENDOR_TOKEN: ${LYDIA_VENDOR_TOKEN}
+  LYDIA_PRIVATE_TOKEN: ${LYDIA_PRIVATE_TOKEN}
+  LYDIA_CALLBACK_BASE_URL: ${LYDIA_CALLBACK_BASE_URL}
+
 services:
   # PostgreSQL Database
   postgres:
@@ -30,29 +74,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${PORT:-3333}
-      HOST: 0.0.0.0
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-      APP_KEY: ${APP_KEY}
-      APP_URL: ${APP_URL:-http://localhost:3333}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DB_DATABASE: ${DB_DATABASE:-adonis}
-      SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
-      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
-      # Sans valeur par défaut, à dessein : `start/env.ts` les déclare
-      # obligatoires, donc un déploiement qui les oublie échoue au démarrage
-      # plutôt que d'accepter des paiements qui n'aboutiront pas.
-      LYDIA_DRIVER: ${LYDIA_DRIVER}
-      LYDIA_URL: ${LYDIA_URL}
-      LYDIA_VENDOR_TOKEN: ${LYDIA_VENDOR_TOKEN}
-      LYDIA_PRIVATE_TOKEN: ${LYDIA_PRIVATE_TOKEN}
-      LYDIA_CALLBACK_BASE_URL: ${LYDIA_CALLBACK_BASE_URL}
+    environment: *app-environment
     ports:
       - '${PORT:-3333}:3333'
     networks:
@@ -69,6 +91,48 @@ services:
       timeout: 3s
       retries: 3
       start_period: 40s
+
+  # Les tâches récurrentes. L'application ne planifie rien elle-même
+  # (`NOTIFICATIONS.md`) : la récurrence vit ici, versionnée avec le code plutôt
+  # que dans une crontab d'hôte que Portainer ne permet pas de poser.
+  #
+  # ⚠️ **Un seul exemplaire, jamais répliqué.** Un ordonnanceur s'exécuterait
+  # autant de fois qu'il y a d'instances : pour `notify:dispatch`, deux
+  # exemplaires enverraient deux fois le même courriel.
+  #
+  # ⚠️ `user: root` est nécessaire et non un oubli : BusyBox `crond` déduit
+  # l'utilisateur du nom du fichier de crontab et fait un `setuid` — sans root
+  # il démarre sans bruit et **n'exécute jamais rien**. Seul ce conteneur y
+  # passe ; l'API reste en `nodejs`.
+  cron:
+    image: registry.eirb.fr/valbiongroup/bae-back:latest
+    container_name: bae-cron
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment: *app-environment
+    user: root
+    # La crontab est écrite au démarrage plutôt que montée : une stack Portainer
+    # n'a pas le dépôt sous la main, donc tout doit tenir dans ce fichier.
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        mkdir -p /etc/crontabs
+        cat > /etc/crontabs/root <<'CRONTAB'
+        # Ferme les demandes de paiement dépassées. Fréquent parce qu'une demande
+        # vit 15 min au plus : au-delà, un `pending` ne veut plus rien dire.
+        */5 * * * * cd /app && node ace lydia:expire
+        # Détection des rappels de présence, puis vidange de la file. Les deux
+        # sont séparés pour qu'un SMTP indisponible ne fasse pas perdre la
+        # détection.
+        0 10 * * * cd /app && node ace notify:presence-pending
+        0 18 * * * cd /app && node ace notify:presence-upcoming
+        */15 * * * * cd /app && node ace notify:dispatch
+        CRONTAB
+        exec crond -f -l 8 -L /dev/stdout
+    networks:
+      - bae-network
 
 volumes:
   postgres_data:

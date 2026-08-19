@@ -31,7 +31,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
+    # Ancrée pour que le service `cron` parte du même environnement : les deux
+    # démarrent le même AdonisJS, donc `start/env.ts` leur impose la même liste.
+    environment: &app-environment
       NODE_ENV: development
       PORT: ${PORT:-3333}
       HOST: 0.0.0.0
@@ -55,16 +57,10 @@ services:
       DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:4200}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:4201}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
-      # ⚠️ `fake` par défaut, et sortir de ce défaut demande une raison : les
-      # jetons du BAE sont ceux de production, donc `http` en développement
-      # déplace de l'argent réel.
       LYDIA_DRIVER: ${LYDIA_DRIVER:-fake}
       LYDIA_URL: ${LYDIA_URL:-https://lydia-app.com}
       LYDIA_VENDOR_TOKEN: ${LYDIA_VENDOR_TOKEN:-}
       LYDIA_PRIVATE_TOKEN: ${LYDIA_PRIVATE_TOKEN:-}
-      # Adresse **publique** : c'est Lydia qui l'appelle, depuis ses serveurs.
-      # `localhost` y désigne leurs machines — la notification n'arrive alors
-      # jamais, et les paiements restent en attente jusqu'à expirer.
       LYDIA_CALLBACK_BASE_URL: ${LYDIA_CALLBACK_BASE_URL:-http://localhost:3333}
     # Fourni d'office par Docker Desktop, absent sous Linux : sans lui l'API n'a
     # aucun moyen de nommer l'hôte.
@@ -77,6 +73,43 @@ services:
       - .:/app:z
       - node_modules_dev:/app/node_modules
       - adonisjs_dev:/app/.adonisjs
+    networks:
+      - bae-dev-network
+
+  # Le pendant local du service `cron` de production, pour vérifier la crontab
+  # avant de la déployer.
+  #
+  # **Sous profil, donc éteint par défaut** : en développement on veut déclencher
+  # les commandes à la main, pas voir des rappels partir tout seuls.
+  # Le lancer : `docker compose -f docker-compose.dev.yml --profile cron up -d`
+  cron:
+    profiles: ['cron']
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: bae-cron-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment: *app-environment
+    user: root
+    volumes:
+      - .:/app:z
+      - node_modules_dev:/app/node_modules
+      - adonisjs_dev:/app/.adonisjs
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        mkdir -p /etc/crontabs
+        cat > /etc/crontabs/root <<'CRONTAB'
+        */5 * * * * cd /app && node ace lydia:expire
+        0 10 * * * cd /app && node ace notify:presence-pending
+        0 18 * * * cd /app && node ace notify:presence-upcoming
+        */15 * * * * cd /app && node ace notify:dispatch
+        CRONTAB
+        exec crond -f -l 8 -L /dev/stdout
     networks:
       - bae-dev-network
 
