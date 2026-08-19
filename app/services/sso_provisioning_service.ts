@@ -4,6 +4,7 @@ import User from '#models/user'
 import Client from '#models/client'
 import Member from '#models/member'
 import type { SsoClaims } from '#services/oidc_service'
+import { formatCursus } from '#services/cursus'
 
 /** Les deux zones, et leurs politiques opposées. Liste fermée, validée à l'entrée. */
 export const SSO_APPS = ['dashboard', 'public'] as const
@@ -85,7 +86,9 @@ export async function provision(app: SsoApp, claims: SsoClaims): Promise<Resolut
     // compte client** — le dashboard n'en a aucun, et `POST /clients` n'existe pas.
     // `promotion` et `school` sont **dérivés de l'IdP**, pas saisis : `diplome` et
     // `ecole` sont désormais transmis, donc le bureau ne les édite plus (ils ont
-    // été retirés du validateur `client`). Ils suivent la même règle que le nom —
+    // été retirés du validateur `client`). `diplome` est traduit en libellé lisible
+    // par `formatCursus` — le code brut de l'IdP ne dit rien au bureau.
+    // Ils suivent la même règle que le nom —
     // écrasés quand le claim est là, préservés quand il manque, car un claim
     // absent est une information manquante et non un ordre d'effacement.
     const existing = await Client.find(user.id)
@@ -93,14 +96,14 @@ export async function provision(app: SsoApp, claims: SsoClaims): Promise<Resolut
       await Client.create({
         id: user.id,
         phone: null,
-        promotion: claims.degree,
+        promotion: formatCursus(claims.degree),
         school: claims.school,
         registeredAt: DateTime.now(),
         note: null,
         noteAuthorId: null,
       })
     } else {
-      if (claims.degree !== null) existing.promotion = claims.degree
+      if (claims.degree !== null) existing.promotion = formatCursus(claims.degree)
       if (claims.school !== null) existing.school = claims.school
       await existing.save()
     }
