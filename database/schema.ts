@@ -539,6 +539,66 @@ export class OrderSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class PaymentSchema extends BaseModel {
+  static $columns = [
+    'amountCents',
+    'createdAt',
+    'currency',
+    'expiresAt',
+    'id',
+    'intent',
+    'kind',
+    'mobileUrl',
+    'orderRef',
+    'paidAt',
+    'provider',
+    'providerReference',
+    'providerRequestId',
+    'status',
+    'transactionId',
+    'transactionIdentifier',
+    'updatedAt',
+    'userId',
+  ] as const
+  $columns = PaymentSchema.$columns
+  @column()
+  declare amountCents: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column()
+  declare currency: string
+  @column.dateTime()
+  declare expiresAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare intent: string
+  @column()
+  declare kind: string
+  @column()
+  declare mobileUrl: string | null
+  @column()
+  declare orderRef: string
+  @column.dateTime()
+  declare paidAt: DateTime | null
+  @column()
+  declare provider: string
+  @column()
+  declare providerReference: string | null
+  @column()
+  declare providerRequestId: string | null
+  @column()
+  declare status: string
+  @column()
+  declare transactionId: number | null
+  @column()
+  declare transactionIdentifier: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column()
+  declare userId: number
+}
+
 export class PermissionSchema extends BaseModel {
   static $columns = ['createdAt', 'permission', 'updatedAt'] as const
   $columns = PermissionSchema.$columns
