@@ -15,6 +15,11 @@ router
     // côté du `state`, et jamais dans l'URL de retour.
     router.get('keycloak/redirect', [controllers.KeycloakAuth, 'redirect'])
     router.get('keycloak/callback', [controllers.KeycloakAuth, 'callback'])
+
+    // ⚠️ GET et authentifiée : c'est une **navigation**, le navigateur doit
+    // suivre la redirection vers l'IdP. Un POST serait refusé par le CSRF dès
+    // lors que la session n'est portée que par le cookie.
+    router.get('keycloak/logout', [controllers.KeycloakAuth, 'logout']).use(middleware.auth())
   })
   .prefix('v1/auth')
   .as('auth')

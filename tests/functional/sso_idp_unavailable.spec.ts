@@ -16,7 +16,11 @@ test.group('SSO — IdP injoignable', (group) => {
     // Un port fermé sur une adresse non routable : la découverte échoue vite,
     // sans dépendre de la présence d'un Keycloak local.
     env.set('KEYCLOAK_ISSUER', 'http://127.0.0.1:1/realms/bae')
-    env.set('KEYCLOAK_INTERNAL_URL', undefined)
+    // ⚠️ Chaîne vide et non `undefined` : `env.set` stockerait la chaîne
+    // `'undefined'`, truthy, et la découverte échouerait sur une URL invalide
+    // au lieu du port fermé que ce test vise. Le test passait quand même — pour
+    // la mauvaise raison.
+    env.set('KEYCLOAK_INTERNAL_URL', '')
     resetConfigurationCache()
 
     return () => {

@@ -42,6 +42,17 @@ export type SsoClaims = {
   degree: string | null
 }
 
+/**
+ * ⚠️ L'`id_token` est remonté **à côté** des claims et non fondu dedans : il
+ * n'est pas une donnée d'identité mais un jeton opaque pour nous, dont le seul
+ * usage est de servir d'`id_token_hint` à la déconnexion. `null` pour tout
+ * compte qui n'est pas passé par l'IdP.
+ */
+export type SsoExchange = {
+  claims: SsoClaims
+  idToken: string | null
+}
+
 export type AuthorizationRequest = {
   url: string
   state: string
@@ -159,7 +170,7 @@ function claimString(claims: Record<string, unknown>, key: string): string | nul
 export async function exchange(
   currentUrl: URL,
   expected: { state: string; codeVerifier: string }
-): Promise<SsoClaims> {
+): Promise<SsoExchange> {
   const config = await configuration()
 
   const tokens = await client.authorizationCodeGrant(config, currentUrl, {
@@ -195,12 +206,40 @@ export async function exchange(
   }
 
   return {
-    subject,
-    casId,
-    email,
-    firstName: claimString(merged, 'given_name'),
-    lastName: claimString(merged, 'family_name'),
-    school: claimString(merged, 'ecole'),
-    degree: claimString(merged, 'diplome'),
+    claims: {
+      subject,
+      casId,
+      email,
+      firstName: claimString(merged, 'given_name'),
+      lastName: claimString(merged, 'family_name'),
+      school: claimString(merged, 'ecole'),
+      degree: claimString(merged, 'diplome'),
+    },
+    idToken: tokens.id_token ?? null,
   }
+}
+
+/**
+ * L'URL de déconnexion RP-initiated, construite depuis les métadonnées
+ * découvertes — `end_session_endpoint` en fait partie, il n'y a donc rien à
+ * configurer en plus.
+ *
+ * ⚠️ Passer par `buildEndSessionUrl` et non concaténer soi-même : la
+ * bibliothèque y ajoute le `client_id`, que Keycloak exige pour valider la
+ * redirection de retour contre les `post.logout.redirect.uris` du client.
+ *
+ * ⚠️ `postLogoutRedirectUri` ne doit **jamais** venir du client : Keycloak la
+ * valide, mais une liste blanche large en ferait une redirection ouverte. Elle
+ * se résout côté serveur, comme l'URI de callback.
+ */
+export async function endSessionUrl(params: {
+  idToken: string
+  postLogoutRedirectUri: string
+}): Promise<string> {
+  const config = await configuration()
+
+  return client.buildEndSessionUrl(config, {
+    id_token_hint: params.idToken,
+    post_logout_redirect_uri: params.postLogoutRedirectUri,
+  }).href
 }

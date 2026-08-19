@@ -73,6 +73,26 @@ test.group('Authentification par cookie', (group) => {
     response.assertStatus(403)
   })
 
+  /**
+   * ⚠️ `destroy` efface le cookie, `destroyAll` ne le faisait pas : le navigateur
+   * continuait donc de présenter un jeton que la base venait de révoquer, jusqu'au
+   * premier 401. Les deux sorties doivent laisser la même trace.
+   */
+  test('la déconnexion de toutes les sessions efface aussi le cookie', async ({
+    client,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['member:read'])
+
+    const response = await client.delete('/v1/auth/logout-all').loginAs(user)
+
+    response.assertStatus(204)
+    const cookie = response.cookie(SESSION_COOKIE)
+    assert.isDefined(cookie, 'la déconnexion globale doit effacer le cookie de session')
+    assert.equal(cookie!.value, '', 'un cookie effacé ne porte plus de jeton')
+  })
+
   test('un en-tête explicite garde la priorité sur le cookie', async ({ client, assert }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['member:read'])

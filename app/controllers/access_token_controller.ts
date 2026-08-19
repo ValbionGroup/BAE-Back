@@ -50,6 +50,10 @@ export default class AccessTokenController {
       await User.accessTokens.delete(user, token.identifier)
     }
 
+    // Même raison que dans `destroy` : la session courante fait partie du lot,
+    // et un cookie laissé en place présenterait un jeton déjà révoqué.
+    clearSessionCookie(response)
+
     return response.noContent()
   }
 }

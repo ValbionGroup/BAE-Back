@@ -47,6 +47,7 @@ export class AuthAccessTokenSchema extends BaseModel {
     'ipAddress',
     'lastUsedAt',
     'name',
+    'ssoIdToken',
     'tokenableId',
     'type',
     'updatedAt',
@@ -69,6 +70,8 @@ export class AuthAccessTokenSchema extends BaseModel {
   declare lastUsedAt: DateTime | null
   @column()
   declare name: string | null
+  @column()
+  declare ssoIdToken: string | null
   @column()
   declare tokenableId: number
   @column()
