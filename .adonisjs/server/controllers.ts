@@ -21,6 +21,7 @@ export const controllers = {
   Jobs: () => import('#controllers/jobs_controller'),
   KeycloakAuth: () => import('#controllers/keycloak_auth_controller'),
   Logs: () => import('#controllers/logs_controller'),
+  LydiaCallbacks: () => import('#controllers/lydia_callbacks_controller'),
   Members: () => import('#controllers/members_controller'),
   NewAccount: () => import('#controllers/new_account_controller'),
   Notifications: () => import('#controllers/notifications_controller'),

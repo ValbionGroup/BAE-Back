@@ -45,3 +45,27 @@ router
   .prefix('v1/account')
   .as('account_purchases')
   .use(middleware.auth())
+
+/**
+ * Le webhook de paiement. **Sans authentification, et c'est le seul moyen** :
+ * un prestataire ne présente ni session ni jeton.
+ *
+ * Sa sûreté ne vient pas d'un secret mais de son comportement — la notification
+ * n'est pas crue, l'état est réinterrogé auprès de Lydia. Un appel avec une
+ * référence devinée ne déclenche donc qu'une lecture.
+ *
+ * ⚠️ Deux réflexes à ne pas avoir ici, malgré le §10.4 :
+ * - **Ne pas l'ajouter à `csrf.exceptRoutes`** : `config/shield.ts` excepte déjà
+ *   toute requête dépourvue de cookie de session, ce qu'est un appel de serveur
+ *   à serveur.
+ * - **Ne pas l'exclure du journal** : la mise en garde sur `logs.url` vise les
+ *   jetons en query string. `orderRef` est dans le chemin, et n'est pas un
+ *   secret — le connaître ne donne rien. La trace, elle, sert à diagnostiquer
+ *   une notification qui n'arrive pas.
+ */
+router
+  .group(() => {
+    router.post('/callback/:orderRef', [controllers.LydiaCallbacks, 'notify'])
+  })
+  .prefix('v1/lydia')
+  .as('lydia')
