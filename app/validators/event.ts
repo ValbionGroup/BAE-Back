@@ -15,6 +15,8 @@ const eventFields = {
   expectedAttendees: vine.number().withoutDecimals().min(0).nullable().optional(),
   /** Non nul = la prise en charge est active et une catégorie peut exister. */
   payerName: vine.string().trim().nullable().optional(),
+  // En heures avant le début de la soirée ; `null` = suivre la valeur globale.
+  preOrderCloseLeadHours: vine.number().withoutDecimals().min(0).nullable().optional(),
 }
 
 export const eventValidator = vine.create(eventFields)

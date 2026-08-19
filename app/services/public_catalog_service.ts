@@ -57,9 +57,11 @@ export function fastPassBonusPercent(): number {
  * pour produire ce qui a été commandé. Le raccourcir engage l'équipe à tenir un
  * volume qu'elle découvre trop tard.
  */
-export function preOrderCloseLeadHours(): number {
-  const configured = env.get('PRE_ORDER_CLOSE_LEAD_HOURS')
-  if (configured === undefined) return 12
+export function preOrderCloseLeadHours(event?: Event): number {
+  // ⚠️ `null` sur la soirée n'est pas « zéro heure » mais « suivre le global » —
+  // c'est ce qui permet de ne rien reprendre sur les soirées existantes.
+  const configured = event?.preOrderCloseLeadHours ?? env.get('PRE_ORDER_CLOSE_LEAD_HOURS')
+  if (configured === undefined || configured === null) return 12
 
   return Math.max(0, configured)
 }
@@ -101,7 +103,7 @@ async function placedCounts(eventIds: number[]): Promise<Map<number, number>> {
 }
 
 function toEventView(event: Event, placed: number, now: DateTime): PublicEventView {
-  const closesAt = event.date.minus({ hours: preOrderCloseLeadHours() })
+  const closesAt = event.date.minus({ hours: preOrderCloseLeadHours(event) })
   const remaining = Math.max(0, event.capacity - placed)
 
   return {
@@ -188,7 +190,7 @@ export async function menuFor(
   return {
     event: toEventView(event, placed.get(event.id) ?? 0, now),
     discountPercent: preOrderDiscountPercent(),
-    closeLeadHours: preOrderCloseLeadHours(),
+    closeLeadHours: preOrderCloseLeadHours(event),
     lines: event.products.map((product) => ({
       productId: product.id,
       name: product.name,

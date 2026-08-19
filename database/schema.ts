@@ -174,6 +174,7 @@ export class EventSchema extends BaseModel {
     'id',
     'name',
     'payerName',
+    'preOrderCloseLeadHours',
     'status',
     'updatedAt',
   ] as const
@@ -196,6 +197,8 @@ export class EventSchema extends BaseModel {
   declare name: string
   @column()
   declare payerName: string | null
+  @column()
+  declare preOrderCloseLeadHours: number | null
   @column()
   declare status: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
