@@ -30,6 +30,17 @@ router
     router.get('/pre-orders/:id', [controllers.AccountPurchases, 'preOrder'])
     router.get('/pre-orders/:id/qr', [controllers.AccountPurchases, 'preOrderQr'])
     router.get('/subscriptions', [controllers.AccountPurchases, 'subscriptions'])
+
+    /**
+     * Les achats, eux, exigent `audience('client')` : la consultation ci-dessus
+     * se protège toute seule par son `where user_id`, alors qu'engager une
+     * dépense au nom de quelqu'un demande de prouver qu'il est bien de la zone
+     * publique. `POST /v1/subscriptions` reste le geste du membre au local —
+     * même objet, ni les mêmes droits ni le même paiement.
+     */
+    router
+      .post('/subscriptions', [controllers.AccountPayments, 'subscribe'])
+      .use(middleware.audience('client'))
   })
   .prefix('v1/account')
   .as('account_purchases')
