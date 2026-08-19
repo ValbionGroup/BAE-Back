@@ -127,6 +127,23 @@ test.group('Précommande payée en ligne', (group) => {
   })
 
   /**
+   * Le défaut visé : un libellé générique. Le client lit ce texte sur la page
+   * Lydia puis sur son relevé — sans le nom de la soirée, deux précommandes de
+   * deux soirées différentes sont indiscernables.
+   */
+  test('le libellé du paiement nomme la soirée', async ({ client: httpClient, assert }) => {
+    const user = await makeClient('libelle@test.fr')
+    const { event, product } = await makeEvent(6, 350)
+
+    await httpClient
+      .post('/v1/account/pre-orders')
+      .json({ eventId: event.id, lines: [{ productId: product.id, quantity: 1 }] })
+      .loginAs(user)
+
+    assert.include(lydia.created[0].message, event.name)
+  })
+
+  /**
    * Le défaut visé : une demande de paiement qui survit à la clôture des
    * précommandes. Confirmée après coup, elle encaisserait une commande que la
    * cuisine ne peut plus produire.

@@ -44,6 +44,9 @@ router
     router
       .post('/pre-orders', [controllers.AccountPayments, 'preOrder'])
       .use(middleware.audience('client'))
+    router
+      .get('/payments/:orderRef', [controllers.AccountPayments, 'show'])
+      .use(middleware.audience('client'))
   })
   .prefix('v1/account')
   .as('account_purchases')

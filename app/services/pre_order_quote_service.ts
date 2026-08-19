@@ -17,6 +17,8 @@ export interface PreOrderQuote {
   amountCents: number
   /** Ce qui reste avant la clôture, et qui borne la durée de vie de la demande. */
   secondsUntilClose: number
+  /** Remonté d'ici pour le libellé du paiement : la soirée est déjà chargée. */
+  eventName: string
 }
 
 /**
@@ -75,5 +77,6 @@ export async function quotePreOrder(
   return {
     amountCents: subtotal - Math.round((subtotal * percent) / 100),
     secondsUntilClose,
+    eventName: event.name,
   }
 }
