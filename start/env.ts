@@ -88,4 +88,21 @@ export default await Env.create(new URL('../', import.meta.url), {
   // Optionnelle : le service retombe sur 12 h. C'est le délai dont la cuisine a
   // besoin pour produire — il se règle donc sans redéploiement.
   PRE_ORDER_CLOSE_LEAD_HOURS: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Paiement — Lydia
+  |----------------------------------------------------------
+  */
+  // ⚠️ `fake` partout sauf en production. Le BAE ne dispose que de jetons de
+  // production : basculer sur `http` en développement déplacerait de l'argent
+  // réel, et aucun environnement d'homologation n'est ouvert à ce jour.
+  LYDIA_DRIVER: Env.schema.enum(['http', 'fake'] as const),
+  LYDIA_URL: Env.schema.string({ format: 'url', tld: false }),
+  LYDIA_VENDOR_TOKEN: Env.schema.secret(),
+  LYDIA_PRIVATE_TOKEN: Env.schema.secret(),
+  // Adresse **publique** de l'API, celle que Lydia appelle pour notifier — pas
+  // celle que suit le navigateur. En développement elle exige un tunnel :
+  // `localhost` n'est joignable depuis aucun serveur tiers.
+  LYDIA_CALLBACK_BASE_URL: Env.schema.string({ format: 'url', tld: false }),
 })
