@@ -45,6 +45,14 @@ services:
       SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      # Sans valeur par défaut, à dessein : `start/env.ts` les déclare
+      # obligatoires, donc un déploiement qui les oublie échoue au démarrage
+      # plutôt que d'accepter des paiements qui n'aboutiront pas.
+      LYDIA_DRIVER: ${LYDIA_DRIVER}
+      LYDIA_URL: ${LYDIA_URL}
+      LYDIA_VENDOR_TOKEN: ${LYDIA_VENDOR_TOKEN}
+      LYDIA_PRIVATE_TOKEN: ${LYDIA_PRIVATE_TOKEN}
+      LYDIA_CALLBACK_BASE_URL: ${LYDIA_CALLBACK_BASE_URL}
     ports:
       - '${PORT:-3333}:3333'
     networks:

@@ -46,9 +46,6 @@ services:
       SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
-      # `KEYCLOAK_ISSUER` reste l'adresse **publique**, celle que suit le
-      # navigateur. `KEYCLOAK_INTERNAL_URL` décrit le chemin conteneur → IdP :
-      # ici `localhost` désigne le conteneur lui-même, jamais l'hôte.
       KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
       KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://host.docker.internal:8080}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
@@ -58,6 +55,17 @@ services:
       DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:4200}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:4201}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      # ⚠️ `fake` par défaut, et sortir de ce défaut demande une raison : les
+      # jetons du BAE sont ceux de production, donc `http` en développement
+      # déplace de l'argent réel.
+      LYDIA_DRIVER: ${LYDIA_DRIVER:-fake}
+      LYDIA_URL: ${LYDIA_URL:-https://lydia-app.com}
+      LYDIA_VENDOR_TOKEN: ${LYDIA_VENDOR_TOKEN:-}
+      LYDIA_PRIVATE_TOKEN: ${LYDIA_PRIVATE_TOKEN:-}
+      # Adresse **publique** : c'est Lydia qui l'appelle, depuis ses serveurs.
+      # `localhost` y désigne leurs machines — la notification n'arrive alors
+      # jamais, et les paiements restent en attente jusqu'à expirer.
+      LYDIA_CALLBACK_BASE_URL: ${LYDIA_CALLBACK_BASE_URL:-http://localhost:3333}
     # Fourni d'office par Docker Desktop, absent sous Linux : sans lui l'API n'a
     # aucun moyen de nommer l'hôte.
     extra_hosts:
