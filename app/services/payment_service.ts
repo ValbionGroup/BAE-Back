@@ -9,6 +9,7 @@ import Payment from '#models/payment'
 import Transaction from '#models/transaction'
 import type User from '#models/user'
 import LydiaClient from '#services/lydia/lydia_client'
+import type { QuoteLine } from '#services/pre_order_quote_service'
 
 export type PaymentKind = 'pre_order' | 'subscription'
 
@@ -120,6 +121,41 @@ async function fulfilSubscription(
   })
 }
 
+async function fulfilPreOrder(
+  payment: Payment,
+  intent: Record<string, unknown>,
+  transaction: Transaction,
+  trx: TransactionClientContract
+): Promise<void> {
+  const now = DateTime.now()
+  const lines = intent.lines as QuoteLine[]
+
+  const [row] = await trx
+    .table('pre_orders')
+    .insert({
+      user_id: payment.userId,
+      event_id: Number(intent.eventId),
+      transaction_id: transaction.id,
+      status: 'pending',
+      pickup_at: typeof intent.pickupAt === 'string' ? intent.pickupAt : null,
+      created_at: now.toSQL(),
+    })
+    .returning('id')
+
+  const preOrderId = typeof row === 'object' ? Number(row.id) : Number(row)
+
+  await trx.table('pre_order_items').insert(
+    lines.map((line) => ({
+      pre_order_id: preOrderId,
+      product_id: line.productId,
+      quantity: line.quantity,
+      received_quantity: 0,
+      created_at: now.toSQL(),
+      updated_at: now.toSQL(),
+    }))
+  )
+}
+
 /**
  * Traite une notification de paiement.
  *
@@ -178,7 +214,9 @@ export async function confirmPayment(orderRef: string): Promise<void> {
     await transaction.save()
 
     const intent = JSON.parse(payment.intent) as Record<string, unknown>
-    await fulfilSubscription(payment, intent, transaction, trx)
+    await (payment.kind === 'subscription'
+      ? fulfilSubscription(payment, intent, transaction, trx)
+      : fulfilPreOrder(payment, intent, transaction, trx))
 
     await trx.from('payments').where('id', payment.id).update({ transaction_id: transaction.id })
   })
