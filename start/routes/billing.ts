@@ -24,6 +24,8 @@ router
       .get('/transactions', [controllers.Transactions, 'index'])
       .use(middleware.can('transaction:read'))
 
+    router.get('/payments', [controllers.Payments, 'index']).use(middleware.can('payment:read'))
+
     router
       .get('/clients/summary', [controllers.Clients, 'summary'])
       .use(middleware.can('client:read'))

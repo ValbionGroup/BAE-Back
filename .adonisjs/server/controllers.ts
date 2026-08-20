@@ -26,6 +26,7 @@ export const controllers = {
   NewAccount: () => import('#controllers/new_account_controller'),
   Notifications: () => import('#controllers/notifications_controller'),
   Orders: () => import('#controllers/orders_controller'),
+  Payments: () => import('#controllers/payments_controller'),
   Permissions: () => import('#controllers/permissions_controller'),
   PreOrders: () => import('#controllers/pre_orders_controller'),
   Preferences: () => import('#controllers/preferences_controller'),
