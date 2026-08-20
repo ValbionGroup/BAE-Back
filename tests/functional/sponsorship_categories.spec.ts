@@ -1,11 +1,11 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
-import Event from '#models/event'
 import Product from '#models/product'
 import { grantPermissions } from '#tests/helpers/permissions'
 import { MemberFactory } from '#database/factories/members_factory'
 import { EventFactory } from '#database/factories/event_factory'
+import type Event from '#models/event'
 
 function manager() {
   return MemberFactory.create().then((member) =>

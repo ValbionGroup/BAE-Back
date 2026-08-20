@@ -160,6 +160,7 @@ function buildPayload(
 
   // `!= null` et non `!== null` : une commande fraîchement créée porte
   // `undefined`, jamais `null`.
+  // eslint-disable-next-line eqeqeq
   const sponsored = order.sponsorshipCategoryLabel != null
   const sponsoredCents = sponsored ? grossCents - chargedCents : 0
 
