@@ -3,7 +3,10 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
 import Member from '#models/member'
 import User from '#models/user'
-import DevAccountSeeder, { DEV_ACCOUNTS, DEV_PASSWORD } from '#database/seeders/07_dev_account_seeder'
+import DevAccountSeeder, {
+  DEV_ACCOUNTS,
+  DEV_PASSWORD,
+} from '#database/seeders/07_dev_account_seeder'
 import RoleSeeder from '#database/seeders/01_role_seeder'
 
 test.group('Dev accounts seeder', (group) => {
