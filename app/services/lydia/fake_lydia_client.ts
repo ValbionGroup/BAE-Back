@@ -8,20 +8,11 @@ import type {
 
 /**
  * Le seul Lydia que connaissent les tests, et celui du développement local.
- *
- * Il existe parce que le BAE ne dispose que de jetons de production : les
- * défauts à couvrir — notification rejouée, montant divergent, demande
- * abandonnée — ne peuvent pas être déclenchés à la main sans déplacer de
- * l'argent réel.
  */
 export default class FakeLydiaClient extends LydiaClient {
-  /** Les demandes reçues, dans l'ordre — ce que les tests inspectent. */
   readonly created: CreateRequestInput[] = []
 
-  /** L'état que rendra la prochaine interrogation. Confirmé par défaut. */
   nextState: RequestStateResult = { state: 1, amountCents: null, transactionIdentifier: 'tx-fake' }
-
-  /** Consommé au premier appel : joue un refus de Lydia, puis se désarme. */
   failNextCreate = false
 
   async createRequest(input: CreateRequestInput): Promise<CreateRequestResult> {

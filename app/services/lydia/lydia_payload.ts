@@ -1,15 +1,5 @@
 import ApiException from '#exceptions/api_exception'
 
-/**
- * La frontière avec Lydia, et rien d'autre : construire ce qui part, lire ce qui
- * revient. Aucun appel réseau ici, ce qui rend le contrat testable sans simuler
- * de serveur.
- *
- * ⚠️ Les noms de champs sont ceux de Lydia. Ils ne suivent pas les conventions
- * du dépôt et ne doivent jamais être dérivés d'un convertisseur de casse.
- */
-
-/** Les états rendus par `state.json`. `-1` couvre tout ce qu'on ne sait pas lire. */
 export type LydiaState = -1 | 0 | 1 | 5 | 6
 
 export interface CreateRequestInput {
@@ -31,7 +21,6 @@ export interface CreateRequestResult {
 
 export interface RequestStateResult {
   state: LydiaState
-  /** `null` quand Lydia ne renvoie pas de montant — ce champ n'est pas documenté. */
   amountCents: number | null
   transactionIdentifier: string | null
 }
@@ -50,8 +39,6 @@ export function buildDoBody(input: CreateRequestInput, vendorToken: string): URL
     order_ref: input.orderRef,
     message: input.message,
     payment_method: 'auto',
-    // La page de confirmation de Lydia ajouterait un écran après le paiement ;
-    // `browser_success_url` ramène directement le navigateur chez nous.
     display_confirmation: 'no',
     notify: 'no',
     notify_collector: 'no',
@@ -75,7 +62,6 @@ function asRecord(payload: unknown): Record<string, unknown> {
 export function parseDoResponse(payload: unknown): CreateRequestResult {
   const body = asRecord(payload)
 
-  // Lydia répond 200 même pour un refus : c'est `error` qui porte le verdict.
   if (Number(body.error ?? -1) !== 0) {
     throw new ApiException(
       'E_LYDIA_REQUEST_FAILED',
@@ -103,8 +89,6 @@ export function parseStateResponse(payload: unknown): RequestStateResult {
   const raw = Number(body.state)
   const state: LydiaState = [0, 1, 5, 6].includes(raw) ? (raw as LydiaState) : -1
 
-  // Absent, le montant vaut « inconnu » : le lire comme 0 ferait échouer la
-  // comparaison avec le montant attendu sur toute réponse qui n'en porte pas.
   const amount = body.amount
   const parsed = amount === undefined || amount === null ? null : Math.round(Number(amount) * 100)
 

@@ -22,13 +22,6 @@ const PAYMENT_WINDOW_SECONDS = 900
 const CLOSE_MARGIN_SECONDS = 60
 
 export default class AccountPaymentsController {
-  /**
-   * L'état d'une demande, interrogé par la page de retour.
-   *
-   * ⚠️ **Lecture pure.** Ne jamais confirmer ici : le retour du navigateur est
-   * un confort d'affichage, il peut être fabriqué à la main, et seul le webhook
-   * crée une contrepartie.
-   */
   async show({ auth, params, serialize }: HttpContext) {
     const user = auth.getUserOrFail()
 
@@ -37,8 +30,6 @@ export default class AccountPaymentsController {
       .where('userId', user.id)
       .first()
 
-    // 404 et non 403 : répondre « il existe mais n'est pas le vôtre » ferait de
-    // la référence un oracle.
     if (!payment) {
       throw new ApiException('E_PAYMENT_NOT_FOUND', 'Paiement introuvable.', 404)
     }
@@ -55,8 +46,6 @@ export default class AccountPaymentsController {
       throw new ApiException('E_FAST_PASS_NOT_FOUND', 'Formule introuvable.', 404)
     }
 
-    // `fast_passes.price` est un décimal en euros quand tout le reste de l'API
-    // publique compte en centimes — `public_catalog_service` convertit pareil.
     const amountCents = Math.round(Number(fastPass.price) * 100)
 
     const payment = await openPayment({
@@ -77,10 +66,6 @@ export default class AccountPaymentsController {
 
     const quote = await quotePreOrder(user.id, payload.eventId, payload.lines)
 
-    // ⚠️ La demande ne doit **jamais** survivre à la clôture : confirmée après,
-    // elle encaisserait une précommande que la cuisine ne peut plus produire.
-    // C'est le seul garde-fou contre « payé mais rien à livrer », la
-    // précommande n'étant créée qu'à la confirmation.
     const expireTimeSeconds = Math.max(
       CLOSE_MARGIN_SECONDS,
       Math.min(PAYMENT_WINDOW_SECONDS, quote.secondsUntilClose - CLOSE_MARGIN_SECONDS)
@@ -90,9 +75,6 @@ export default class AccountPaymentsController {
       user,
       kind: 'pre_order',
       amountCents: quote.amountCents,
-      // Le libellé nomme la soirée : c'est ce que le client lit sur la page
-      // Lydia et retrouvera sur son relevé, où « Précommande BAE » seul ne
-      // distinguerait pas deux soirées.
       message: `Précommande BAE — ${quote.eventName}`,
       intent: {
         eventId: payload.eventId,

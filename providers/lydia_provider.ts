@@ -8,8 +8,6 @@ export default class LydiaProvider {
   constructor(protected app: ApplicationService) {}
 
   register() {
-    // `singleton` et non `bind` : le client simulé porte l'état que les tests
-    // règlent avant d'appeler l'API. Une instance neuve par résolution le perdrait.
     this.app.container.singleton(LydiaClient, () =>
       lydiaConfig.driver === 'fake'
         ? new FakeLydiaClient()

@@ -27,9 +27,6 @@ export default class PdfService {
     </div>`
 
   private async getBrowser(): Promise<Browser> {
-    // A dead browser stays non-null. Without this check, one crash — OOM,
-    // segfault, anything — hands every later render the same broken handle,
-    // and PDF generation stays down until the process is restarted.
     if (this.browser && !this.browser.connected) {
       this.browser = null
     }
@@ -38,11 +35,6 @@ export default class PdfService {
       this.browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        // Alpine's node:*-alpine images are musl libc: Puppeteer's own
-        // downloaded Chrome build is glibc-only and cannot run there at all.
-        // The Docker images install Alpine's native `chromium` package and
-        // point here via this env var; left unset, Puppeteer falls back to
-        // its own bundled browser — what local, non-containerized dev uses.
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       })
     }
@@ -56,8 +48,6 @@ export default class PdfService {
       this.idleTimer = null
     }
 
-    // Cleared before the await: a render starting while the close is in flight
-    // must launch a fresh browser, never receive the one being torn down.
     const browser = this.browser
     this.browser = null
     await browser?.close()
@@ -76,8 +66,6 @@ export default class PdfService {
       }
     }, minutes * 60_000)
 
-    // Without unref, a pending timer holds the event loop open and delays a
-    // clean shutdown by up to the whole idle delay.
     this.idleTimer.unref()
   }
 
@@ -88,11 +76,6 @@ export default class PdfService {
     })
   }
 
-  /**
-   * The in-flight counter is what makes the idle close safe: the browser is
-   * never torn down under a running render, and a burst of concurrent PDFs
-   * keeps it warm instead of relaunching one per request.
-   */
   private async render(
     setContent: (page: Page) => Promise<void>,
     options: PdfOptions

@@ -15,19 +15,10 @@ export interface QuoteLine {
 
 export interface PreOrderQuote {
   amountCents: number
-  /** Ce qui reste avant la clôture, et qui borne la durée de vie de la demande. */
   secondsUntilClose: number
-  /** Remonté d'ici pour le libellé du paiement : la soirée est déjà chargée. */
   eventName: string
 }
 
-/**
- * Le montant d'une précommande, **recalculé depuis le tarif de la soirée**.
- *
- * Rien de ce que le client envoie n'entre dans le prix : accepter un total,
- * c'est le lui laisser fixer. Seules la soirée et les quantités viennent de lui,
- * et les deux sont vérifiées ici.
- */
 export async function quotePreOrder(
   userId: number,
   eventId: number,
@@ -68,9 +59,6 @@ export async function quotePreOrder(
     subtotal += price * line.quantity
   }
 
-  // Le bonus s'ajoute à la remise, comme l'annonce la page Fastpass. La validité
-  // de l'adhésion se lit par `fastPassOf` plutôt que réimplémentée : la règle
-  // d'échéance n'a qu'un seul endroit où vivre.
   const bonus = (await fastPassOf(userId, now)) === null ? 0 : fastPassBonusPercent()
   const percent = preOrderDiscountPercent() + bonus
 

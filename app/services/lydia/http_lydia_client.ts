@@ -11,13 +11,6 @@ import {
   type RequestStateResult,
 } from './lydia_payload.js'
 
-/**
- * Ce que `fetch` a réellement refusé.
- *
- * Undici range la vraie raison dans `cause` — `ENOTFOUND`, `ECONNREFUSED`,
- * `ETIMEDOUT`, certificat rejeté — là où le message de surface se réduit
- * toujours à « fetch failed ». Quatre pannes qui n'ont pas le même correctif.
- */
 export function describeFetchFailure(error: unknown): string {
   if (!(error instanceof Error)) return 'raison inconnue'
 
@@ -28,11 +21,6 @@ export function describeFetchFailure(error: unknown): string {
   return `${error.message} (${code ?? cause.message})`
 }
 
-/**
- * Le vrai Lydia. Volontairement mince : tout ce qui se décide — la forme du
- * corps, la lecture des réponses — vit dans `lydia_payload`, qui se teste sans
- * réseau. Il ne reste ici que le transport.
- */
 export default class HttpLydiaClient extends LydiaClient {
   constructor(
     private readonly baseUrl: string,
@@ -63,10 +51,6 @@ export default class HttpLydiaClient extends LydiaClient {
         body,
       })
     } catch (error) {
-      // Le message rendu au client reste générique ; la cause part au journal.
-      // Les deux n'ont ni le même lecteur ni la même menace, et les confondre
-      // condamne à deviner : le jeton de commerçant voyage dans le **corps**,
-      // jamais dans l'URL ni dans une erreur de transport.
       logger.error(
         { err: error, url: `${this.baseUrl}${path}` },
         `Lydia injoignable : ${describeFetchFailure(error)}`

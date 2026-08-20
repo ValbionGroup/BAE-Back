@@ -3,15 +3,6 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 
-/**
- * L'écrasante majorité des demandes de paiement n'aboutit jamais. Sans passage
- * régulier, la table se remplit de `pending` éternels et plus rien ne distingue
- * l'abandonné de l'en-cours — ni pour le rapprochement, ni pour le diagnostic.
- *
- * ⚠️ N'interroge pas Lydia. Une demande dont le délai est passé ne peut plus
- * être payée : c'est `expire_time`, envoyé à la création, qui fait foi des deux
- * côtés. Un aller-retour réseau par ligne n'apprendrait rien.
- */
 export default class LydiaExpire extends BaseCommand {
   static commandName = 'lydia:expire'
   static description = 'Marque expirées les demandes de paiement dépassées'

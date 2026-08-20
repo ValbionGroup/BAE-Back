@@ -40,13 +40,6 @@ export function toPaymentView(payment: Payment): PaymentView {
   }
 }
 
-/**
- * Ouvre une demande de paiement et en garde la trace **avant** d'appeler Lydia.
- *
- * L'ordre compte : une ligne écrite d'abord survit à un appel qui échoue à
- * mi-chemin, alors qu'un appel réussi suivi d'une écriture perdue laisserait
- * une demande facturable que rien ici ne connaîtrait.
- */
 export async function openPayment(input: OpenPaymentInput): Promise<Payment> {
   const payment = await Payment.create({
     provider: 'lydia',
@@ -65,9 +58,6 @@ export async function openPayment(input: OpenPaymentInput): Promise<Payment> {
 
   try {
     const created = await client.createRequest({
-      // L'adresse vient du SSO. Lydia s'en sert pour reconnaître un compte
-      // existant et proposer le paiement en un clic ; à défaut, le client tombe
-      // sur le formulaire carte. Ce n'est pas une sollicitation envoyée.
       recipient: input.user.email,
       amountCents: input.amountCents,
       orderRef: payment.orderRef,
@@ -83,8 +73,6 @@ export async function openPayment(input: OpenPaymentInput): Promise<Payment> {
     payment.mobileUrl = created.mobileUrl
     await payment.save()
   } catch (error) {
-    // Annulé plutôt que supprimé : garder la trace des demandes qui n'aboutissent
-    // pas est précisément ce qu'une table dédiée permet.
     payment.status = 'cancelled'
     await payment.save()
     throw error
@@ -109,8 +97,6 @@ async function fulfilSubscription(
 ): Promise<void> {
   const now = DateTime.now()
 
-  // Insertion directe : la clé primaire de `subscriptions` est composite, et
-  // `Subscription.create()` tenterait de relire la ligne par un `id` absent.
   await trx.table('subscriptions').insert({
     user_id: payment.userId,
     fast_pass_id: Number(intent.fastPassId),
@@ -156,18 +142,6 @@ async function fulfilPreOrder(
   )
 }
 
-/**
- * Traite une notification de paiement.
- *
- * ⚠️ **Le corps de la notification n'entre pas ici.** La vérité est ce que
- * `state.json` répond, ce qui rend la route inoffensive même appelée par un
- * tiers ayant deviné une référence — et contourne au passage le fait que
- * `case_converter_middleware` réécrit le corps reçu, rendant impossible toute
- * vérification de signature calculée sur les octets d'origine.
- *
- * Ne lève jamais pour une référence inconnue ou déjà traitée : Lydia rejouerait
- * indéfiniment.
- */
 export async function confirmPayment(orderRef: string): Promise<void> {
   const payment = await Payment.findBy('orderRef', orderRef)
   if (!payment || payment.status !== 'pending' || !payment.providerReference) return
@@ -188,12 +162,6 @@ export async function confirmPayment(orderRef: string): Promise<void> {
   }
 
   await db.transaction(async (trx) => {
-    // L'idempotence tient entière dans ce `where`, et dans le fait qu'il vit
-    // **à l'intérieur** de la transaction : la ligne reste verrouillée jusqu'au
-    // commit, donc deux notifications simultanées se sérialisent et la seconde
-    // ne voit plus « pending ». Un `if (déjà traité) return` lu puis écrit
-    // laisserait passer les deux ; le même `update` hors transaction laisserait
-    // un paiement marqué payé sans contrepartie si la suite échouait.
     const claimed = await trx
       .from('payments')
       .where('id', payment.id)

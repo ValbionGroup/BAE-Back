@@ -25,13 +25,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for configuring the mail package
   |----------------------------------------------------------
   */
-  // `log` par défaut : aucun SMTP n'est encore fourni, et l'application doit
-  // démarrer sans. Basculer sur `smtp` le jour où les identifiants existent.
   MAIL_MAILER: Env.schema.enum(['smtp', 'log'] as const),
   MAIL_FROM_NAME: Env.schema.string(),
   MAIL_FROM_ADDRESS: Env.schema.string(),
-  // ⚠️ Optionnelles à dessein : les rendre requises casserait le démarrage en
-  // développement, où le mailer `log` n'a besoin d'aucune d'entre elles.
   SMTP_HOST: Env.schema.string.optional(),
   SMTP_PORT: Env.schema.number.optional(),
   SMTP_USERNAME: Env.schema.string.optional(),
@@ -42,24 +38,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   | SSO — OIDC (EirbConnect en production, Keycloak local en dev)
   |----------------------------------------------------------
   */
-  // Les endpoints ne sont **pas** à écrire à la main : ils se découvrent depuis
-  // l'issuer, via `/.well-known/openid-configuration`.
-  // Adresse **publique** : c'est celle que suit le navigateur, et celle que le
-  // claim `iss` doit porter.
   KEYCLOAK_ISSUER: Env.schema.string({ format: 'url', tld: false }),
-  // Chemin **serveur → IdP**, quand il diffère du public : API en conteneur,
-  // réseau interne. Seules les requêtes sortantes du serveur y sont réécrites.
-  // Vide quand les deux adresses coïncident.
   KEYCLOAK_INTERNAL_URL: Env.schema.string.optional({ format: 'url', tld: false }),
   KEYCLOAK_CLIENT_ID: Env.schema.string(),
   KEYCLOAK_CLIENT_SECRET: Env.schema.string(),
   KEYCLOAK_CALLBACK_URL: Env.schema.string({ format: 'url', tld: false }),
-  // ⚠️ Développement uniquement : autorise l'échange sur `http://`. En production
-  // cela annulerait la protection du transport — ne jamais l'y activer.
   KEYCLOAK_ALLOW_INSECURE: Env.schema.boolean.optional(),
 
-  // Destinations résolues **côté serveur**. Ne jamais accepter d'URL de retour en
-  // paramètre : ce serait une redirection ouverte offerte à qui veut hameçonner.
   DASHBOARD_URL: Env.schema.string({ format: 'url', tld: false }),
   PUBLIC_APP_URL: Env.schema.string({ format: 'url', tld: false }),
 
@@ -102,15 +87,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Paiement — Lydia
   |----------------------------------------------------------
   */
-  // ⚠️ `fake` partout sauf en production. Le BAE ne dispose que de jetons de
-  // production : basculer sur `http` en développement déplacerait de l'argent
-  // réel, et aucun environnement d'homologation n'est ouvert à ce jour.
   LYDIA_DRIVER: Env.schema.enum(['http', 'fake'] as const),
   LYDIA_URL: Env.schema.string({ format: 'url', tld: false }),
   LYDIA_VENDOR_TOKEN: Env.schema.secret(),
   LYDIA_PRIVATE_TOKEN: Env.schema.secret(),
-  // Adresse **publique** de l'API, celle que Lydia appelle pour notifier — pas
-  // celle que suit le navigateur. En développement elle exige un tunnel :
-  // `localhost` n'est joignable depuis aucun serveur tiers.
   LYDIA_CALLBACK_BASE_URL: Env.schema.string({ format: 'url', tld: false }),
 })
