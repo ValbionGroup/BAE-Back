@@ -31,8 +31,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Ancrée pour que le service `cron` parte du même environnement : les deux
-    # démarrent le même AdonisJS, donc `start/env.ts` leur impose la même liste.
     environment: &app-environment
       NODE_ENV: development
       PORT: ${PORT:-3333}
@@ -62,8 +60,6 @@ services:
       LYDIA_VENDOR_TOKEN: ${LYDIA_VENDOR_TOKEN:-}
       LYDIA_PRIVATE_TOKEN: ${LYDIA_PRIVATE_TOKEN:-}
       LYDIA_CALLBACK_BASE_URL: ${LYDIA_CALLBACK_BASE_URL:-http://localhost:3333}
-    # Fourni d'office par Docker Desktop, absent sous Linux : sans lui l'API n'a
-    # aucun moyen de nommer l'hôte.
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     ports:
@@ -76,12 +72,6 @@ services:
     networks:
       - bae-dev-network
 
-  # Le pendant local du service `cron` de production, pour vérifier la crontab
-  # avant de la déployer.
-  #
-  # **Sous profil, donc éteint par défaut** : en développement on veut déclencher
-  # les commandes à la main, pas voir des rappels partir tout seuls.
-  # Le lancer : `docker compose -f docker-compose.dev.yml --profile cron up -d`
   cron:
     profiles: ['cron']
     build:

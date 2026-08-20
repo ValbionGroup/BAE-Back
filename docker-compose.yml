@@ -1,13 +1,5 @@
 version: '3.8'
 
-# L'environnement de l'application, partagé par `api` et `cron` : les deux
-# démarrent le **même** AdonisJS, donc `start/env.ts` leur impose la même liste.
-# Deux blocs séparés divergeraient, et l'écart ne se verrait qu'au démarrage du
-# conteneur qu'on redéploie le moins souvent.
-#
-# ⚠️ Aucune valeur par défaut sur ce qui est obligatoire : un déploiement qui
-# oublie une variable doit échouer bruyamment plutôt qu'accepter des requêtes
-# qu'il ne saura pas honorer.
 x-app-environment: &app-environment
   NODE_ENV: ${NODE_ENV:-production}
   PORT: ${PORT:-3333}
