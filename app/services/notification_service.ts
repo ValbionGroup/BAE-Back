@@ -1,0 +1,99 @@
+import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
+import ActivityEvent from '#models/activity_event'
+import Notification from '#models/notification'
+import type { NotificationChannel } from '#models/notification'
+
+/** Code Postgres d'une violation de contrainte d'unicité. */
+const UNIQUE_VIOLATION = '23505'
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: string }).code === UNIQUE_VIOLATION
+  )
+}
+
+export type EmitInput = {
+  verb: string
+  actorId?: number | null
+  subjectType: string
+  subjectId: number
+  payload?: Record<string, unknown>
+  recipients: readonly number[]
+  channels?: readonly NotificationChannel[]
+  /** Rend le fait rejouable : deux appels de même clé ne produisent qu'un fait. */
+  dedupeKey?: string
+}
+
+export type EmitResult = { eventId: number; created: number; skipped: number }
+
+/**
+ * Un fait sans livraison, ou l'inverse, n'a pas de sens : d'où la transaction.
+ *
+ * L'idempotence n'est pas testée avant d'écrire — elle est **déléguée à la base**.
+ * On tente l'insertion et on rattrape la violation d'unicité : entre un `SELECT`
+ * et un `INSERT`, un second processus peut s'intercaler, et c'est exactement ce
+ * qu'un cron qui se chevauche produit.
+ *
+ * ⚠️ Chaque insertion vit dans son propre **SAVEPOINT** (`trx.transaction()`).
+ * Sans lui, une violation d'unicité avorterait la transaction entière et toutes
+ * les instructions suivantes échoueraient avec `current transaction is aborted` —
+ * un doublon ferait donc perdre les destinataires qui le suivent.
+ */
+export async function emit(input: EmitInput): Promise<EmitResult> {
+  const channels = input.channels ?? (['mail'] as const)
+
+  return db.transaction(async (trx) => {
+    if (input.dedupeKey !== undefined) {
+      const existing = await ActivityEvent.query({ client: trx })
+        .where('dedupeKey', input.dedupeKey)
+        .first()
+
+      if (existing !== null) {
+        return {
+          eventId: existing.id,
+          created: 0,
+          skipped: input.recipients.length * channels.length,
+        }
+      }
+    }
+
+    const event = await ActivityEvent.create(
+      {
+        actorId: input.actorId ?? null,
+        verb: input.verb,
+        subjectType: input.subjectType,
+        subjectId: input.subjectId,
+        payload: input.payload ?? {},
+        occurredAt: DateTime.now(),
+        dedupeKey: input.dedupeKey ?? null,
+      },
+      { client: trx }
+    )
+
+    let created = 0
+    let skipped = 0
+
+    for (const userId of input.recipients) {
+      for (const channel of channels) {
+        const savepoint = await trx.transaction()
+        try {
+          await Notification.create(
+            { eventId: event.id, userId, channel, sentAt: null, readAt: null },
+            { client: savepoint }
+          )
+          await savepoint.commit()
+          created += 1
+        } catch (error) {
+          await savepoint.rollback()
+          if (!isUniqueViolation(error)) throw error
+          skipped += 1
+        }
+      }
+    }
+
+    return { eventId: event.id, created, skipped }
+  })
+}

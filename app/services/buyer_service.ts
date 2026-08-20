@@ -17,9 +17,28 @@ export type Buyer = {
 }
 
 /**
- * Point d'entrée unique : le jour où `first_name`/`last_name` remonteront de
- * `members` vers `users`, ou où la table `clients` existera, seul ce fichier
- * changera. `null` rend « Anonyme » — au comptoir, c'est le cas courant.
+ * Assemble le nom affichable à partir des colonnes brutes, en miroir du getter
+ * `User.fullName` : les deux colonnes sont **nullables** depuis que l'identité
+ * vit sur `users`, et un compte créé par inscription directe n'a pas de nom.
+ * Concaténer sans filtrer rendrait « null null ».
+ */
+function joinName(firstName: unknown, lastName: unknown): string | null {
+  const parts = [firstName, lastName]
+    .map((part) => (typeof part === 'string' ? part.trim() : ''))
+    .filter((part) => part !== '')
+
+  return parts.length > 0 ? parts.join(' ') : null
+}
+
+/**
+ * Point d'entrée unique de l'identité d'un acheteur. Interroge `users`, et pas
+ * `members` : les ids reçus viennent d'`orders.client_id` et de
+ * `pre_orders.user_id`, qui référencent tous deux `users`. Passer par `members`
+ * ne fonctionnait que par le partage de clé primaire, et ne nommait donc que
+ * les acheteurs qui se trouvaient être membres du BAE — le client, précisément
+ * la personne qu'on identifie au comptoir, retombait toujours sur `Client #id`.
+ *
+ * `null` rend « Anonyme » — au comptoir, c'est le cas courant.
  */
 export async function resolveBuyerNames(
   userIds: readonly number[],
@@ -29,17 +48,19 @@ export async function resolveBuyerNames(
   if (unique.length === 0) return new Map()
 
   const rows = await (trx ?? db)
-    .from('members')
+    .from('users')
     .whereIn('id', unique)
     .select('id', 'first_name', 'last_name')
 
   const names = new Map<number, string>()
   for (const row of rows) {
-    names.set(Number(row.id), `${row.first_name} ${row.last_name}`.trim())
+    const name = joinName(row.first_name, row.last_name)
+    if (name !== null) names.set(Number(row.id), name)
   }
 
-  // « Anonyme » signifie « personne n'a été désigné », pas « inconnu » : un id
-  // sans ligne `members` (possible dès que `clients` existera) garde un libellé.
+  // « Anonyme » signifie « personne n'a été désigné », pas « inconnu » : un
+  // compte sans nom — inscription directe, ou client dont le SSO n'a pas encore
+  // renseigné l'identité — garde un libellé plutôt qu'une case vide.
   for (const id of unique) {
     if (!names.has(id)) names.set(id, `Client #${id}`)
   }
@@ -135,8 +156,11 @@ export async function searchBuyers(query: string, limit = 10): Promise<Buyer[]> 
   const term = query.trim()
   if (term.length < 2) return []
 
+  // Sur `users`, donc un client est trouvable au comptoir au même titre qu'un
+  // membre. Un compte sans nom ne remonte jamais : `ILIKE` ne matche pas `NULL`,
+  // ce qui écarte les inscriptions incomplètes sans avoir à les filtrer.
   const rows = await db
-    .from('members')
+    .from('users')
     .whereILike('first_name', `%${term}%`)
     .orWhereILike('last_name', `%${term}%`)
     .orderBy('last_name')
@@ -146,7 +170,7 @@ export async function searchBuyers(query: string, limit = 10): Promise<Buyer[]> 
   return Promise.all(
     rows.map(async (row) => ({
       userId: Number(row.id),
-      name: `${row.first_name} ${row.last_name}`.trim(),
+      name: joinName(row.first_name, row.last_name) ?? `Client #${Number(row.id)}`,
       fastPass: await fastPassOf(Number(row.id)),
     }))
   )

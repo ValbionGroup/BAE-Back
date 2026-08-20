@@ -141,8 +141,9 @@ jobs:
       DB_PASSWORD: postgres
       DB_DATABASE: adonis_test
       SESSION_DRIVER: cookie
-      JWT_PRIVATE_KEY: test-jwt-private-key-for-ci-only-not-secure
-      JWT_PUBLIC_KEY: test-jwt
+      MAIL_MAILER: log
+      MAIL_FROM_NAME: BAE
+      MAIL_FROM_ADDRESS: no-reply@bae.eirb.fr
     services:
       postgres:
         image: postgres:17-alpine
@@ -187,6 +188,15 @@ jobs:
 
       - name: Install Chrome for Puppeteer
         run: pnpm exec puppeteer browsers install chrome
+
+      - name: Generate JWT test keypair
+        run: |
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+            -out "$RUNNER_TEMP/jwt-private.pem"
+          openssl rsa -in "$RUNNER_TEMP/jwt-private.pem" -pubout \
+            -out "$RUNNER_TEMP/jwt-public.pem"
+          echo "JWT_PRIVATE_KEY=$(base64 -w0 "$RUNNER_TEMP/jwt-private.pem")" >> "$GITHUB_ENV"
+          echo "JWT_PUBLIC_KEY=$(base64 -w0 "$RUNNER_TEMP/jwt-public.pem")" >> "$GITHUB_ENV"
 
       - name: Run migrations
         run: node ace migration:run --force

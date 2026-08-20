@@ -25,7 +25,9 @@ test.group("Feuille d'affectation PDF", (group) => {
     })
     const job = await Job.create({ name: 'Cuisine', type: 'during', description: null })
     await event.related('jobs').attach({ [job.id]: { count: 2 } })
-    const member = await MemberFactory.merge({ firstName: 'Tom', lastName: 'Bernard' }).create()
+    const member = await MemberFactory.with('user', 1, (u) =>
+      u.merge({ firstName: 'Tom', lastName: 'Bernard' })
+    ).create()
     await MemberEventAssignedJob.create({
       eventId: event.id,
       jobId: job.id,

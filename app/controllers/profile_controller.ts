@@ -9,6 +9,11 @@ export default class ProfileController {
       query.preload('role', (roleQuery) => roleQuery.preload('permissions'))
     )
 
+    // `MemberTransformer` lit le nom sur `member.user` depuis que l'identité a
+    // quitté `members`. Le compte est déjà en main : le rattacher évite d'aller
+    // relire la même ligne, et sans lui le profil répond « null null ».
+    if (user.member) user.member.$setRelated('user', user)
+
     return serialize({
       user: UserTransformer.transform(user),
       member: MemberTransformer.transform(user.member),

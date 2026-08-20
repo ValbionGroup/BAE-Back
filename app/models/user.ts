@@ -31,4 +31,17 @@ export default class User extends compose(UserSchema, withAuthFinder(hash)) {
 
   @hasMany(() => PreOrder)
   declare preOrders: HasMany<typeof PreOrder>
+
+  /**
+   * ⚠️ Pas de relation inverse vers `Client` ni `Subscription` ici, bien que la
+   * symétrie avec `member` l'appelle : le cycle d'imports que ça crée
+   * (`user` → `client` → `user`) fait abandonner l'inférence de types de Lucid
+   * **globalement**. `ExtractModelRelations` cesse alors de résoudre jusque
+   * dans `logs_controller`, et l'erreur ne désigne jamais la relation fautive.
+   * Passer par `Client.query().where('id', userId)`.
+   */
+  get fullName(): string | null {
+    const parts = [this.firstName, this.lastName].filter((part) => part !== null && part !== '')
+    return parts.length > 0 ? parts.join(' ') : null
+  }
 }

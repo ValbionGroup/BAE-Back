@@ -7,6 +7,36 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class ActivityEventSchema extends BaseModel {
+  static $columns = [
+    'actorId',
+    'dedupeKey',
+    'id',
+    'occurredAt',
+    'payload',
+    'subjectId',
+    'subjectType',
+    'verb',
+  ] as const
+  $columns = ActivityEventSchema.$columns
+  @column()
+  declare actorId: number | null
+  @column()
+  declare dedupeKey: string | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare occurredAt: DateTime
+  @column()
+  declare payload: any
+  @column()
+  declare subjectId: number
+  @column()
+  declare subjectType: string
+  @column()
+  declare verb: string
+}
+
 export class AuthAccessTokenSchema extends BaseModel {
   static $columns = [
     'abilities',
@@ -58,6 +88,39 @@ export class CategorySchema extends BaseModel {
   declare id: number
   @column()
   declare name: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class ClientSchema extends BaseModel {
+  static $columns = [
+    'createdAt',
+    'id',
+    'note',
+    'noteAuthorId',
+    'noteWrittenAt',
+    'phone',
+    'promotion',
+    'registeredAt',
+    'updatedAt',
+  ] as const
+  $columns = ClientSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare note: string | null
+  @column()
+  declare noteAuthorId: number | null
+  @column.dateTime()
+  declare noteWrittenAt: DateTime | null
+  @column()
+  declare phone: string | null
+  @column()
+  declare promotion: string | null
+  @column.date()
+  declare registeredAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -337,30 +400,35 @@ export class MemberResponseSchema extends BaseModel {
 }
 
 export class MemberSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'firstName',
-    'id',
-    'lastName',
-    'points',
-    'roleId',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'id', 'points', 'roleId', 'updatedAt'] as const
   $columns = MemberSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
-  @column()
-  declare firstName: string
   @column({ isPrimary: true })
   declare id: number
-  @column()
-  declare lastName: string
   @column()
   declare points: number
   @column()
   declare roleId: number | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+}
+
+export class NotificationSchema extends BaseModel {
+  static $columns = ['channel', 'eventId', 'id', 'readAt', 'sentAt', 'userId'] as const
+  $columns = NotificationSchema.$columns
+  @column()
+  declare channel: string
+  @column()
+  declare eventId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare readAt: DateTime | null
+  @column.dateTime()
+  declare sentAt: DateTime | null
+  @column()
+  declare userId: number
 }
 
 export class OrderProductSchema extends BaseModel {
@@ -658,7 +726,14 @@ export class StockMovementSchema extends BaseModel {
 }
 
 export class SubscriptionSchema extends BaseModel {
-  static $columns = ['createdAt', 'fastPassId', 'subscribedAt', 'updatedAt', 'userId'] as const
+  static $columns = [
+    'createdAt',
+    'fastPassId',
+    'subscribedAt',
+    'transactionId',
+    'updatedAt',
+    'userId',
+  ] as const
   $columns = SubscriptionSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -666,6 +741,8 @@ export class SubscriptionSchema extends BaseModel {
   declare fastPassId: number
   @column({ isPrimary: true })
   declare subscribedAt: DateTime
+  @column()
+  declare transactionId: number | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
   @column()
@@ -701,7 +778,16 @@ export class TransactionSchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = ['casId', 'createdAt', 'email', 'id', 'password', 'updatedAt'] as const
+  static $columns = [
+    'casId',
+    'createdAt',
+    'email',
+    'firstName',
+    'id',
+    'lastName',
+    'password',
+    'updatedAt',
+  ] as const
   $columns = UserSchema.$columns
   @column()
   declare casId: string | null
@@ -709,8 +795,12 @@ export class UserSchema extends BaseModel {
   declare createdAt: DateTime
   @column()
   declare email: string
+  @column()
+  declare firstName: string | null
   @column({ isPrimary: true })
   declare id: number
+  @column()
+  declare lastName: string | null
   @column({ serializeAs: null })
   declare password: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })

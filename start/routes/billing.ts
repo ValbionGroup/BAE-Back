@@ -24,6 +24,25 @@ router
       .get('/transactions', [controllers.Transactions, 'index'])
       .use(middleware.can('transaction:read'))
 
+    router
+      .get('/clients/summary', [controllers.Clients, 'summary'])
+      .use(middleware.can('client:read'))
+    router.get('/clients', [controllers.Clients, 'index']).use(middleware.can('client:read'))
+    router.get('/clients/:id', [controllers.Clients, 'show']).use(middleware.can('client:read'))
+    router
+      .route('/clients/:id', ['PUT', 'PATCH'], [controllers.Clients, 'update'])
+      .use(middleware.can('client:write'))
+    router
+      .delete('/clients/:id', [controllers.Clients, 'destroy'])
+      .use(middleware.can('client:delete'))
+
+    router
+      .post('/subscriptions', [controllers.Subscriptions, 'store'])
+      .use(middleware.can('subscription:write'))
+    router
+      .delete('/subscriptions/:userId/:fastPassId', [controllers.Subscriptions, 'destroy'])
+      .use(middleware.can('subscription:delete'))
+
     router.post('/qr/verify', [controllers.Qrs, 'verify']).use(middleware.can('order:write'))
     router.get('/buyers', [controllers.Qrs, 'search']).use(middleware.can('order:write'))
 
@@ -31,7 +50,6 @@ router
       .patch('/orders/:id/status', [controllers.Orders, 'setStatus'])
       .use(middleware.can('order:write'))
 
-    // Annuler porte sur de l'argent encaissé : permission distincte.
     router
       .delete('/orders/:id', [controllers.Orders, 'destroy'])
       .use(middleware.can('order:delete'))

@@ -17,21 +17,30 @@ import {
 
 export default class MembersController {
   async index({ serialize }: HttpContext) {
-    const members = await Member.query().preload('role')
+    const members = await Member.query().preload('role').preload('user')
     return serialize(members)
   }
 
-  async store({ request, serialize }: HttpContext) {
-    const { firstName, lastName } = request.all()
-    const member = new Member()
-    member.firstName = firstName
-    member.lastName = lastName
-    await member.save()
-    return serialize(member)
+  /**
+   * Refus explicite, là où l'implémentation précédente répondait 500 : elle
+   * faisait `new Member()` sans id alors que `selfAssignPrimaryKey` l'exige, et
+   * n'a donc jamais pu insérer. Créer un membre, c'est créer un compte — il
+   * manque les invitations et le choix d'un mot de passe.
+   */
+  async store({}: HttpContext) {
+    throw new ApiException(
+      'E_MEMBER_CREATE_UNAVAILABLE',
+      "La création d'un membre passe par une invitation, qui n'existe pas encore.",
+      501
+    )
   }
 
   async show({ params, serialize }: HttpContext) {
-    const member = await Member.query().preload('role').where('id', params.id).first()
+    const member = await Member.query()
+      .preload('role')
+      .preload('user')
+      .where('id', params.id)
+      .first()
     if (!member) {
       throw new ApiException('E_MEMBER_NOT_FOUND', 'Membre introuvable.', 404)
     }
@@ -66,16 +75,28 @@ export default class MembersController {
         member.roleId = payload.roleId
       }
 
-      if (payload.firstName !== undefined) member.firstName = payload.firstName
-      if (payload.lastName !== undefined) member.lastName = payload.lastName
-
       member.useTransaction(trx)
       await member.save()
+
+      // Le nom vit sur `users` : le corps de la requête reste celui du membre,
+      // l'écriture va sur le compte. Une personne qui est aussi cliente voit
+      // donc son nom changer des deux côtés — c'est l'effet recherché.
+      if (payload.firstName !== undefined || payload.lastName !== undefined) {
+        const user = await User.query({ client: trx }).where('id', targetId).firstOrFail()
+        if (payload.firstName !== undefined) user.firstName = payload.firstName
+        if (payload.lastName !== undefined) user.lastName = payload.lastName
+        user.useTransaction(trx)
+        await user.save()
+      }
 
       await assertNoLockout(trx, atRisk)
     })
 
-    const fresh = await Member.query().where('id', targetId).preload('role').firstOrFail()
+    const fresh = await Member.query()
+      .where('id', targetId)
+      .preload('role')
+      .preload('user')
+      .firstOrFail()
     return serialize(fresh)
   }
 

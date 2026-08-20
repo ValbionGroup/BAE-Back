@@ -38,7 +38,9 @@ test.group('Member administration', (group) => {
   test('a partial PATCH leaves the fields it does not carry alone', async ({ client, assert }) => {
     const actor = await MemberFactory.create()
     const user = await grantPermissions(actor, ['member:write'])
-    const target = await MemberFactory.merge({ firstName: 'Ada', lastName: 'Lovelace' }).create()
+    const target = await MemberFactory.with('user', 1, (u) =>
+      u.merge({ firstName: 'Ada', lastName: 'Lovelace' })
+    ).create()
 
     const response = await client
       .patch(`/v1/members/${target.id}`)
@@ -46,9 +48,9 @@ test.group('Member administration', (group) => {
       .loginAs(user)
 
     response.assertStatus(200)
-    await target.refresh()
-    assert.equal(target.firstName, 'Ada', 'un corps partiel ne doit rien effacer')
-    assert.equal(target.lastName, 'Lovelace')
+    await target.load('user')
+    assert.equal(target.user.firstName, 'Ada', 'un corps partiel ne doit rien effacer')
+    assert.equal(target.user.lastName, 'Lovelace')
   })
 
   test('the response carries the NEW role, not the preloaded stale one', async ({
@@ -169,8 +171,8 @@ test.group('Member administration', (group) => {
       .loginAs(user)
 
     response.assertStatus(200)
-    await peer.refresh()
-    assert.equal(peer.firstName, 'Pair', 'l’inclusion est large : un pair gère son pair')
+    await peer.load('user')
+    assert.equal(peer.user.firstName, 'Pair', 'l’inclusion est large : un pair gère son pair')
   })
 
   test('deleting a member deletes the user account and its sessions', async ({

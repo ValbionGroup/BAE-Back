@@ -3,18 +3,16 @@ import Member from '#models/member'
 import { UserFactory } from '#database/factories/user_factory'
 import { RoleFactory } from '#database/factories/role_factory'
 
+// Le nom est produit par `UserFactory` : il vit sur `users`.
 export const MemberFactory = factory
-  .define(Member, async ({ faker }) => {
+  .define(Member, async () => {
     return {
-      firstName: faker.person.firstName(),
-      lastName: faker.person.lastName(),
       roleId: null,
     }
   })
   .before('create', async (builder, member, ctx) => {
     const requestedBelongsTo = (builder as any).withBelongsToRelations as
-      | undefined
-      | Array<{ name: string }>
+      undefined | Array<{ name: string }>
     const willCreateUserViaRelation = requestedBelongsTo?.some(
       (relation) => relation.name === 'user'
     )

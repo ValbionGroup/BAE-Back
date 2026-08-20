@@ -68,7 +68,14 @@ test.group('Inventaire PDF — endpoint', (group) => {
 
     response.assertStatus(200)
     assert.isTrue(response.header('content-type')?.startsWith('application/pdf'))
-    assert.equal(Buffer.from(response.body()).subarray(0, 4).toString('latin1'), '%PDF')
+    // `inventoryPdf` finit par `return response.send(buffer)`, dont le type est
+    // `void` : le registre tuyau le propage jusqu'ici. Le corps est bien binaire.
+    assert.equal(
+      Buffer.from(response.body() as unknown as Uint8Array)
+        .subarray(0, 4)
+        .toString('latin1'),
+      '%PDF'
+    )
   }).timeout(20_000)
 
   test('refuses a member without stock:read', async ({ client }) => {

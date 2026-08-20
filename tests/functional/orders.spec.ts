@@ -161,7 +161,9 @@ test.group('Orders — encaissement', (group) => {
   test('rattache l’acheteur quand il est identifié', async ({ client, assert }) => {
     const { event, hotdog } = await seedMenu()
     const cashier = await MemberFactory.create()
-    const buyer = await MemberFactory.merge({ firstName: 'Camille', lastName: 'Renard' }).create()
+    const buyer = await MemberFactory.with('user', 1, (u) =>
+      u.merge({ firstName: 'Camille', lastName: 'Renard' })
+    ).create()
     const user = await grantPermissions(cashier, ['order:write', 'order:read'])
 
     const response = await client

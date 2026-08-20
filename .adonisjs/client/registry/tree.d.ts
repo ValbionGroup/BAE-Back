@@ -46,6 +46,7 @@ export interface ApiDefinition {
   products: {
     summary: typeof routes['products.summary']
     ingredients: typeof routes['products.ingredients']
+    recipePdf: typeof routes['products.recipe_pdf']
     index: typeof routes['products.index']
     store: typeof routes['products.store']
     show: typeof routes['products.show']
@@ -81,6 +82,8 @@ export interface ApiDefinition {
   stockBatches: {
     index: typeof routes['stock_batches.index']
     store: typeof routes['stock_batches.store']
+    inventoryPdf: typeof routes['stock_batches.inventory_pdf']
+    labelsPdf: typeof routes['stock_batches.labels_pdf']
     show: typeof routes['stock_batches.show']
     update: typeof routes['stock_batches.update']
     destroy: typeof routes['stock_batches.destroy']
@@ -117,12 +120,22 @@ export interface ApiDefinition {
     update: typeof routes['event_products.update']
     destroy: typeof routes['event_products.destroy']
     shoppingList: typeof routes['event_products.shopping_list']
+    shoppingListPdf: typeof routes['event_products.shopping_list_pdf']
   }
   productionRuns: {
     index: typeof routes['production_runs.index']
     store: typeof routes['production_runs.store']
+    productionPlanPdf: typeof routes['production_runs.production_plan_pdf']
     returnState: typeof routes['production_runs.return_state']
     returns: typeof routes['production_runs.returns']
+    productionReturnsPdf: typeof routes['production_runs.production_returns_pdf']
+  }
+  assignments: {
+    pdf: typeof routes['assignments.pdf']
+    index: typeof routes['assignments.index']
+    store: typeof routes['assignments.store']
+    update: typeof routes['assignments.update']
+    destroy: typeof routes['assignments.destroy']
   }
   jobs: {
     index: typeof routes['jobs.index']
@@ -136,12 +149,6 @@ export interface ApiDefinition {
     store: typeof routes['event_jobs.store']
     update: typeof routes['event_jobs.update']
     destroy: typeof routes['event_jobs.destroy']
-  }
-  assignments: {
-    index: typeof routes['assignments.index']
-    store: typeof routes['assignments.store']
-    update: typeof routes['assignments.update']
-    destroy: typeof routes['assignments.destroy']
   }
   responses: {
     index: typeof routes['responses.index']
@@ -169,6 +176,17 @@ export interface ApiDefinition {
   }
   transactions: {
     index: typeof routes['transactions.index']
+  }
+  clients: {
+    summary: typeof routes['clients.summary']
+    index: typeof routes['clients.index']
+    show: typeof routes['clients.show']
+    update: typeof routes['clients.update']
+    destroy: typeof routes['clients.destroy']
+  }
+  subscriptions: {
+    store: typeof routes['subscriptions.store']
+    destroy: typeof routes['subscriptions.destroy']
   }
   vouchers: {
     index: typeof routes['vouchers.index']
