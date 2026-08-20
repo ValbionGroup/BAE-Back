@@ -469,7 +469,11 @@ test.group('Adhérents — activité', (group) => {
     const response = await httpClient.get(`/v1/clients/${person.id}`).loginAs(user)
     const body = response.body() as { data: { spent_cents: number; pre_order_count: number } }
 
-    assert.equal(body.data.spent_cents, 0, 'la commande annulée et la précommande impayée sont hors du total')
+    assert.equal(
+      body.data.spent_cents,
+      0,
+      'la commande annulée et la précommande impayée sont hors du total'
+    )
     // La précommande impayée reste une précommande : elle se compte, sans peser.
     assert.equal(body.data.pre_order_count, 1)
   })
