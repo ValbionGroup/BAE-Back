@@ -2,6 +2,7 @@ import { UserSchema } from '#database/schema'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
+import { errors as authErrors } from '@adonisjs/auth'
 import { type AccessToken, DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import Log from '#models/log'
 import { hasMany, manyToMany, hasOne } from '@adonisjs/lucid/orm'
@@ -43,5 +44,32 @@ export default class User extends compose(UserSchema, withAuthFinder(hash)) {
   get fullName(): string | null {
     const parts = [this.firstName, this.lastName].filter((part) => part !== null && part !== '')
     return parts.length > 0 ? parts.join(' ') : null
+  }
+
+  /**
+   * Passage obligé du formulaire mot-de-passe. Il existe parce que
+   * `verifyCredentials` du mixin `withAuthFinder` ne garde **pas** le cas d'une
+   * colonne `password` nulle : il appelle `verifyPassword`, documenté comme levant
+   * une `RuntimeException` sur `null`. Un compte né du SSO produisait donc un
+   * **500**, quand un compte inexistant produit un 401.
+   *
+   * ⚠️ L'écart de statut n'était pas qu'un plantage : c'était un **oracle
+   * d'énumération de comptes**. D'où le choix de rendre l'échec rigoureusement
+   * identique — même exception, et même `hash.make()` inutile que le mixin
+   * exécute pour un utilisateur introuvable, afin de ne pas non plus créer un
+   * oracle temporel.
+   *
+   * Le garde vit ici, et non dans le contrôleur, pour qu'un futur appelant de
+   * l'authentification par mot de passe ne puisse pas le contourner par oubli.
+   */
+  static async verifyPasswordCredentials(email: string, password: string): Promise<User> {
+    const existing = await User.findBy('email', email)
+
+    if (existing !== null && existing.password === null) {
+      await hash.make(password)
+      throw new authErrors.E_INVALID_CREDENTIALS('Invalid user credentials')
+    }
+
+    return User.verifyCredentials(email, password)
   }
 }

@@ -11,10 +11,17 @@ export interface ApiDefinition {
       destroy: typeof routes['auth.access_token.destroy']
       destroyAll: typeof routes['auth.access_token.destroy_all']
     }
+    keycloakAuth: {
+      redirect: typeof routes['auth.keycloak_auth.redirect']
+      callback: typeof routes['auth.keycloak_auth.callback']
+    }
   }
   profile: {
     profile: {
       show: typeof routes['profile.profile.show']
+    }
+    qrs: {
+      mine: typeof routes['profile.qrs.mine']
     }
   }
   members: {
@@ -122,6 +129,19 @@ export interface ApiDefinition {
     shoppingList: typeof routes['event_products.shopping_list']
     shoppingListPdf: typeof routes['event_products.shopping_list_pdf']
   }
+  orders: {
+    index: typeof routes['orders.index']
+    store: typeof routes['orders.store']
+    sellable: typeof routes['orders.sellable']
+    summary: typeof routes['orders.summary']
+    setStatus: typeof routes['orders.set_status']
+    destroy: typeof routes['orders.destroy']
+  }
+  preOrders: {
+    index: typeof routes['pre_orders.index']
+    setStatus: typeof routes['pre_orders.set_status']
+    collect: typeof routes['pre_orders.collect']
+  }
   productionRuns: {
     index: typeof routes['production_runs.index']
     store: typeof routes['production_runs.store']
@@ -177,6 +197,10 @@ export interface ApiDefinition {
   transactions: {
     index: typeof routes['transactions.index']
   }
+  qrs: {
+    verify: typeof routes['qrs.verify']
+    search: typeof routes['qrs.search']
+  }
   clients: {
     summary: typeof routes['clients.summary']
     index: typeof routes['clients.index']
@@ -207,4 +231,23 @@ export interface ApiDefinition {
       destroy: typeof routes['sessions.sessions.destroy']
     }
   }
+  notifications: {
+    notifications: {
+      index: typeof routes['notifications.notifications.index']
+      markRead: typeof routes['notifications.notifications.mark_read']
+      markAllRead: typeof routes['notifications.notifications.mark_all_read']
+    }
+  }
+  tickets: {
+    tickets: {
+      index: typeof routes['tickets.tickets.index']
+      store: typeof routes['tickets.tickets.store']
+      show: typeof routes['tickets.tickets.show']
+      reply: typeof routes['tickets.tickets.reply']
+      setStatus: typeof routes['tickets.tickets.set_status']
+    }
+  }
+  eventStream: typeof routes['event_stream']
+  subscribe: typeof routes['subscribe']
+  unsubscribe: typeof routes['unsubscribe']
 }

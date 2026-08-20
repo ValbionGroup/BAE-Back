@@ -762,6 +762,48 @@ export class SupplierSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class TicketMessageSchema extends BaseModel {
+  static $columns = ['authorId', 'body', 'createdAt', 'id', 'ticketId'] as const
+  $columns = TicketMessageSchema.$columns
+  @column()
+  declare authorId: number | null
+  @column()
+  declare body: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare ticketId: number
+}
+
+export class TicketSchema extends BaseModel {
+  static $columns = [
+    'authorId',
+    'createdAt',
+    'id',
+    'priority',
+    'status',
+    'subject',
+    'updatedAt',
+  ] as const
+  $columns = TicketSchema.$columns
+  @column()
+  declare authorId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare priority: string
+  @column()
+  declare status: string
+  @column()
+  declare subject: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class TransactionSchema extends BaseModel {
   static $columns = ['amount', 'createdAt', 'id', 'type', 'updatedAt'] as const
   $columns = TransactionSchema.$columns
@@ -784,6 +826,7 @@ export class UserSchema extends BaseModel {
     'email',
     'firstName',
     'id',
+    'keycloakSub',
     'lastName',
     'password',
     'updatedAt',
@@ -800,9 +843,11 @@ export class UserSchema extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
   @column()
+  declare keycloakSub: string | null
+  @column()
   declare lastName: string | null
   @column({ serializeAs: null })
-  declare password: string
+  declare password: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

@@ -78,4 +78,4 @@ router
       .use(middleware.can('supplier:delete'))
   })
   .prefix('/v1')
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.audience('member')])

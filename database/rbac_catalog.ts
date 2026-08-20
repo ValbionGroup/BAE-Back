@@ -58,6 +58,10 @@ export const PERMISSIONS = [
   'subscription:read',
   'subscription:write',
   'subscription:delete',
+  // Voir **tous** les tickets et y répondre. Ouvrir le sien et le suivre n'exige
+  // aucune permission : c'est une question de propriété, pas de rôle.
+  'ticket:read',
+  'ticket:write',
 ] as const
 
 export type PermissionName = (typeof PERMISSIONS)[number]
@@ -133,7 +137,14 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'order:write',
     'order:delete',
   ],
-  'Secretaire': ['log:read', 'role:read', 'client:read', 'subscription:read'],
+  'Secretaire': [
+    'log:read',
+    'role:read',
+    'client:read',
+    'subscription:read',
+    'ticket:read',
+    'ticket:write',
+  ],
   'Pole Log': [
     'stock:read',
     'stock:write',

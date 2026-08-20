@@ -58,6 +58,10 @@ router
       .use(middleware.can('order:read'))
 
     router
+      .get('/events/:id/summary', [controllers.Orders, 'summary'])
+      .use(middleware.can('order:read'))
+
+    router
       .get('/events/:id/pre-orders', [controllers.PreOrders, 'index'])
       .use(middleware.can('order:read'))
 
@@ -103,4 +107,4 @@ router
       .use(middleware.can('job:read'))
   })
   .prefix('/v1')
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.audience('member')])

@@ -7,7 +7,9 @@ export default class AccessTokenController {
   async store({ request }: HttpContext) {
     const { email, password } = await request.validateUsing(loginValidator)
 
-    const user = await User.verifyCredentials(email, password)
+    // `verifyPasswordCredentials` et non `verifyCredentials` : voir le garde du
+    // modèle, sans lequel un compte SSO (mot de passe `null`) produit un 500.
+    const user = await User.verifyPasswordCredentials(email, password)
     const token = await User.accessTokens.create(user)
 
     await db

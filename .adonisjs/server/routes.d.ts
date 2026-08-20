@@ -8,7 +8,10 @@ export type ScannedRoutes = {
     'auth.access_token.store': { paramsTuple?: []; params?: {} }
     'auth.access_token.destroy': { paramsTuple?: []; params?: {} }
     'auth.access_token.destroy_all': { paramsTuple?: []; params?: {} }
+    'auth.keycloak_auth.redirect': { paramsTuple?: []; params?: {} }
+    'auth.keycloak_auth.callback': { paramsTuple?: []; params?: {} }
     'profile.profile.show': { paramsTuple?: []; params?: {} }
+    'profile.qrs.mine': { paramsTuple?: []; params?: {} }
     'members.index': { paramsTuple?: []; params?: {} }
     'members.store': { paramsTuple?: []; params?: {} }
     'members.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -84,6 +87,11 @@ export type ScannedRoutes = {
     'event_products.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'productId': ParamValue} }
     'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.sellable': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.summary': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'pre_orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.production_plan_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -119,6 +127,12 @@ export type ScannedRoutes = {
     'fast_passes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'fast_passes.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
+    'qrs.verify': { paramsTuple?: []; params?: {} }
+    'qrs.search': { paramsTuple?: []; params?: {} }
+    'orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'pre_orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'pre_orders.collect': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -137,6 +151,17 @@ export type ScannedRoutes = {
     'logs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.index': { paramsTuple?: []; params?: {} }
     'sessions.sessions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'notifications.notifications.index': { paramsTuple?: []; params?: {} }
+    'notifications.notifications.mark_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'notifications.notifications.mark_all_read': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.store': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'tickets.tickets.reply': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'tickets.tickets.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_stream': { paramsTuple?: []; params?: {} }
+    'subscribe': { paramsTuple?: []; params?: {} }
+    'unsubscribe': { paramsTuple?: []; params?: {} }
   }
   POST: {
     'auth.new_account.store': { paramsTuple?: []; params?: {} }
@@ -156,6 +181,7 @@ export type ScannedRoutes = {
     'events.store': { paramsTuple?: []; params?: {} }
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.returns': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.run_matching': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -165,9 +191,16 @@ export type ScannedRoutes = {
     'assignments.store': { paramsTuple?: []; params?: {} }
     'job_eligible_members.store': { paramsTuple?: []; params?: {} }
     'fast_passes.store': { paramsTuple?: []; params?: {} }
+    'qrs.verify': { paramsTuple?: []; params?: {} }
+    'pre_orders.collect': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.store': { paramsTuple?: []; params?: {} }
     'vouchers.store': { paramsTuple?: []; params?: {} }
     'logs.store': { paramsTuple?: []; params?: {} }
+    'notifications.notifications.mark_all_read': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.store': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.reply': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'subscribe': { paramsTuple?: []; params?: {} }
+    'unsubscribe': { paramsTuple?: []; params?: {} }
   }
   DELETE: {
     'auth.access_token.destroy_all': { paramsTuple?: []; params?: {} }
@@ -188,6 +221,7 @@ export type ScannedRoutes = {
     'assignments.destroy': { paramsTuple?: []; params?: {} }
     'job_eligible_members.destroy': { paramsTuple?: []; params?: {} }
     'fast_passes.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'clients.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'userId': ParamValue,'fastPassId': ParamValue} }
     'vouchers.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -195,7 +229,10 @@ export type ScannedRoutes = {
     'sessions.sessions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
+    'auth.keycloak_auth.redirect': { paramsTuple?: []; params?: {} }
+    'auth.keycloak_auth.callback': { paramsTuple?: []; params?: {} }
     'profile.profile.show': { paramsTuple?: []; params?: {} }
+    'profile.qrs.mine': { paramsTuple?: []; params?: {} }
     'members.index': { paramsTuple?: []; params?: {} }
     'members.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.index': { paramsTuple?: []; params?: {} }
@@ -232,6 +269,10 @@ export type ScannedRoutes = {
     'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.sellable': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.summary': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'pre_orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.production_plan_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.return_state': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -248,6 +289,7 @@ export type ScannedRoutes = {
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
+    'qrs.search': { paramsTuple?: []; params?: {} }
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -255,9 +297,16 @@ export type ScannedRoutes = {
     'logs.index': { paramsTuple?: []; params?: {} }
     'logs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.index': { paramsTuple?: []; params?: {} }
+    'notifications.notifications.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_stream': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
+    'auth.keycloak_auth.redirect': { paramsTuple?: []; params?: {} }
+    'auth.keycloak_auth.callback': { paramsTuple?: []; params?: {} }
     'profile.profile.show': { paramsTuple?: []; params?: {} }
+    'profile.qrs.mine': { paramsTuple?: []; params?: {} }
     'members.index': { paramsTuple?: []; params?: {} }
     'members.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.index': { paramsTuple?: []; params?: {} }
@@ -294,6 +343,10 @@ export type ScannedRoutes = {
     'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.sellable': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.summary': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'pre_orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.production_plan_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.return_state': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -310,6 +363,7 @@ export type ScannedRoutes = {
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
+    'qrs.search': { paramsTuple?: []; params?: {} }
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -317,6 +371,10 @@ export type ScannedRoutes = {
     'logs.index': { paramsTuple?: []; params?: {} }
     'logs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.index': { paramsTuple?: []; params?: {} }
+    'notifications.notifications.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.index': { paramsTuple?: []; params?: {} }
+    'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'event_stream': { paramsTuple?: []; params?: {} }
   }
   PUT: {
     'members.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -357,9 +415,13 @@ export type ScannedRoutes = {
     'event_jobs.update': { paramsTuple?: []; params?: {} }
     'assignments.update': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.update_mine': { paramsTuple?: []; params?: {} }
+    'orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'pre_orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'clients.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'notifications.notifications.mark_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'tickets.tickets.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

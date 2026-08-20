@@ -9,6 +9,7 @@ import Transaction from '#models/transaction'
 import JwtService from '#services/jwt_service'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
+import { errorCodeOf } from '#tests/helpers/api_error'
 
 async function seedPreOrder(userId: number, options: { paid: boolean; received?: number }) {
   const event = await Event.create({
@@ -112,7 +113,7 @@ test.group('QR de précommande — retrait au comptoir', (group) => {
     const response = await client.post('/v1/qr/verify').json({ token }).loginAs(cashier)
 
     response.assertStatus(403)
-    assert.equal(response.body().error.code, 'E_PRE_ORDER_MISMATCH')
+    assert.equal(errorCodeOf(response), 'E_PRE_ORDER_MISMATCH')
   })
 
   test('404 sur une précommande inconnue', async ({ client, assert }) => {
@@ -123,6 +124,6 @@ test.group('QR de précommande — retrait au comptoir', (group) => {
     const response = await client.post('/v1/qr/verify').json({ token }).loginAs(cashier)
 
     response.assertStatus(404)
-    assert.equal(response.body().error.code, 'E_PRE_ORDER_NOT_FOUND')
+    assert.equal(errorCodeOf(response), 'E_PRE_ORDER_NOT_FOUND')
   })
 })

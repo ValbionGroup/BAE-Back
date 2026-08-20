@@ -36,4 +36,24 @@ export default await Env.create(new URL('../', import.meta.url), {
   SMTP_PORT: Env.schema.number.optional(),
   SMTP_USERNAME: Env.schema.string.optional(),
   SMTP_PASSWORD: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | SSO — OIDC (EirbConnect en production, Keycloak local en dev)
+  |----------------------------------------------------------
+  */
+  // Les endpoints ne sont **pas** à écrire à la main : ils se découvrent depuis
+  // l'issuer, via `/.well-known/openid-configuration`.
+  KEYCLOAK_ISSUER: Env.schema.string({ format: 'url', tld: false }),
+  KEYCLOAK_CLIENT_ID: Env.schema.string(),
+  KEYCLOAK_CLIENT_SECRET: Env.schema.string(),
+  KEYCLOAK_CALLBACK_URL: Env.schema.string({ format: 'url', tld: false }),
+  // ⚠️ Développement uniquement : autorise l'échange sur `http://`. En production
+  // cela annulerait la protection du transport — ne jamais l'y activer.
+  KEYCLOAK_ALLOW_INSECURE: Env.schema.boolean.optional(),
+
+  // Destinations résolues **côté serveur**. Ne jamais accepter d'URL de retour en
+  // paramètre : ce serait une redirection ouverte offerte à qui veut hameçonner.
+  DASHBOARD_URL: Env.schema.string({ format: 'url', tld: false }),
+  PUBLIC_APP_URL: Env.schema.string({ format: 'url', tld: false }),
 })
