@@ -4,6 +4,7 @@ import Client from '#models/client'
 import Subscription from '#models/subscription'
 import ApiException from '#exceptions/api_exception'
 import { updateClientValidator } from '#validators/client'
+import { activityOf } from '#services/client_activity_service'
 import {
   EXPIRY_WARN_WINDOW_DAYS,
   type MembershipStatus,
@@ -34,6 +35,9 @@ interface ClientDetail extends ClientRow {
   noteAuthor: string | null
   noteWrittenAt: string | null
   subscriptions: SubscriptionView[]
+  preOrderCount: number
+  /** En **centimes**. Le front convertit. */
+  spentCents: number
 }
 
 async function subscriptionsByUser(userIds: number[]): Promise<Map<number, SubscriptionView[]>> {
@@ -120,6 +124,10 @@ export default class ClientsController {
     const views = byUser.get(client.id) ?? []
     views.sort((a, b) => b.subscribedAt.localeCompare(a.subscribedAt))
 
+    // Sur le détail seulement : la liste n'affiche pas ces chiffres, et les y
+    // calculer coûterait deux agrégats par ligne.
+    const activity = await activityOf(client.id)
+
     const detail: ClientDetail = {
       ...toRow(client, views),
       school: client.school,
@@ -129,6 +137,8 @@ export default class ClientsController {
       noteAuthor: client.noteAuthor?.fullName ?? null,
       noteWrittenAt: client.noteWrittenAt ? client.noteWrittenAt.toISO() : null,
       subscriptions: views,
+      preOrderCount: activity.preOrderCount,
+      spentCents: activity.spentCents,
     }
     return serialize(detail)
   }
