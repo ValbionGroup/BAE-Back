@@ -7,6 +7,7 @@ import Job from '#models/job'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
 import PreOrder from '#models/pre_order'
 import Order from '#models/order'
+import SponsorshipCategory from '#models/sponsorship_category'
 
 export default class Event extends EventSchema {
   @manyToMany(() => Product, {
@@ -38,4 +39,7 @@ export default class Event extends EventSchema {
 
   @hasMany(() => Order)
   declare orders: HasMany<typeof Order>
+
+  @hasMany(() => SponsorshipCategory)
+  declare sponsorshipCategories: HasMany<typeof SponsorshipCategory>
 }

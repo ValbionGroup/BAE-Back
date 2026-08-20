@@ -56,6 +56,7 @@ export default defineConfig({
     () => import('#providers/api_provider'),
     () => import('@adonisjs/transmit/transmit_provider'),
     () => import('@adonisjs/mail/mail_provider'),
+    () => import('#providers/lydia_provider'),
   ],
 
   /*

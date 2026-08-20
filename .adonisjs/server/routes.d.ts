@@ -120,19 +120,15 @@ export type ScannedRoutes = {
     'job_eligible_members.store': { paramsTuple?: []; params?: {} }
     'job_eligible_members.destroy': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.mine': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.rankable_jobs': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.update_mine': { paramsTuple?: []; params?: {} }
+    'account_assignments.assignments.mine': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.store': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'fast_passes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'fast_passes.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
-    'qrs.verify': { paramsTuple?: []; params?: {} }
-    'qrs.search': { paramsTuple?: []; params?: {} }
-    'orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'orders.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'pre_orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'pre_orders.collect': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -140,6 +136,12 @@ export type ScannedRoutes = {
     'clients.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.store': { paramsTuple?: []; params?: {} }
     'subscriptions.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'userId': ParamValue,'fastPassId': ParamValue} }
+    'qrs.verify': { paramsTuple?: []; params?: {} }
+    'qrs.search': { paramsTuple?: []; params?: {} }
+    'orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'orders.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'pre_orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'pre_orders.collect': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.index': { paramsTuple?: []; params?: {} }
     'vouchers.store': { paramsTuple?: []; params?: {} }
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -159,6 +161,14 @@ export type ScannedRoutes = {
     'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tickets.tickets.reply': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tickets.tickets.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity.activity.index': { paramsTuple?: []; params?: {} }
+    'public_catalog.public_catalog.events': { paramsTuple?: []; params?: {} }
+    'public_catalog.public_catalog.menu': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'public_catalog.public_catalog.fast_passes': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_purchases.pre_orders': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_purchases.pre_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'account_purchases.account_purchases.pre_order_qr': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'account_purchases.account_purchases.subscriptions': { paramsTuple?: []; params?: {} }
     'event_stream': { paramsTuple?: []; params?: {} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
@@ -191,9 +201,9 @@ export type ScannedRoutes = {
     'assignments.store': { paramsTuple?: []; params?: {} }
     'job_eligible_members.store': { paramsTuple?: []; params?: {} }
     'fast_passes.store': { paramsTuple?: []; params?: {} }
+    'subscriptions.store': { paramsTuple?: []; params?: {} }
     'qrs.verify': { paramsTuple?: []; params?: {} }
     'pre_orders.collect': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'subscriptions.store': { paramsTuple?: []; params?: {} }
     'vouchers.store': { paramsTuple?: []; params?: {} }
     'logs.store': { paramsTuple?: []; params?: {} }
     'notifications.notifications.mark_all_read': { paramsTuple?: []; params?: {} }
@@ -221,9 +231,9 @@ export type ScannedRoutes = {
     'assignments.destroy': { paramsTuple?: []; params?: {} }
     'job_eligible_members.destroy': { paramsTuple?: []; params?: {} }
     'fast_passes.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'orders.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'clients.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'userId': ParamValue,'fastPassId': ParamValue} }
+    'orders.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -286,13 +296,15 @@ export type ScannedRoutes = {
     'preferences.index': { paramsTuple?: []; params?: {} }
     'job_eligible_members.index': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.mine': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.rankable_jobs': { paramsTuple?: []; params?: {} }
+    'account_assignments.assignments.mine': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
-    'qrs.search': { paramsTuple?: []; params?: {} }
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'qrs.search': { paramsTuple?: []; params?: {} }
     'vouchers.index': { paramsTuple?: []; params?: {} }
     'logs.index': { paramsTuple?: []; params?: {} }
     'logs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -300,6 +312,14 @@ export type ScannedRoutes = {
     'notifications.notifications.index': { paramsTuple?: []; params?: {} }
     'tickets.tickets.index': { paramsTuple?: []; params?: {} }
     'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity.activity.index': { paramsTuple?: []; params?: {} }
+    'public_catalog.public_catalog.events': { paramsTuple?: []; params?: {} }
+    'public_catalog.public_catalog.menu': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'public_catalog.public_catalog.fast_passes': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_purchases.pre_orders': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_purchases.pre_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'account_purchases.account_purchases.pre_order_qr': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'account_purchases.account_purchases.subscriptions': { paramsTuple?: []; params?: {} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
@@ -360,13 +380,15 @@ export type ScannedRoutes = {
     'preferences.index': { paramsTuple?: []; params?: {} }
     'job_eligible_members.index': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.mine': { paramsTuple?: []; params?: {} }
+    'account_preferences.preferences.rankable_jobs': { paramsTuple?: []; params?: {} }
+    'account_assignments.assignments.mine': { paramsTuple?: []; params?: {} }
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
-    'qrs.search': { paramsTuple?: []; params?: {} }
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'qrs.search': { paramsTuple?: []; params?: {} }
     'vouchers.index': { paramsTuple?: []; params?: {} }
     'logs.index': { paramsTuple?: []; params?: {} }
     'logs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -374,6 +396,14 @@ export type ScannedRoutes = {
     'notifications.notifications.index': { paramsTuple?: []; params?: {} }
     'tickets.tickets.index': { paramsTuple?: []; params?: {} }
     'tickets.tickets.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity.activity.index': { paramsTuple?: []; params?: {} }
+    'public_catalog.public_catalog.events': { paramsTuple?: []; params?: {} }
+    'public_catalog.public_catalog.menu': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'public_catalog.public_catalog.fast_passes': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_purchases.pre_orders': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_purchases.pre_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'account_purchases.account_purchases.pre_order_qr': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'account_purchases.account_purchases.subscriptions': { paramsTuple?: []; params?: {} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   PUT: {
@@ -415,9 +445,9 @@ export type ScannedRoutes = {
     'event_jobs.update': { paramsTuple?: []; params?: {} }
     'assignments.update': { paramsTuple?: []; params?: {} }
     'account_preferences.preferences.update_mine': { paramsTuple?: []; params?: {} }
+    'clients.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'pre_orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'clients.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.notifications.mark_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

@@ -151,6 +151,15 @@ jobs:
       KEYCLOAK_ALLOW_INSECURE: true
       DASHBOARD_URL: http://localhost:4200
       PUBLIC_APP_URL: http://localhost:4201
+      PRE_ORDER_DISCOUNT_PERCENT: 10
+      FAST_PASS_PRE_ORDER_BONUS_PERCENT: 5
+      PRE_ORDER_CLOSE_LEAD_HOURS: 12
+      LYDIA_DRIVER: fake
+      LYDIA_URL: https://lydia-app.com
+      LYDIA_VENDOR_TOKEN: a
+      LYDIA_PRIVATE_TOKEN: a
+      LYDIA_CALLBACK_BASE_URL: http://localhost:3333
+      PDF_BROWSER_IDLE_MINUTES: 10
     services:
       postgres:
         image: postgres:17-alpine

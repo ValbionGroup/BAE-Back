@@ -3,7 +3,11 @@ import { DateTime } from 'luxon'
 import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
 import Client from '#models/client'
+import Event from '#models/event'
 import FastPass from '#models/fast_pass'
+import Order from '#models/order'
+import Product from '#models/product'
+import Transaction from '#models/transaction'
 import User from '#models/user'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
@@ -64,7 +68,7 @@ test.group('Adhérents — lecture', (group) => {
     const formula = await FastPass.create({
       label: 'Année 2025-2026',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -105,7 +109,7 @@ test.group('Adhérents — lecture', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -115,7 +119,7 @@ test.group('Adhérents — lecture', (group) => {
     await makeClient({ email: 'd@test.fr', firstName: 'D', lastName: 'D' })
 
     await subscribe(active.id, formula.id, DateTime.now().minus({ days: 10 }))
-    // Souscrite il y a 350 jours sur 365 : expire dans 15 jours, donc « bientôt ».
+    // Souscrite il y a 350 jours sur un an : expire dans une quinzaine, donc « bientôt ».
     await subscribe(expiring.id, formula.id, DateTime.now().minus({ days: 350 }))
     await subscribe(expired.id, formula.id, DateTime.now().minus({ days: 400 }))
 
@@ -156,7 +160,7 @@ test.group('Adhérents — lecture', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
     const person = await makeClient({ email: 'e@test.fr', firstName: 'E', lastName: 'E' })
@@ -251,6 +255,36 @@ test.group('Adhérents — écriture', (group) => {
     assert.equal(person.promotion, '2A · Alt.', 'un corps partiel ne doit rien effacer')
   })
 
+  /**
+   * `promotion` dérive du claim `diplome` depuis que la DSI le transmet. Le
+   * validateur ne la connaît plus, donc VineJS l'écarte du corps validé : le
+   * bureau ne peut plus saisir une valeur que la prochaine connexion SSO
+   * effacerait sans un mot.
+   */
+  test('a PATCH carrying promotion leaves it untouched: the field derives from the IdP', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['client:write', 'client:read'])
+    const person = await makeClient({
+      email: 'derive@test.fr',
+      firstName: 'Inès',
+      lastName: 'Dubreuil',
+      promotion: '2A · Alt.',
+    })
+
+    const response = await httpClient
+      .patch(`/v1/clients/${person.id}`)
+      .json({ promotion: 'saisie manuelle', phone: '06 24 31 88 02' })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    await person.refresh()
+    assert.equal(person.phone, '06 24 31 88 02', 'le téléphone, lui, reste éditable')
+    assert.equal(person.promotion, '2A · Alt.')
+  })
+
   test('an internal note records its author and its date', async ({
     client: httpClient,
     assert,
@@ -280,5 +314,167 @@ test.group('Adhérents — écriture', (group) => {
 
     assert.isNull(await Client.query().where('id', person.id).first())
     assert.isNotNull(await User.query().where('id', person.id).first())
+  })
+})
+
+test.group('Adhérents — activité', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  async function makeMenu(priceCents: number) {
+    const event = await Event.create({
+      name: 'Soirée test',
+      description: null,
+      date: DateTime.now(),
+      status: 'ongoing',
+      duration: 4,
+    })
+    const product = await Product.create({
+      name: 'Hot-dog',
+      isVegetarian: false,
+      description: null,
+      recipe: null,
+    })
+    await event.related('products').attach({ [product.id]: { quantity: 100, price: priceCents } })
+    return { event, product }
+  }
+
+  async function counterSale(attrs: {
+    eventId: number
+    clientId: number
+    productId: number
+    unitCents: number
+    quantity: number
+    status?: string
+  }) {
+    const order = await Order.create({
+      eventId: attrs.eventId,
+      clientId: attrs.clientId,
+      status: attrs.status ?? 'pending',
+    })
+    await db.table('order_products').insert({
+      order_id: order.id,
+      product_id: attrs.productId,
+      quantity: attrs.quantity,
+      unit_price_cents: attrs.unitCents,
+      list_price_cents: attrs.unitCents,
+    })
+  }
+
+  async function preOrder(attrs: {
+    eventId: number
+    userId: number
+    productId: number
+    listCents: number
+    quantity: number
+    discountPercent: number
+    paid: boolean
+  }) {
+    const transaction = attrs.paid
+      ? await Transaction.create({ type: 'lydia', amount: '0.00' })
+      : null
+
+    const [row] = await db
+      .table('pre_orders')
+      .insert({
+        user_id: attrs.userId,
+        event_id: attrs.eventId,
+        status: 'pending',
+        discount_percent: attrs.discountPercent,
+        transaction_id: transaction?.id ?? null,
+        created_at: DateTime.now().toSQL({ includeOffset: false }),
+      })
+      .returning('id')
+
+    await db.table('pre_order_items').insert({
+      pre_order_id: typeof row === 'object' ? Number(row.id) : Number(row),
+      product_id: attrs.productId,
+      quantity: attrs.quantity,
+      received_quantity: 0,
+      list_price_cents: attrs.listCents,
+      created_at: DateTime.now().toSQL({ includeOffset: false }),
+      updated_at: DateTime.now().toSQL({ includeOffset: false }),
+    })
+  }
+
+  /**
+   * Le défaut visé : additionner des prix publics au lieu des prix facturés, ou
+   * oublier la remise de précommande — dans les deux cas le bureau lit un
+   * « dépensé » que la caisse n'a jamais encaissé.
+   */
+  test('le dépensé additionne le comptoir et les précommandes payées, remise comprise', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['client:read'])
+    const person = await makeClient({ email: 'act@test.fr', firstName: 'A', lastName: 'C' })
+    const { event, product } = await makeMenu(350)
+
+    await counterSale({
+      eventId: event.id,
+      clientId: person.id,
+      productId: product.id,
+      unitCents: 500,
+      quantity: 2,
+    })
+    await preOrder({
+      eventId: event.id,
+      userId: person.id,
+      productId: product.id,
+      listCents: 350,
+      quantity: 2,
+      discountPercent: 10,
+      paid: true,
+    })
+
+    const response = await httpClient.get(`/v1/clients/${person.id}`).loginAs(user)
+    const body = response.body() as { data: { spent_cents: number; pre_order_count: number } }
+
+    // 1000 au comptoir, plus 700 de précommande moins 10 %.
+    assert.equal(body.data.spent_cents, 1630)
+    assert.equal(body.data.pre_order_count, 1)
+  })
+
+  /**
+   * Le défaut visé, distinct : compter ce que personne n'a payé. Une commande
+   * annulée et une précommande sans transaction gonfleraient le total.
+   */
+  test('ni commande annulée ni précommande impayée ne comptent dans le dépensé', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['client:read'])
+    const person = await makeClient({ email: 'excl@test.fr', firstName: 'E', lastName: 'X' })
+    const { event, product } = await makeMenu(350)
+
+    await counterSale({
+      eventId: event.id,
+      clientId: person.id,
+      productId: product.id,
+      unitCents: 900,
+      quantity: 1,
+      status: 'cancelled',
+    })
+    await preOrder({
+      eventId: event.id,
+      userId: person.id,
+      productId: product.id,
+      listCents: 800,
+      quantity: 1,
+      discountPercent: 0,
+      paid: false,
+    })
+
+    const response = await httpClient.get(`/v1/clients/${person.id}`).loginAs(user)
+    const body = response.body() as { data: { spent_cents: number; pre_order_count: number } }
+
+    assert.equal(
+      body.data.spent_cents,
+      0,
+      'la commande annulée et la précommande impayée sont hors du total'
+    )
+    // La précommande impayée reste une précommande : elle se compte, sans peser.
+    assert.equal(body.data.pre_order_count, 1)
   })
 })

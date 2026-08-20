@@ -9,7 +9,7 @@ import Transaction from '#models/transaction'
 export default class PreOrder extends PreOrderSchema {
   @manyToMany(() => Product, {
     pivotTable: 'pre_order_items',
-    pivotColumns: ['quantity', 'received_quantity'],
+    pivotColumns: ['quantity', 'received_quantity', 'list_price_cents'],
     pivotTimestamps: true,
   })
   declare products: ManyToMany<typeof Product>

@@ -184,7 +184,13 @@ export interface ApiDefinition {
   accountPreferences: {
     preferences: {
       mine: typeof routes['account_preferences.preferences.mine']
+      rankableJobs: typeof routes['account_preferences.preferences.rankable_jobs']
       updateMine: typeof routes['account_preferences.preferences.update_mine']
+    }
+  }
+  accountAssignments: {
+    assignments: {
+      mine: typeof routes['account_assignments.assignments.mine']
     }
   }
   fastPasses: {
@@ -197,10 +203,6 @@ export interface ApiDefinition {
   transactions: {
     index: typeof routes['transactions.index']
   }
-  qrs: {
-    verify: typeof routes['qrs.verify']
-    search: typeof routes['qrs.search']
-  }
   clients: {
     summary: typeof routes['clients.summary']
     index: typeof routes['clients.index']
@@ -211,6 +213,10 @@ export interface ApiDefinition {
   subscriptions: {
     store: typeof routes['subscriptions.store']
     destroy: typeof routes['subscriptions.destroy']
+  }
+  qrs: {
+    verify: typeof routes['qrs.verify']
+    search: typeof routes['qrs.search']
   }
   vouchers: {
     index: typeof routes['vouchers.index']
@@ -245,6 +251,26 @@ export interface ApiDefinition {
       show: typeof routes['tickets.tickets.show']
       reply: typeof routes['tickets.tickets.reply']
       setStatus: typeof routes['tickets.tickets.set_status']
+    }
+  }
+  activity: {
+    activity: {
+      index: typeof routes['activity.activity.index']
+    }
+  }
+  publicCatalog: {
+    publicCatalog: {
+      events: typeof routes['public_catalog.public_catalog.events']
+      menu: typeof routes['public_catalog.public_catalog.menu']
+      fastPasses: typeof routes['public_catalog.public_catalog.fast_passes']
+    }
+  }
+  accountPurchases: {
+    accountPurchases: {
+      preOrders: typeof routes['account_purchases.account_purchases.pre_orders']
+      preOrder: typeof routes['account_purchases.account_purchases.pre_order']
+      preOrderQr: typeof routes['account_purchases.account_purchases.pre_order_qr']
+      subscriptions: typeof routes['account_purchases.account_purchases.subscriptions']
     }
   }
   eventStream: typeof routes['event_stream']

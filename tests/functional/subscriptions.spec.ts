@@ -29,7 +29,7 @@ test.group('Cotisations', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -50,7 +50,7 @@ test.group('Cotisations', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -85,7 +85,7 @@ test.group('Cotisations', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -109,7 +109,7 @@ test.group('Cotisations', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -148,7 +148,7 @@ test.group('Cotisations', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -168,7 +168,7 @@ test.group('Cotisations', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 
@@ -189,7 +189,7 @@ test.group('Cotisations', (group) => {
     const formula = await FastPass.create({
       label: 'Année',
       price: 15,
-      duration: 365,
+      duration: 1,
       description: null,
     })
 

@@ -2,9 +2,9 @@ import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
 import Role from '#models/role'
-import RoleSeeder from '#database/seeders/role_seeder'
-import PermissionSeeder from '#database/seeders/permission_seeder'
-import RolePermissionSeeder from '#database/seeders/role_permission_seeder'
+import RoleSeeder from '#database/seeders/01_role_seeder'
+import PermissionSeeder from '#database/seeders/02_permission_seeder'
+import RolePermissionSeeder from '#database/seeders/05_role_permission_seeder'
 import { ROLES, ROLE_PERMISSIONS } from '#database/rbac_catalog'
 
 test.group('RBAC seeding', (group) => {

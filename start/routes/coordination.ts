@@ -51,8 +51,17 @@ router
 router
   .group(() => {
     router.get('/preferences', [controllers.Preferences, 'mine'])
+    router.get('/preferences/jobs', [controllers.Preferences, 'rankableJobs'])
     router.route('/preferences', ['PUT', 'PATCH'], [controllers.Preferences, 'updateMine'])
   })
   .prefix('v1/account')
   .as('account_preferences')
+  .use([middleware.auth(), middleware.audience('member')])
+
+router
+  .group(() => {
+    router.get('/assignments', [controllers.Assignments, 'mine'])
+  })
+  .prefix('v1/account')
+  .as('account_assignments')
   .use([middleware.auth(), middleware.audience('member')])

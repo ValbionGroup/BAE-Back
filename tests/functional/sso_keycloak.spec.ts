@@ -18,6 +18,8 @@ function claimsFor(overrides: Partial<SsoClaims> = {}): SsoClaims {
     email: `${unique}@bordeaux-inp.fr`,
     firstName: 'Tom',
     lastName: 'Test',
+    school: 'ENSEIRB-MATMECA',
+    degree: '3A Informatique',
     ...overrides,
   }
 }
@@ -133,14 +135,78 @@ test.group('SSO — les deux zones ont des politiques opposées', (group) => {
       'public',
       claimsFor({ casId: 'uid-repeat', subject: 'sub-repeat' })
     )
+    // Témoin volontairement pris hors des champs dérivés de l'IdP : `promotion`
+    // et `school` sont réécrits à chaque connexion, ils ne prouveraient rien.
     await Client.query()
       .where('id', first.user.id)
-      .update({ promotion: '2027', registered_at: DateTime.now().toSQLDate() })
+      .update({ phone: '06 11 22 33 44', registered_at: DateTime.now().toSQLDate() })
 
     await provision('public', claimsFor({ casId: 'uid-repeat', subject: 'sub-repeat' }))
 
     const client = await Client.findOrFail(first.user.id)
-    assert.equal(client.promotion, '2027', 'les données saisies ne doivent pas être écrasées')
+    assert.equal(client.phone, '06 11 22 33 44', 'les données saisies ne doivent pas être écrasées')
+  })
+
+  test('public : la première connexion renseigne école et promotion', async ({ assert }) => {
+    const outcome = await provision('public', claimsFor({ school: 'ENSCBP', degree: '2A Agro' }))
+
+    const client = await Client.findOrFail(outcome.user.id)
+    assert.equal(client.school, 'ENSCBP')
+    assert.equal(client.promotion, '2A Agro')
+  })
+
+  /**
+   * L'inverse de ce que ce fichier affirmait jusqu'ici. `promotion` dérive
+   * désormais du claim `diplome` : une saisie du bureau ne fait plus autorité,
+   * et le champ a été retiré du validateur pour que personne ne la tente.
+   */
+  test('public : une reconnexion réaligne promotion et école sur les claims', async ({
+    assert,
+  }) => {
+    const first = await provision(
+      'public',
+      claimsFor({
+        casId: 'uid-derive',
+        subject: 'sub-derive',
+        degree: '2A Info',
+        school: 'ENSEIRB',
+      })
+    )
+    await Client.query()
+      .where('id', first.user.id)
+      .update({ promotion: 'saisie du bureau', school: 'saisie du bureau' })
+
+    await provision(
+      'public',
+      claimsFor({
+        casId: 'uid-derive',
+        subject: 'sub-derive',
+        degree: '3A Info',
+        school: 'ENSEIRB',
+      })
+    )
+
+    const client = await Client.findOrFail(first.user.id)
+    assert.equal(client.promotion, '3A Info')
+    assert.equal(client.school, 'ENSEIRB')
+  })
+
+  test('public : un claim absent ne vide pas la colonne', async ({ assert }) => {
+    const first = await provision(
+      'public',
+      claimsFor({ casId: 'uid-vide', subject: 'sub-vide', degree: '4A Info', school: 'ENSEIRB' })
+    )
+
+    // Un mapper muet côté DSI est une information manquante, pas un ordre
+    // d'effacement : écrire `null` ici viderait la fiche sans laisser de trace.
+    await provision(
+      'public',
+      claimsFor({ casId: 'uid-vide', subject: 'sub-vide', degree: null, school: null })
+    )
+
+    const client = await Client.findOrFail(first.user.id)
+    assert.equal(client.promotion, '4A Info')
+    assert.equal(client.school, 'ENSEIRB')
   })
 
   test('une même personne peut être membre ET cliente', async ({ assert }) => {

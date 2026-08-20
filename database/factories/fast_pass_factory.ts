@@ -3,11 +3,13 @@ import FastPass from '#models/fast_pass'
 
 export const FastPassFactory = factory
   .define(FastPass, async ({ faker }) => {
+    const years = faker.helpers.arrayElement([1, 2, 3])
+
     return {
-      label: faker.helpers.arrayElement(['1 year', '2 year', '3 year']),
+      label: years === 1 ? 'Adhésion 1 an' : `Adhésion ${years} ans`,
       description: faker.lorem.sentence(),
-      price: faker.number.int({ min: 10, max: 100 }),
-      duration: faker.number.int({ min: 1, max: 12 }),
+      price: years * faker.number.int({ min: 10, max: 12 }),
+      duration: years,
     }
   })
   .build()

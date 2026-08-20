@@ -49,7 +49,9 @@ export const PERMISSIONS = [
   'fast-pass:write',
   'fast-pass:delete',
   'transaction:read',
+  'payment:read',
   'order:read',
+  'order:serve',
   'order:write',
   'order:delete',
   'client:read',
@@ -58,8 +60,6 @@ export const PERMISSIONS = [
   'subscription:read',
   'subscription:write',
   'subscription:delete',
-  // Voir **tous** les tickets et y répondre. Ouvrir le sien et le suivre n'exige
-  // aucune permission : c'est une question de propriété, pas de rôle.
   'ticket:read',
   'ticket:write',
 ] as const
@@ -89,6 +89,8 @@ const BASE: readonly PermissionName[] = [
   'member:read',
   'menu:read',
   'event:read',
+  'order:read',
+  'order:serve',
 ]
 
 const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
@@ -110,6 +112,7 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'fast-pass:write',
     'fast-pass:delete',
     'transaction:read',
+    'payment:read',
     'order:read',
     'order:write',
     'order:delete',
@@ -172,8 +175,10 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'furniture:delete',
     'order:read',
   ],
-  // Le pôle BBQ tient la cuisine : il lit la file de commandes et la fait
-  // avancer, mais n'annule pas — c'est l'annulation qui touche à la caisse.
+  // Le pôle BBQ tient la cuisine, pas le comptoir : `order:read` et
+  // `order:serve` lui viennent de BASE et lui suffisent pour lire la file et la
+  // faire avancer. Ni `order:write` ni `order:delete` — prendre une commande et
+  // l'annuler touchent l'argent, et l'argent est un autre poste.
   'Pole BBQ': [
     'stock:read',
     'stock:write',
@@ -182,8 +187,6 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'restock:write',
     'good:read',
     'furniture:read',
-    'order:read',
-    'order:write',
   ],
   'Membre': [],
 }

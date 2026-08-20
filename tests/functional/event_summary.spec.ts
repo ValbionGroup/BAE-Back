@@ -26,12 +26,14 @@ test.group('Bilan de soirée', (group) => {
     })
   }
 
+  /** `priceCents` est figé sur la ligne, comme le fait tout encaissement réel. */
   async function soldOrder(
     eventId: number,
     memberId: number,
     productId: number,
     quantity: number,
-    status = 'completed'
+    status = 'completed',
+    priceCents = 250
   ) {
     const [order] = await db
       .table('orders')
@@ -45,7 +47,13 @@ test.group('Bilan de soirée', (group) => {
       .returning('id')
 
     const orderId = typeof order === 'object' ? Number(order.id) : Number(order)
-    await db.table('order_products').insert({ order_id: orderId, product_id: productId, quantity })
+    await db.table('order_products').insert({
+      order_id: orderId,
+      product_id: productId,
+      quantity,
+      unit_price_cents: priceCents,
+      list_price_cents: priceCents,
+    })
     return orderId
   }
 

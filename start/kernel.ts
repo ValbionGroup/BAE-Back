@@ -14,6 +14,10 @@ router.use([
   () => import('#middleware/case_converter_middleware'),
   () => import('@adonisjs/session/session_middleware'),
   () => import('@adonisjs/shield/shield_middleware'),
+  // ⚠️ Avant l'initialisation de l'auth : `silent_auth_middleware` appelle
+  // `auth.check()` sur chaque requête et met le résultat en cache. Poser
+  // l'en-tête après lui n'aurait plus aucun effet.
+  () => import('#middleware/bearer_from_cookie_middleware'),
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('#middleware/silent_auth_middleware'),
   () => import('#middleware/request_logger_middleware'),

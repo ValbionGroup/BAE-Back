@@ -8,7 +8,7 @@ export default class extends BaseSchema {
       table.increments('id')
 
       table.float('price').unsigned().notNullable()
-      table.integer('duration').unsigned().notNullable() // Duration in days
+      table.integer('duration').unsigned().notNullable()
       table.string('description').nullable()
       table.string('label').notNullable()
 

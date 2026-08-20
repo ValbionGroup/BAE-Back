@@ -25,13 +25,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for configuring the mail package
   |----------------------------------------------------------
   */
-  // `log` par défaut : aucun SMTP n'est encore fourni, et l'application doit
-  // démarrer sans. Basculer sur `smtp` le jour où les identifiants existent.
   MAIL_MAILER: Env.schema.enum(['smtp', 'log'] as const),
   MAIL_FROM_NAME: Env.schema.string(),
   MAIL_FROM_ADDRESS: Env.schema.string(),
-  // ⚠️ Optionnelles à dessein : les rendre requises casserait le démarrage en
-  // développement, où le mailer `log` n'a besoin d'aucune d'entre elles.
   SMTP_HOST: Env.schema.string.optional(),
   SMTP_PORT: Env.schema.number.optional(),
   SMTP_USERNAME: Env.schema.string.optional(),
@@ -42,18 +38,58 @@ export default await Env.create(new URL('../', import.meta.url), {
   | SSO — OIDC (EirbConnect en production, Keycloak local en dev)
   |----------------------------------------------------------
   */
-  // Les endpoints ne sont **pas** à écrire à la main : ils se découvrent depuis
-  // l'issuer, via `/.well-known/openid-configuration`.
   KEYCLOAK_ISSUER: Env.schema.string({ format: 'url', tld: false }),
+  KEYCLOAK_INTERNAL_URL: Env.schema.string.optional({ format: 'url', tld: false }),
   KEYCLOAK_CLIENT_ID: Env.schema.string(),
   KEYCLOAK_CLIENT_SECRET: Env.schema.string(),
   KEYCLOAK_CALLBACK_URL: Env.schema.string({ format: 'url', tld: false }),
-  // ⚠️ Développement uniquement : autorise l'échange sur `http://`. En production
-  // cela annulerait la protection du transport — ne jamais l'y activer.
   KEYCLOAK_ALLOW_INSECURE: Env.schema.boolean.optional(),
 
-  // Destinations résolues **côté serveur**. Ne jamais accepter d'URL de retour en
-  // paramètre : ce serait une redirection ouverte offerte à qui veut hameçonner.
   DASHBOARD_URL: Env.schema.string({ format: 'url', tld: false }),
   PUBLIC_APP_URL: Env.schema.string({ format: 'url', tld: false }),
+
+  // Domaine du cookie de session. **Optionnel, et vide en développement** : sans
+  // lui le cookie est `host-only`, ce qui convient tant que tout tient sur
+  // `localhost` (le port n'entre pas dans l'identité d'un cookie).
+  //
+  // En production les trois origines sont distinctes — `api.`, `dashboard.` et
+  // `order.bae.eirb.fr` — et un cookie posé par l'API ne serait alors envoyé par
+  // aucun des deux fronts. Il faut y valoir `.bae.eirb.fr`.
+  COOKIE_DOMAIN: Env.schema.string.optional(),
+
+  // Remise consentie sur une précommande, en pourcentage du tarif public.
+  // Optionnelle : `public_catalog_service` retombe sur 10 %. Elle ne touche pas
+  // le tarif de la caisse — elle récompense le fait de commander à l'avance,
+  // pas l'achat lui-même.
+  PRE_ORDER_DISCOUNT_PERCENT: Env.schema.number.optional(),
+
+  // Réduction **supplémentaire** accordée aux détenteurs d'une adhésion sur
+  // leurs précommandes, en points de pourcentage. Optionnelle : le service
+  // retombe sur 5 %. C'est un argument de vente de la page Fastpass, donc il
+  // vit ici plutôt qu'écrit en dur dans le front.
+  FAST_PASS_PRE_ORDER_BONUS_PERCENT: Env.schema.number.optional(),
+
+  // Combien d'heures avant le début d'une soirée les précommandes ferment.
+  // Optionnelle : le service retombe sur 12 h. C'est le délai dont la cuisine a
+  // besoin pour produire — il se règle donc sans redéploiement.
+  PRE_ORDER_CLOSE_LEAD_HOURS: Env.schema.number.optional(),
+
+  // Minutes sans génération de PDF au bout desquelles le navigateur Chromium
+  // résident est libéré. Optionnelle : `pdf_service` retombe sur 10.
+  //
+  // À 0, le navigateur reste ouvert pour la durée de vie du processus. C'est le
+  // réglage à choisir si son démarrage à froid coûte, sur la machine visée, plus
+  // cher que les quelques centaines de Mio qu'il occupe au repos.
+  PDF_BROWSER_IDLE_MINUTES: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Paiement — Lydia
+  |----------------------------------------------------------
+  */
+  LYDIA_DRIVER: Env.schema.enum(['http', 'fake'] as const),
+  LYDIA_URL: Env.schema.string({ format: 'url', tld: false }),
+  LYDIA_VENDOR_TOKEN: Env.schema.secret(),
+  LYDIA_PRIVATE_TOKEN: Env.schema.secret(),
+  LYDIA_CALLBACK_BASE_URL: Env.schema.string({ format: 'url', tld: false }),
 })

@@ -5,6 +5,7 @@ import Order from '#models/order'
 import Transaction from '#models/transaction'
 import ApiException from '#exceptions/api_exception'
 import { ANONYMOUS_BUYER, resolveBuyerName, resolveBuyerNames } from '#services/buyer_service'
+import { findCategory, gridOf } from '#services/sponsorship_service'
 
 export const ORDER_STATUSES = ['pending', 'in_progress', 'ready', 'completed', 'cancelled'] as const
 
@@ -39,8 +40,23 @@ export type OrderLinePayload = {
   productId: number
   productName: string
   quantity: number
-  /** En **centimes**, relu du menu de la soirée. */
+  /** En **centimes**, figé à la vente (`order_products.unit_price_cents`). */
   unitPrice: number
+  /** Prix public du moment. Égal à `unitPrice` tant qu'aucune remise n'existe. */
+  listPrice: number
+}
+
+export type OrderDiscountPayload = {
+  /** `null` pour une remise portant sur toute la commande. */
+  productId: number | null
+  label: string
+  amountCents: number
+}
+
+export type OrderSponsorship = {
+  categoryId: number | null
+  label: string
+  payerName: string | null
 }
 
 export type OrderPayload = {
@@ -51,6 +67,15 @@ export type OrderPayload = {
   status: string
   clientName: string
   lines: OrderLinePayload[]
+  discounts: OrderDiscountPayload[]
+  sponsorship: OrderSponsorship | null
+  /** Σ lignes au prix public. */
+  grossCents: number
+  /** Remise consentie : du chiffre d'affaires perdu. */
+  discountCents: number
+  /** Écart pris en charge par un tiers : à recouvrer, pas perdu. */
+  sponsoredCents: number
+  /** Ce qui a été encaissé au comptoir. */
   totalCents: number
   createdAt: string | null
   /** Dernière transition — alimente le temps moyen de préparation. */
@@ -113,29 +138,31 @@ function mergeLines(lines: readonly CheckoutLine[]): Map<number, number> {
   return merged
 }
 
+/**
+ * Un écart entre prix public et prix facturé est une **créance** quand la
+ * commande porte une catégorie de prise en charge, une **remise consentie**
+ * sinon. Les deux se ressemblent au comptoir et s'opposent au bilan, d'où
+ * l'invariant `gross = total + discount + sponsored`.
+ */
 function buildPayload(
   order: Order,
-  quantities: Map<number, number>,
-  menu: Map<number, MenuEntry>,
+  lines: readonly OrderLinePayload[],
+  discounts: readonly OrderDiscountPayload[],
   orderNumber: number,
   clientName: string
 ): OrderPayload {
-  const lines: OrderLinePayload[] = []
-  let totalCents = 0
+  const sorted = [...lines].sort((a, b) => a.productName.localeCompare(b.productName, 'fr'))
 
-  for (const [productId, quantity] of quantities) {
-    const entry = menu.get(productId)
-    const unitPrice = entry?.price ?? 0
-    totalCents += unitPrice * quantity
-    lines.push({
-      productId,
-      productName: entry?.name ?? `Produit #${productId}`,
-      quantity,
-      unitPrice,
-    })
-  }
+  const grossCents = sorted.reduce((sum, line) => sum + line.listPrice * line.quantity, 0)
+  const chargedCents = sorted.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0)
+  const orderDiscountCents = discounts.reduce((sum, entry) => sum + entry.amountCents, 0)
+  const totalCents = chargedCents - orderDiscountCents
 
-  lines.sort((a, b) => a.productName.localeCompare(b.productName, 'fr'))
+  // `!= null` et non `!== null` : une commande fraîchement créée porte
+  // `undefined`, jamais `null`.
+  // eslint-disable-next-line eqeqeq
+  const sponsored = order.sponsorshipCategoryLabel != null
+  const sponsoredCents = sponsored ? grossCents - chargedCents : 0
 
   return {
     id: order.id,
@@ -143,11 +170,80 @@ function buildPayload(
     eventId: order.eventId,
     status: order.status,
     clientName,
-    lines,
+    lines: sorted,
+    discounts: [...discounts],
+    sponsorship: sponsored
+      ? {
+          categoryId: order.sponsorshipCategoryId,
+          label: order.sponsorshipCategoryLabel!,
+          payerName: order.payerName,
+        }
+      : null,
+    grossCents,
+    discountCents: grossCents - totalCents - sponsoredCents,
+    sponsoredCents,
     totalCents,
     createdAt: order.createdAt?.toISO() ?? null,
     updatedAt: order.updatedAt?.toISO() ?? null,
   }
+}
+
+/** Les lignes telles qu'écrites, prix compris — jamais relues du menu actuel. */
+async function storedLinesOf(
+  orderIds: readonly number[],
+  trx?: TransactionClientContract
+): Promise<Map<number, OrderLinePayload[]>> {
+  const byOrder = new Map<number, OrderLinePayload[]>(orderIds.map((id) => [id, []]))
+  if (orderIds.length === 0) return byOrder
+
+  const rows = await (trx ?? db)
+    .from('order_products')
+    .join('products', 'products.id', 'order_products.product_id')
+    .whereIn('order_products.order_id', [...orderIds])
+    .select(
+      'order_products.order_id',
+      'order_products.product_id',
+      'order_products.quantity',
+      'order_products.unit_price_cents',
+      'order_products.list_price_cents',
+      'products.name'
+    )
+
+  for (const row of rows) {
+    byOrder.get(Number(row.order_id))?.push({
+      productId: Number(row.product_id),
+      productName: String(row.name),
+      quantity: Number(row.quantity),
+      unitPrice: Number(row.unit_price_cents),
+      listPrice: Number(row.list_price_cents),
+    })
+  }
+
+  return byOrder
+}
+
+async function discountsOf(
+  orderIds: readonly number[],
+  trx?: TransactionClientContract
+): Promise<Map<number, OrderDiscountPayload[]>> {
+  const byOrder = new Map<number, OrderDiscountPayload[]>(orderIds.map((id) => [id, []]))
+  if (orderIds.length === 0) return byOrder
+
+  const rows = await (trx ?? db)
+    .from('order_discounts')
+    .whereIn('order_id', [...orderIds])
+    .orderBy('id', 'asc')
+    .select('order_id', 'product_id', 'label', 'amount_cents')
+
+  for (const row of rows) {
+    byOrder.get(Number(row.order_id))?.push({
+      productId: row.product_id === null ? null : Number(row.product_id),
+      label: String(row.label),
+      amountCents: Number(row.amount_cents),
+    })
+  }
+
+  return byOrder
 }
 
 /**
@@ -213,7 +309,8 @@ export async function checkout(
   lines: readonly CheckoutLine[],
   memberId: number | null,
   clientId: number | null,
-  paymentMethod: 'cash' | 'lydia' = 'cash'
+  paymentMethod: 'cash' | 'lydia' = 'cash',
+  sponsorshipCategoryId: number | null = null
 ): Promise<OrderPayload> {
   const quantities = mergeLines(lines)
 
@@ -228,7 +325,15 @@ export async function checkout(
 
     const menu = await menuOf(eventId, trx)
 
-    // Total recalculé depuis le menu : rien de ce que le client annonce n'est lu.
+    // La catégorie est relue ici, jamais crue sur parole : un QR d'une autre
+    // soirée doit échouer même si l'écran l'a laissé passer.
+    const category = sponsorshipCategoryId
+      ? await findCategory(eventId, sponsorshipCategoryId)
+      : null
+    const grid = category ? await gridOf(category.id, trx) : new Map<number, number>()
+
+    // Prix arrêtés depuis le menu : rien de ce que le client annonce n'est lu.
+    const priced: OrderLinePayload[] = []
     let totalCents = 0
     for (const [productId, quantity] of quantities) {
       const entry = menu.get(productId)
@@ -241,7 +346,16 @@ export async function checkout(
           422
         )
       }
-      totalCents += entry.price * quantity
+      // Un article absent de la grille se vend au prix public.
+      const unitPrice = grid.get(productId) ?? entry.price
+      totalCents += unitPrice * quantity
+      priced.push({
+        productId,
+        productName: entry.name,
+        quantity,
+        unitPrice,
+        listPrice: entry.price,
+      })
     }
 
     await assertSellable(quantities, eventId, menu, trx)
@@ -260,13 +374,22 @@ export async function checkout(
     order.clientId = clientId
     order.transactionId = transaction.id
     order.status = 'pending'
+    if (category) {
+      order.sponsorshipCategoryId = category.id
+      // Recopiés : la catégorie peut être supprimée et le payeur renommé, or un
+      // justificatif réédité ne doit pas changer de débiteur.
+      order.sponsorshipCategoryLabel = category.label
+      order.payerName = event.payerName
+    }
     await order.save()
 
     await trx.table('order_products').insert(
-      [...quantities].map(([productId, quantity]) => ({
+      priced.map((line) => ({
         order_id: order.id,
-        product_id: productId,
-        quantity,
+        product_id: line.productId,
+        quantity: line.quantity,
+        unit_price_cents: line.unitPrice,
+        list_price_cents: line.listPrice,
       }))
     )
 
@@ -274,34 +397,16 @@ export async function checkout(
     const clientName =
       clientId === null ? ANONYMOUS_BUYER : (names.get(clientId) ?? ANONYMOUS_BUYER)
 
-    return buildPayload(order, quantities, menu, await numberOf(order, trx), clientName)
+    return buildPayload(order, priced, [], await numberOf(order, trx), clientName)
   })
 }
 
-/**
- * ⚠️ Le prix unitaire est relu du menu **actuel** — assumé, les prix étant fixés
- * par soirée. Le chiffre qui fait foi reste `transactions.amount`.
- */
 export async function listForEvent(eventId: number): Promise<OrderPayload[]> {
   const orders = await Order.query().where('eventId', eventId).orderBy('id', 'asc')
   if (orders.length === 0) return []
 
-  const menu = await menuOf(eventId)
-
-  const pivots = await db
-    .from('order_products')
-    .whereIn(
-      'order_id',
-      orders.map((order) => order.id)
-    )
-    .select('order_id', 'product_id', 'quantity')
-
-  const byOrder = new Map<number, Map<number, number>>()
-  for (const row of pivots) {
-    const orderId = Number(row.order_id)
-    if (!byOrder.has(orderId)) byOrder.set(orderId, new Map())
-    byOrder.get(orderId)!.set(Number(row.product_id), Number(row.quantity))
-  }
+  const orderIds = orders.map((order) => order.id)
+  const [lines, discounts] = await Promise.all([storedLinesOf(orderIds), discountsOf(orderIds)])
 
   const clientIds = orders
     .map((order) => order.clientId)
@@ -313,8 +418,8 @@ export async function listForEvent(eventId: number): Promise<OrderPayload[]> {
     .map((order, index) =>
       buildPayload(
         order,
-        byOrder.get(order.id) ?? new Map(),
-        menu,
+        lines.get(order.id) ?? [],
+        discounts.get(order.id) ?? [],
         index + 1,
         order.clientId === null || order.clientId === undefined
           ? ANONYMOUS_BUYER
@@ -388,21 +493,12 @@ export async function sellableForEvent(eventId: number): Promise<SellableLine[]>
 
 /** Recompose la charge utile d'une commande déjà écrite. */
 async function payloadOf(order: Order): Promise<OrderPayload> {
-  const menu = await menuOf(order.eventId!)
-
-  const pivots = await db
-    .from('order_products')
-    .where('order_id', order.id)
-    .select('product_id', 'quantity')
-
-  const quantities = new Map(
-    pivots.map((row) => [Number(row.product_id), Number(row.quantity)] as const)
-  )
+  const [lines, discounts] = await Promise.all([storedLinesOf([order.id]), discountsOf([order.id])])
 
   return buildPayload(
     order,
-    quantities,
-    menu,
+    lines.get(order.id) ?? [],
+    discounts.get(order.id) ?? [],
     await numberOf(order),
     await resolveBuyerName(order.clientId ?? null)
   )

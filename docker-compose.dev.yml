@@ -31,7 +31,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
+    environment: &app-environment
       NODE_ENV: development
       PORT: ${PORT:-3333}
       HOST: 0.0.0.0
@@ -44,6 +44,24 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_DATABASE: ${DB_DATABASE:-adonis}
       SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
+      KEYCLOAK_INTERNAL_URL: ${KEYCLOAK_INTERNAL_URL:-http://host.docker.internal:8080}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_CALLBACK_URL: ${KEYCLOAK_CALLBACK_URL}
+      KEYCLOAK_ALLOW_INSECURE: ${KEYCLOAK_ALLOW_INSECURE:-true}
+      DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:4200}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:4201}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      LYDIA_DRIVER: ${LYDIA_DRIVER:-fake}
+      LYDIA_URL: ${LYDIA_URL:-https://lydia-app.com}
+      LYDIA_VENDOR_TOKEN: ${LYDIA_VENDOR_TOKEN:-}
+      LYDIA_PRIVATE_TOKEN: ${LYDIA_PRIVATE_TOKEN:-}
+      LYDIA_CALLBACK_BASE_URL: ${LYDIA_CALLBACK_BASE_URL:-http://localhost:3333}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     ports:
       - '${PORT:-3333}:3333'
     user: root
@@ -51,6 +69,37 @@ services:
       - .:/app:z
       - node_modules_dev:/app/node_modules
       - adonisjs_dev:/app/.adonisjs
+    networks:
+      - bae-dev-network
+
+  cron:
+    profiles: ['cron']
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: bae-cron-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment: *app-environment
+    user: root
+    volumes:
+      - .:/app:z
+      - node_modules_dev:/app/node_modules
+      - adonisjs_dev:/app/.adonisjs
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        mkdir -p /etc/crontabs
+        cat > /etc/crontabs/root <<'CRONTAB'
+        */5 * * * * cd /app && node ace lydia:expire
+        0 10 * * * cd /app && node ace notify:presence-pending
+        0 18 * * * cd /app && node ace notify:presence-upcoming
+        */15 * * * * cd /app && node ace notify:dispatch
+        CRONTAB
+        exec crond -f -l 8 -L /dev/stdout
     networks:
       - bae-dev-network
 

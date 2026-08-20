@@ -1,6 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { expiryOf } from '#services/subscription_service'
 
 export const ANONYMOUS_BUYER = 'Anonyme'
 
@@ -16,12 +17,6 @@ export type Buyer = {
   fastPass: BuyerFastPass | null
 }
 
-/**
- * Assemble le nom affichable à partir des colonnes brutes, en miroir du getter
- * `User.fullName` : les deux colonnes sont **nullables** depuis que l'identité
- * vit sur `users`, et un compte créé par inscription directe n'a pas de nom.
- * Concaténer sans filtrer rendrait « null null ».
- */
 function joinName(firstName: unknown, lastName: unknown): string | null {
   const parts = [firstName, lastName]
     .map((part) => (typeof part === 'string' ? part.trim() : ''))
@@ -30,16 +25,6 @@ function joinName(firstName: unknown, lastName: unknown): string | null {
   return parts.length > 0 ? parts.join(' ') : null
 }
 
-/**
- * Point d'entrée unique de l'identité d'un acheteur. Interroge `users`, et pas
- * `members` : les ids reçus viennent d'`orders.client_id` et de
- * `pre_orders.user_id`, qui référencent tous deux `users`. Passer par `members`
- * ne fonctionnait que par le partage de clé primaire, et ne nommait donc que
- * les acheteurs qui se trouvaient être membres du BAE — le client, précisément
- * la personne qu'on identifie au comptoir, retombait toujours sur `Client #id`.
- *
- * `null` rend « Anonyme » — au comptoir, c'est le cas courant.
- */
 export async function resolveBuyerNames(
   userIds: readonly number[],
   trx?: TransactionClientContract
@@ -58,9 +43,6 @@ export async function resolveBuyerNames(
     if (name !== null) names.set(Number(row.id), name)
   }
 
-  // « Anonyme » signifie « personne n'a été désigné », pas « inconnu » : un
-  // compte sans nom — inscription directe, ou client dont le SSO n'a pas encore
-  // renseigné l'identité — garde un libellé plutôt qu'une case vide.
   for (const id of unique) {
     if (!names.has(id)) names.set(id, `Client #${id}`)
   }
@@ -77,11 +59,6 @@ export async function resolveBuyerName(
   return names.get(userId) ?? ANONYMOUS_BUYER
 }
 
-/**
- * ⚠️ La validité n'est pas stockée : `subscribed_at + duration` jours. Calcul
- * centralisé ici, la page `adherents` en étant l'autre consommateur. En cas de
- * chevauchement, c'est l'abonnement qui expire le plus tard qui compte.
- */
 export async function fastPassOf(
   userId: number,
   now: DateTime = DateTime.now()
@@ -99,7 +76,7 @@ export async function fastPassOf(
     const start = DateTime.fromJSDate(new Date(row.subscribed_at))
     if (!start.isValid) continue
 
-    const end = start.plus({ days: Number(row.duration) })
+    const end = expiryOf(start, Number(row.duration))
     if (end <= now) continue
 
     if (bestEnd === null || end > bestEnd) {
@@ -117,13 +94,6 @@ export async function describeBuyer(userId: number): Promise<Buyer> {
   return { userId, name, fastPass }
 }
 
-/**
- * Le fast pass désigné par un QR, s'il est encore valide.
- *
- * Un QR de fast pass identifie donc son porteur aussi bien qu'un QR d'identité :
- * ce qu'il ajoute, c'est la preuve du droit. C'est l'échéance qui décide, pas le
- * type du jeton — un pass échu ne vaut plus rien, même signé.
- */
 export async function validFastPass(
   userId: number,
   fastPassId: number,
@@ -140,25 +110,17 @@ export async function validFastPass(
     const start = DateTime.fromJSDate(new Date(row.subscribed_at))
     if (!start.isValid) continue
 
-    const end = start.plus({ days: Number(row.duration) })
+    const end = expiryOf(start, Number(row.duration))
     if (end > now) return { label: String(row.label), validUntil: end.toISO()! }
   }
 
   return null
 }
 
-/**
- * Chemin dégradé du comptoir, et il n'est pas facultatif : `BarcodeDetector`
- * n'existe ni sous Firefox ni sous Safari, la caméra exige HTTPS, et le
- * téléphone du client peut être déchargé.
- */
 export async function searchBuyers(query: string, limit = 10): Promise<Buyer[]> {
   const term = query.trim()
   if (term.length < 2) return []
 
-  // Sur `users`, donc un client est trouvable au comptoir au même titre qu'un
-  // membre. Un compte sans nom ne remonte jamais : `ILIKE` ne matche pas `NULL`,
-  // ce qui écarte les inscriptions incomplètes sans avoir à les filtrer.
   const rows = await db
     .from('users')
     .whereILike('first_name', `%${term}%`)

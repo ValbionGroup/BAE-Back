@@ -36,6 +36,56 @@ export default class AssignmentsController {
     return serialize(assignments.map(toWire))
   }
 
+  async mine({ auth, serialize }: HttpContext) {
+    const user = auth.getUserOrFail()
+
+    const mine = await MemberEventAssignedJob.query()
+      .where('memberId', user.id)
+      .preload('job')
+      .orderBy('eventId')
+      .orderBy('jobId')
+
+    if (mine.length === 0) return serialize([])
+
+    const eventIds = [...new Set(mine.map((row) => row.eventId))]
+    const jobIds = [...new Set(mine.map((row) => row.jobId))]
+
+    const others = await MemberEventAssignedJob.query()
+      .whereIn('eventId', eventIds)
+      .whereIn('jobId', jobIds)
+      .whereNot('memberId', user.id)
+      .preload('member', (query) => query.preload('user'))
+
+    const events = await Event.query().whereIn('id', eventIds).preload('jobs')
+    const needed = new Map<string, number>()
+    for (const event of events) {
+      for (const job of event.jobs) {
+        needed.set(`${event.id}:${job.id}`, Number(job.$extras.pivot_count))
+      }
+    }
+
+    return serialize(
+      mine.map((row) => {
+        const key = `${row.eventId}:${row.jobId}`
+        return {
+          eventId: row.eventId,
+          jobId: row.jobId,
+          jobName: row.job.name,
+          jobType: row.job.type,
+          pointsDelta: row.pointsDelta,
+          needed: needed.get(key) ?? null,
+          teammates: others
+            .filter((other) => other.eventId === row.eventId && other.jobId === row.jobId)
+            .map((other) => ({
+              id: other.memberId,
+              firstName: other.member.user.firstName,
+              lastName: other.member.user.lastName,
+            })),
+        }
+      })
+    )
+  }
+
   async store({ request, response, serialize }: HttpContext) {
     const { memberId, eventId, jobId, locked } = await request.validateUsing(assignmentValidator)
     await Member.findOrFail(memberId)

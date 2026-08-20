@@ -4,6 +4,7 @@ import Client from '#models/client'
 import Subscription from '#models/subscription'
 import ApiException from '#exceptions/api_exception'
 import { updateClientValidator } from '#validators/client'
+import { activityOf } from '#services/client_activity_service'
 import {
   EXPIRY_WARN_WINDOW_DAYS,
   type MembershipStatus,
@@ -26,12 +27,16 @@ interface ClientRow {
 }
 
 interface ClientDetail extends ClientRow {
+  /** Dérivé du claim `ecole`, en lecture seule comme `promotion`. */
+  school: string | null
   phone: string | null
   registeredAt: string
   note: string | null
   noteAuthor: string | null
   noteWrittenAt: string | null
   subscriptions: SubscriptionView[]
+  preOrderCount: number
+  spentCents: number
 }
 
 async function subscriptionsByUser(userIds: number[]): Promise<Map<number, SubscriptionView[]>> {
@@ -117,30 +122,22 @@ export default class ClientsController {
     const byUser = await subscriptionsByUser([client.id])
     const views = byUser.get(client.id) ?? []
     views.sort((a, b) => b.subscribedAt.localeCompare(a.subscribedAt))
+    const activity = await activityOf(client.id)
 
     const detail: ClientDetail = {
       ...toRow(client, views),
+      school: client.school,
       phone: client.phone,
       registeredAt: client.registeredAt.toISODate()!,
       note: client.note,
       noteAuthor: client.noteAuthor?.fullName ?? null,
       noteWrittenAt: client.noteWrittenAt ? client.noteWrittenAt.toISO() : null,
       subscriptions: views,
+      preOrderCount: activity.preOrderCount,
+      spentCents: activity.spentCents,
     }
     return serialize(detail)
   }
-
-  /**
-   * ⚠️ Pas de `store` : un compte client naît **uniquement** d'une connexion
-   * EirbConnect sur l'interface publique, qui le crée s'il n'existe pas. La
-   * personne décide ensuite de payer l'adhésion, de précommander, les deux, ou
-   * rien — un compte suffit à se présenter à la caisse.
-   *
-   * Le bureau n'a donc aucun geste de création ici : ce qu'il enregistre, c'est
-   * une **cotisation** (`POST /subscriptions`), qui est une autre chose que le
-   * compte. Ajouter un chemin de création ouvrirait une seconde porte d'entrée,
-   * avec une identité saisie à la main que le prochain login SSO contredirait.
-   */
 
   async update({ params, request, auth, serialize }: HttpContext) {
     const payload = await request.validateUsing(updateClientValidator)
@@ -150,13 +147,8 @@ export default class ClientsController {
       throw new ApiException('E_CLIENT_NOT_FOUND', 'Adhérent introuvable.', 404)
     }
 
-    // Le nom n'est pas modifiable ici : il vient des claims EirbConnect, et la
-    // prochaine connexion écraserait toute correction saisie au bureau.
     if ('phone' in payload) client.phone = payload.phone ?? null
-    if ('promotion' in payload) client.promotion = payload.promotion ?? null
 
-    // La note porte son auteur et sa date : l'écran les affiche
-    // (« Sarah K. · 12 jan. »), et les recalculer à l'affichage serait faux.
     if ('note' in payload) {
       client.note = payload.note ?? null
       client.noteAuthorId = payload.note ? auth.getUserOrFail().id : null
@@ -175,9 +167,6 @@ export default class ClientsController {
       throw new ApiException('E_CLIENT_NOT_FOUND', 'Adhérent introuvable.', 404)
     }
 
-    // Supprime l'appartenance publique, pas le compte : la personne peut être
-    // membre du BAE par ailleurs, et ses souscriptions passées restent
-    // l'histoire de la trésorerie.
     await client.delete()
     return response.noContent()
   }
