@@ -107,11 +107,6 @@ async function fulfilSubscription(
   })
 }
 
-/**
- * Prix du menu, pour les demandes de paiement ouvertes avant que l'instantané
- * n'existe : leur `intent` ne porte aucun prix, et le menu courant est la seule
- * valeur disponible au moment où elles se confirment.
- */
 async function menuPricesOf(
   eventId: number,
   trx: TransactionClientContract

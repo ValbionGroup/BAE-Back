@@ -13,7 +13,6 @@ export interface QuoteLine {
   quantity: number
 }
 
-/** Le prix public du moment, que l'écriture figera sur la ligne. */
 export interface PricedQuoteLine extends QuoteLine {
   listPriceCents: number
 }
@@ -23,12 +22,6 @@ export interface PreOrderQuote {
   secondsUntilClose: number
   eventName: string
   lines: PricedQuoteLine[]
-  /**
-   * Remise précommande et bonus adhérent cumulés. Voyage avec la demande de
-   * paiement plutôt que d'être recalculé à la confirmation : l'adhésion qui
-   * ouvre le bonus peut expirer entre les deux, et les taux sont des variables
-   * d'environnement.
-   */
   discountPercent: number
 }
 
@@ -87,10 +80,6 @@ export async function quotePreOrder(
   }
 }
 
-/**
- * Un seul arrondi, sur le sous-total. Arrondir ligne à ligne ferait diverger la
- * somme des lignes du montant réellement encaissé.
- */
 export function applyDiscount(subtotalCents: number, percent: number): number {
   return subtotalCents - Math.round((subtotalCents * percent) / 100)
 }

@@ -7,15 +7,10 @@ export interface SummaryLine {
   plannedQty: number
   producedQty: number
   soldQty: number
-  /** ⚠️ En **centimes**, comme `event_products.price`. Le front convertit. */
   unitPriceCents: number
-  /** Valeur au prix public. */
   revenueCents: number
-  /** Ce que le comptoir a réellement encaissé sur cette ligne. */
   cashedCents: number
-  /** Écart pris en charge par un tiers, à recouvrer. */
   sponsoredCents: number
-  /** Produit et non vendu. Ce qui reste sur les bras, pas ce qui manque. */
   unsoldQty: number
 }
 
@@ -23,31 +18,18 @@ export interface EventSummary {
   eventId: number
   orderCount: number
   cancelledCount: number
-  /** Valeur au prix public : `cashedCents + sponsoredCents`. */
   revenueCents: number
   cashedCents: number
   sponsoredCents: number
   payerName: string | null
   receivableByCategory: { label: string; dueCents: number }[]
-  /** Encaissé réellement, par moyen. En **euros** — c'est l'unité de `transactions`. */
   cashedByMethod: { method: string; amount: number; count: number }[]
   lines: SummaryLine[]
 }
 
-/**
- * Le bilan d'une soirée, calculé côté serveur.
- *
- * ⚠️ Deux montants coexistent et **ne sont pas censés être égaux** :
- * `revenueCents` est ce que les commandes valaient (prix du menu × quantités),
- * `cashedByMethod` ce que les transactions ont réellement encaissé. Un écart est
- * une information — remise, précommande payée un autre jour, commande annulée
- * après paiement — pas une erreur à masquer en n'en affichant qu'un seul.
- */
 export async function summaryForEvent(eventId: number): Promise<EventSummary> {
   const lines = await sellableForEvent(eventId)
 
-  // Les prix viennent des lignes vendues, jamais du menu courant : celui-ci peut
-  // avoir changé depuis, et le bilan d'une soirée passée doit rester stable.
   const soldRows = await db
     .from('order_products')
     .join('orders', 'orders.id', 'order_products.order_id')
@@ -112,9 +94,6 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
     else orderCount += total
   }
 
-  // `transactions` n'a pas d'`event_id` : le rattachement passe par
-  // `orders.transaction_id`. Une transaction peut régler plusieurs commandes,
-  // d'où le `countDistinct` — la compter par commande la multiplierait.
   const cashedRows = await db
     .from('transactions')
     .join('orders', 'orders.transaction_id', 'transactions.id')
@@ -126,8 +105,6 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
   for (const row of cashedRows) {
     const method = String(row.type)
     const entry = byMethod.get(method) ?? { amount: 0, count: 0 }
-    // ⚠️ `decimal` revient en **string** du driver : convertir explicitement,
-    // sinon l'addition concatène silencieusement.
     entry.amount += Number(row.amount)
     entry.count += 1
     byMethod.set(method, entry)

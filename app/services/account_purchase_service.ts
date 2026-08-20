@@ -22,9 +22,7 @@ export interface MyPreOrderView {
   eventDate: string | null
   status: string
   lines: MyPreOrderLine[]
-  /** Somme des lignes au prix public, avant remise. */
   subtotalCents: number
-  /** Remise appliquée à l'achat. Explique l'écart entre le sous-total et le total. */
   discountPercent: number
   totalCents: number
   paid: boolean

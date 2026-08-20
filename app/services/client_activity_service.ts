@@ -3,11 +3,6 @@ import { applyDiscount } from '#services/pre_order_quote_service'
 
 export interface ClientActivity {
   preOrderCount: number
-  /**
-   * Ce que la personne a réellement payé, comptoir et précommandes confondus,
-   * en **centimes**. Reprend la notion d'encaissé du bilan de soirée
-   * (`unit_price_cents`, hors commandes annulées) plutôt qu'une variante.
-   */
   spentCents: number
 }
 
@@ -20,12 +15,6 @@ export async function activityOf(userId: number): Promise<ClientActivity> {
     .sum({ cashed: db.raw('order_products.unit_price_cents * order_products.quantity') })
     .first()
 
-  // Le sous-total est agrégé en SQL, la remise appliquée en TypeScript :
-  // `applyDiscount` est la seule définition de l'arrondi, et la répliquer ici en
-  // SQL ferait diverger ce total du montant réellement encaissé.
-  //
-  // Seules les précommandes payées comptent : une précommande sans transaction
-  // n'a rien coûté à personne.
   const preOrderRows = await db
     .from('pre_order_items')
     .join('pre_orders', 'pre_orders.id', 'pre_order_items.pre_order_id')

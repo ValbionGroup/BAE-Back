@@ -36,7 +36,6 @@ interface ClientDetail extends ClientRow {
   noteWrittenAt: string | null
   subscriptions: SubscriptionView[]
   preOrderCount: number
-  /** En **centimes**. Le front convertit. */
   spentCents: number
 }
 
@@ -123,9 +122,6 @@ export default class ClientsController {
     const byUser = await subscriptionsByUser([client.id])
     const views = byUser.get(client.id) ?? []
     views.sort((a, b) => b.subscribedAt.localeCompare(a.subscribedAt))
-
-    // Sur le détail seulement : la liste n'affiche pas ces chiffres, et les y
-    // calculer coûterait deux agrégats par ligne.
     const activity = await activityOf(client.id)
 
     const detail: ClientDetail = {
@@ -143,18 +139,6 @@ export default class ClientsController {
     return serialize(detail)
   }
 
-  /**
-   * ⚠️ Pas de `store` : un compte client naît **uniquement** d'une connexion
-   * EirbConnect sur l'interface publique, qui le crée s'il n'existe pas. La
-   * personne décide ensuite de payer l'adhésion, de précommander, les deux, ou
-   * rien — un compte suffit à se présenter à la caisse.
-   *
-   * Le bureau n'a donc aucun geste de création ici : ce qu'il enregistre, c'est
-   * une **cotisation** (`POST /subscriptions`), qui est une autre chose que le
-   * compte. Ajouter un chemin de création ouvrirait une seconde porte d'entrée,
-   * avec une identité saisie à la main que le prochain login SSO contredirait.
-   */
-
   async update({ params, request, auth, serialize }: HttpContext) {
     const payload = await request.validateUsing(updateClientValidator)
     const client = await Client.query().where('id', params.id).preload('user').first()
@@ -163,13 +147,8 @@ export default class ClientsController {
       throw new ApiException('E_CLIENT_NOT_FOUND', 'Adhérent introuvable.', 404)
     }
 
-    // Ni le nom, ni la promotion, ni l'école : tous viennent des claims
-    // EirbConnect, et la prochaine connexion écraserait une correction saisie au
-    // bureau. Seuls le téléphone et la note lui appartiennent vraiment.
     if ('phone' in payload) client.phone = payload.phone ?? null
 
-    // La note porte son auteur et sa date : l'écran les affiche
-    // (« Sarah K. · 12 jan. »), et les recalculer à l'affichage serait faux.
     if ('note' in payload) {
       client.note = payload.note ?? null
       client.noteAuthorId = payload.note ? auth.getUserOrFail().id : null
@@ -188,9 +167,6 @@ export default class ClientsController {
       throw new ApiException('E_CLIENT_NOT_FOUND', 'Adhérent introuvable.', 404)
     }
 
-    // Supprime l'appartenance publique, pas le compte : la personne peut être
-    // membre du BAE par ailleurs, et ses souscriptions passées restent
-    // l'histoire de la trésorerie.
     await client.delete()
     return response.noContent()
   }
