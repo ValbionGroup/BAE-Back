@@ -89,6 +89,14 @@ export default await Env.create(new URL('../', import.meta.url), {
   // besoin pour produire — il se règle donc sans redéploiement.
   PRE_ORDER_CLOSE_LEAD_HOURS: Env.schema.number.optional(),
 
+  // Minutes sans génération de PDF au bout desquelles le navigateur Chromium
+  // résident est libéré. Optionnelle : `pdf_service` retombe sur 10.
+  //
+  // À 0, le navigateur reste ouvert pour la durée de vie du processus. C'est le
+  // réglage à choisir si son démarrage à froid coûte, sur la machine visée, plus
+  // cher que les quelques centaines de Mio qu'il occupe au repos.
+  PDF_BROWSER_IDLE_MINUTES: Env.schema.number.optional(),
+
   /*
   |----------------------------------------------------------
   | Paiement — Lydia
