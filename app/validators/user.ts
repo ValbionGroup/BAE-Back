@@ -1,15 +1,13 @@
 import vine from '@vinejs/vine'
-
-const email = () => vine.string().email().maxLength(254)
-const password = () => vine.string().minLength(8).maxLength(32)
+import { emailRule, passwordRule } from '#validators/rules'
 
 export const signupValidator = vine.create({
-  email: email().unique({ table: 'users', column: 'email' }),
-  password: password(),
-  passwordConfirmation: password().sameAs('password'),
+  email: emailRule().unique({ table: 'users', column: 'email' }),
+  password: passwordRule(),
+  passwordConfirmation: passwordRule().sameAs('password'),
 })
 
 export const loginValidator = vine.create({
-  email: email(),
+  email: emailRule(),
   password: vine.string(),
 })
