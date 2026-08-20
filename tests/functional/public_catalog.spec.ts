@@ -330,7 +330,7 @@ test.group('Mes achats', (group) => {
     response.assertStatus(404)
   })
 
-  test('calcule le total depuis le menu de la soirée', async ({ client, assert }) => {
+  test('rend la référence et l’état de paiement d’une précommande', async ({ client, assert }) => {
     const event = await makeEvent(150)
     const product = await Product.create({
       name: 'Hot-dog classique',
@@ -357,12 +357,10 @@ test.group('Mes achats', (group) => {
 
     const response = await client.get('/v1/account/pre-orders').loginAs(me)
     const rows = response.body().data as {
-      total_cents: number
       paid: boolean
       reference: string
     }[]
 
-    assert.equal(rows[0].total_cents, 700)
     // Aucun paiement n'est branché : la précommande ne peut pas se dire payée.
     assert.isFalse(rows[0].paid)
     assert.match(rows[0].reference, /^BAE-\d{4}-\d{4}$/)

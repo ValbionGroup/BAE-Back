@@ -13,10 +13,23 @@ export interface QuoteLine {
   quantity: number
 }
 
+/** Le prix public du moment, que l'écriture figera sur la ligne. */
+export interface PricedQuoteLine extends QuoteLine {
+  listPriceCents: number
+}
+
 export interface PreOrderQuote {
   amountCents: number
   secondsUntilClose: number
   eventName: string
+  lines: PricedQuoteLine[]
+  /**
+   * Remise précommande et bonus adhérent cumulés. Voyage avec la demande de
+   * paiement plutôt que d'être recalculé à la confirmation : l'adhésion qui
+   * ouvre le bonus peut expirer entre les deux, et les taux sont des variables
+   * d'environnement.
+   */
+  discountPercent: number
 }
 
 export async function quotePreOrder(
@@ -47,6 +60,8 @@ export async function quotePreOrder(
   )
 
   let subtotal = 0
+  const priced: PricedQuoteLine[] = []
+
   for (const line of lines) {
     const price = prices.get(line.productId)
     if (price === undefined) {
@@ -57,14 +72,25 @@ export async function quotePreOrder(
       )
     }
     subtotal += price * line.quantity
+    priced.push({ productId: line.productId, quantity: line.quantity, listPriceCents: price })
   }
 
   const bonus = (await fastPassOf(userId, now)) === null ? 0 : fastPassBonusPercent()
   const percent = preOrderDiscountPercent() + bonus
 
   return {
-    amountCents: subtotal - Math.round((subtotal * percent) / 100),
+    amountCents: applyDiscount(subtotal, percent),
     secondsUntilClose,
     eventName: event.name,
+    lines: priced,
+    discountPercent: percent,
   }
+}
+
+/**
+ * Un seul arrondi, sur le sous-total. Arrondir ligne à ligne ferait diverger la
+ * somme des lignes du montant réellement encaissé.
+ */
+export function applyDiscount(subtotalCents: number, percent: number): number {
+  return subtotalCents - Math.round((subtotalCents * percent) / 100)
 }

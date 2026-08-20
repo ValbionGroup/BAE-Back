@@ -79,7 +79,8 @@ export default class AccountPaymentsController {
       intent: {
         eventId: payload.eventId,
         pickupAt: payload.pickupAt ? payload.pickupAt.toISO() : null,
-        lines: payload.lines,
+        lines: quote.lines,
+        discountPercent: quote.discountPercent,
       },
       expireTimeSeconds,
     })

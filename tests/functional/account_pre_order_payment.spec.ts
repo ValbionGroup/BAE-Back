@@ -225,4 +225,61 @@ test.group('Précommande payée en ligne', (group) => {
     assert.lengthOf(items, 1)
     assert.equal(Number(items[0].quantity), 2)
   })
+
+  /**
+   * Le défaut visé : relire le prix depuis le menu courant, si bien que
+   * retoucher le tarif d'une soirée réécrit ce que les clients ont déjà payé.
+   */
+  test('le prix d’une précommande ne suit pas le menu quand il change', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const user = await makeClient('figé@test.fr')
+    const { event, product } = await makeEvent(6, 350)
+
+    const opened = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({ eventId: event.id, lines: [{ productId: product.id, quantity: 2 }] })
+      .loginAs(user)
+    const orderRef = (opened.body() as { data: { order_ref: string } }).data.order_ref
+    await httpClient.post(`/v1/lydia/callback/${orderRef}`).json({})
+
+    await db
+      .from('event_products')
+      .where('event_id', event.id)
+      .where('product_id', product.id)
+      .update({ price: 700 })
+
+    const listed = await httpClient.get('/v1/account/pre-orders').loginAs(user)
+    const [view] = (listed.body() as { data: { subtotal_cents: number; total_cents: number }[] })
+      .data
+
+    assert.equal(view.subtotal_cents, 700, 'le sous-total reste celui du jour de l’achat')
+    assert.equal(view.total_cents, 630, 'le total reste ce qui a été encaissé')
+  })
+
+  /**
+   * Le défaut visé, distinct du précédent : afficher le sous-total public en
+   * guise de total, donc annoncer au client plus que ce qu'il a réellement payé.
+   */
+  test('le total affiché égale le montant encaissé', async ({ client: httpClient, assert }) => {
+    const user = await makeClient('encaissé@test.fr')
+    await giveFastPass(user.id)
+    const { event, product } = await makeEvent(6, 350)
+
+    const opened = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({ eventId: event.id, lines: [{ productId: product.id, quantity: 2 }] })
+      .loginAs(user)
+    const orderRef = (opened.body() as { data: { order_ref: string } }).data.order_ref
+    await httpClient.post(`/v1/lydia/callback/${orderRef}`).json({})
+
+    const payment = await Payment.findByOrFail('orderRef', orderRef)
+    const listed = await httpClient.get('/v1/account/pre-orders').loginAs(user)
+    const [view] = (listed.body() as { data: { discount_percent: number; total_cents: number }[] })
+      .data
+
+    assert.equal(view.total_cents, payment.amountCents)
+    assert.equal(view.discount_percent, 15, 'la remise appliquée reste lisible sur la précommande')
+  })
 })

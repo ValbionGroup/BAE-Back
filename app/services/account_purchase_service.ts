@@ -1,9 +1,9 @@
-import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import JwtService from '#services/jwt_service'
 import PreOrder from '#models/pre_order'
 import Subscription from '#models/subscription'
 import ApiException from '#exceptions/api_exception'
+import { applyDiscount } from '#services/pre_order_quote_service'
 import { toView, type SubscriptionView } from '#services/subscription_service'
 
 export interface MyPreOrderLine {
@@ -22,6 +22,10 @@ export interface MyPreOrderView {
   eventDate: string | null
   status: string
   lines: MyPreOrderLine[]
+  /** Somme des lignes au prix public, avant remise. */
+  subtotalCents: number
+  /** Remise appliquée à l'achat. Explique l'écart entre le sous-total et le total. */
+  discountPercent: number
   totalCents: number
   paid: boolean
   fullyCollected: boolean
@@ -34,24 +38,13 @@ function referenceOf(id: number, createdAt: string | null): string {
   return `BAE-${year}-${String(id).padStart(4, '0')}`
 }
 
-async function menusOf(eventIds: number[]): Promise<Map<string, number>> {
-  if (eventIds.length === 0) return new Map()
-
-  const rows = await db
-    .from('event_products')
-    .whereIn('event_id', eventIds)
-    .select('event_id', 'product_id', 'price')
-
-  return new Map(rows.map((row) => [`${row.event_id}:${row.product_id}`, Number(row.price)]))
-}
-
-function buildView(preOrder: PreOrder, menu: Map<string, number>): MyPreOrderView {
-  let totalCents = 0
+function buildView(preOrder: PreOrder): MyPreOrderView {
+  let subtotalCents = 0
 
   const lines: MyPreOrderLine[] = preOrder.products.map((product) => {
     const quantity = Number(product.$extras.pivot_quantity)
-    const unitPrice = menu.get(`${preOrder.eventId}:${product.id}`) ?? 0
-    totalCents += unitPrice * quantity
+    const unitPrice = Number(product.$extras.pivot_list_price_cents)
+    subtotalCents += unitPrice * quantity
 
     return {
       productId: product.id,
@@ -74,7 +67,9 @@ function buildView(preOrder: PreOrder, menu: Map<string, number>): MyPreOrderVie
     eventDate: preOrder.event?.date?.toISO() ?? null,
     status: preOrder.status,
     lines,
-    totalCents,
+    subtotalCents,
+    discountPercent: preOrder.discountPercent,
+    totalCents: applyDiscount(subtotalCents, preOrder.discountPercent),
     paid: preOrder.transactionId !== null && preOrder.transactionId !== undefined,
     fullyCollected: lines.length > 0 && lines.every((l) => l.receivedQuantity >= l.quantity),
     pickupAt: preOrder.pickupAt?.toISO() ?? null,
@@ -89,9 +84,7 @@ export async function listPreOrders(userId: number): Promise<MyPreOrderView[]> {
     .preload('products')
     .orderBy('id', 'desc')
 
-  const menu = await menusOf([...new Set(preOrders.map((preOrder) => preOrder.eventId))])
-
-  return preOrders.map((preOrder) => buildView(preOrder, menu))
+  return preOrders.map((preOrder) => buildView(preOrder))
 }
 
 export async function findPreOrder(userId: number, preOrderId: number): Promise<MyPreOrderView> {
@@ -106,7 +99,7 @@ export async function findPreOrder(userId: number, preOrderId: number): Promise<
     throw new ApiException('E_PRE_ORDER_NOT_FOUND', "Cette précommande n'existe pas.", 404)
   }
 
-  return buildView(preOrder, await menusOf([preOrder.eventId]))
+  return buildView(preOrder)
 }
 
 export const PRE_ORDER_QR_TTL_SECONDS = 180

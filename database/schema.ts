@@ -613,6 +613,7 @@ export class PermissionSchema extends BaseModel {
 export class PreOrderItemSchema extends BaseModel {
   static $columns = [
     'createdAt',
+    'listPriceCents',
     'preOrderId',
     'productId',
     'quantity',
@@ -622,6 +623,8 @@ export class PreOrderItemSchema extends BaseModel {
   $columns = PreOrderItemSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
+  @column()
+  declare listPriceCents: number
   @column({ isPrimary: true })
   declare preOrderId: number
   @column()
@@ -637,6 +640,7 @@ export class PreOrderItemSchema extends BaseModel {
 export class PreOrderSchema extends BaseModel {
   static $columns = [
     'createdAt',
+    'discountPercent',
     'eventId',
     'id',
     'pickupAt',
@@ -647,6 +651,8 @@ export class PreOrderSchema extends BaseModel {
   $columns = PreOrderSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
+  @column()
+  declare discountPercent: number
   @column()
   declare eventId: number
   @column({ isPrimary: true })

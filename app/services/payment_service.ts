@@ -9,7 +9,7 @@ import Payment from '#models/payment'
 import Transaction from '#models/transaction'
 import type User from '#models/user'
 import LydiaClient from '#services/lydia/lydia_client'
-import type { QuoteLine } from '#services/pre_order_quote_service'
+import type { PricedQuoteLine } from '#services/pre_order_quote_service'
 
 export type PaymentKind = 'pre_order' | 'subscription'
 
@@ -107,6 +107,23 @@ async function fulfilSubscription(
   })
 }
 
+/**
+ * Prix du menu, pour les demandes de paiement ouvertes avant que l'instantané
+ * n'existe : leur `intent` ne porte aucun prix, et le menu courant est la seule
+ * valeur disponible au moment où elles se confirment.
+ */
+async function menuPricesOf(
+  eventId: number,
+  trx: TransactionClientContract
+): Promise<Map<number, number>> {
+  const rows = await trx
+    .from('event_products')
+    .where('event_id', eventId)
+    .select('product_id', 'price')
+
+  return new Map(rows.map((row) => [Number(row.product_id), Number(row.price)]))
+}
+
 async function fulfilPreOrder(
   payment: Payment,
   intent: Record<string, unknown>,
@@ -114,15 +131,20 @@ async function fulfilPreOrder(
   trx: TransactionClientContract
 ): Promise<void> {
   const now = DateTime.now()
-  const lines = intent.lines as QuoteLine[]
+  const eventId = Number(intent.eventId)
+  const lines = intent.lines as PricedQuoteLine[]
+
+  const stale = lines.some((line) => typeof line.listPriceCents !== 'number')
+  const menu = stale ? await menuPricesOf(eventId, trx) : new Map<number, number>()
 
   const [row] = await trx
     .table('pre_orders')
     .insert({
       user_id: payment.userId,
-      event_id: Number(intent.eventId),
+      event_id: eventId,
       transaction_id: transaction.id,
       status: 'pending',
+      discount_percent: typeof intent.discountPercent === 'number' ? intent.discountPercent : 0,
       pickup_at: typeof intent.pickupAt === 'string' ? intent.pickupAt : null,
       created_at: now.toSQL(),
     })
@@ -136,6 +158,10 @@ async function fulfilPreOrder(
       product_id: line.productId,
       quantity: line.quantity,
       received_quantity: 0,
+      list_price_cents:
+        typeof line.listPriceCents === 'number'
+          ? line.listPriceCents
+          : (menu.get(line.productId) ?? 0),
       created_at: now.toSQL(),
       updated_at: now.toSQL(),
     }))
