@@ -539,6 +539,23 @@ export class OrderSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class PasswordResetTokenSchema extends BaseModel {
+  static $columns = ['createdAt', 'expiresAt', 'id', 'tokenDigest', 'usedAt', 'userId'] as const
+  $columns = PasswordResetTokenSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column({ serializeAs: null })
+  declare tokenDigest: string
+  @column.dateTime()
+  declare usedAt: DateTime | null
+  @column()
+  declare userId: number
+}
+
 export class PaymentSchema extends BaseModel {
   static $columns = [
     'amountCents',
@@ -982,6 +999,48 @@ export class TransactionSchema extends BaseModel {
   declare type: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+}
+
+export class TwoFactorRecoveryCodeSchema extends BaseModel {
+  static $columns = ['codeDigest', 'createdAt', 'id', 'usedAt', 'userId'] as const
+  $columns = TwoFactorRecoveryCodeSchema.$columns
+  @column({ serializeAs: null })
+  declare codeDigest: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare usedAt: DateTime | null
+  @column()
+  declare userId: number
+}
+
+export class UserTwoFactorSchema extends BaseModel {
+  static $columns = [
+    'confirmedAt',
+    'createdAt',
+    'id',
+    'lastUsedCounter',
+    'secret',
+    'updatedAt',
+    'userId',
+  ] as const
+  $columns = UserTwoFactorSchema.$columns
+  @column.dateTime()
+  declare confirmedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare lastUsedCounter: number | null
+  @column({ serializeAs: null })
+  declare secret: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column()
+  declare userId: number
 }
 
 export class UserSchema extends BaseModel {
