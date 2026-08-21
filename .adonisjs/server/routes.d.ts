@@ -8,10 +8,20 @@ export type ScannedRoutes = {
     'auth.access_token.store': { paramsTuple?: []; params?: {} }
     'auth.access_token.destroy': { paramsTuple?: []; params?: {} }
     'auth.access_token.destroy_all': { paramsTuple?: []; params?: {} }
+    'auth.password_reset.request': { paramsTuple?: []; params?: {} }
+    'auth.password_reset.reset': { paramsTuple?: []; params?: {} }
+    'auth.two_factor.challenge': { paramsTuple?: []; params?: {} }
+    'auth.two_factor.verify': { paramsTuple?: []; params?: {} }
     'auth.keycloak_auth.redirect': { paramsTuple?: []; params?: {} }
     'auth.keycloak_auth.callback': { paramsTuple?: []; params?: {} }
+    'auth.keycloak_auth.logout': { paramsTuple?: []; params?: {} }
     'profile.profile.show': { paramsTuple?: []; params?: {} }
     'profile.qrs.mine': { paramsTuple?: []; params?: {} }
+    'accountSecurity.account_password.update': { paramsTuple?: []; params?: {} }
+    'accountSecurity.two_factor.store': { paramsTuple?: []; params?: {} }
+    'accountSecurity.two_factor.confirm': { paramsTuple?: []; params?: {} }
+    'accountSecurity.two_factor.recovery_codes': { paramsTuple?: []; params?: {} }
+    'accountSecurity.two_factor.disable': { paramsTuple?: []; params?: {} }
     'members.index': { paramsTuple?: []; params?: {} }
     'members.store': { paramsTuple?: []; params?: {} }
     'members.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -85,6 +95,15 @@ export type ScannedRoutes = {
     'event_products.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.update': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'productId': ParamValue} }
     'event_products.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'productId': ParamValue} }
+    'sponsorship_categories.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.update': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
+    'sponsorship_categories.prices': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
+    'sponsorship_categories.qr': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
+    'sponsorship_categories.rotate': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
+    'sponsorship_categories.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
+    'sponsorship_categories.receivables': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.receivables_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -129,6 +148,7 @@ export type ScannedRoutes = {
     'fast_passes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'fast_passes.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
+    'payments.index': { paramsTuple?: []; params?: {} }
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -169,6 +189,10 @@ export type ScannedRoutes = {
     'account_purchases.account_purchases.pre_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'account_purchases.account_purchases.pre_order_qr': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'account_purchases.account_purchases.subscriptions': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_payments.subscribe': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_payments.pre_order': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_payments.show': { paramsTuple: [ParamValue]; params: {'orderRef': ParamValue} }
+    'lydia.lydia_callbacks.notify': { paramsTuple: [ParamValue]; params: {'orderRef': ParamValue} }
     'event_stream': { paramsTuple?: []; params?: {} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
@@ -177,6 +201,13 @@ export type ScannedRoutes = {
     'auth.new_account.store': { paramsTuple?: []; params?: {} }
     'auth.access_token.store': { paramsTuple?: []; params?: {} }
     'auth.access_token.destroy': { paramsTuple?: []; params?: {} }
+    'auth.password_reset.request': { paramsTuple?: []; params?: {} }
+    'auth.password_reset.reset': { paramsTuple?: []; params?: {} }
+    'auth.two_factor.verify': { paramsTuple?: []; params?: {} }
+    'accountSecurity.two_factor.store': { paramsTuple?: []; params?: {} }
+    'accountSecurity.two_factor.confirm': { paramsTuple?: []; params?: {} }
+    'accountSecurity.two_factor.recovery_codes': { paramsTuple?: []; params?: {} }
+    'accountSecurity.two_factor.disable': { paramsTuple?: []; params?: {} }
     'members.store': { paramsTuple?: []; params?: {} }
     'roles.store': { paramsTuple?: []; params?: {} }
     'categories.store': { paramsTuple?: []; params?: {} }
@@ -191,6 +222,8 @@ export type ScannedRoutes = {
     'events.store': { paramsTuple?: []; params?: {} }
     'events.set_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.rotate': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
     'orders.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'production_runs.returns': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -209,6 +242,9 @@ export type ScannedRoutes = {
     'notifications.notifications.mark_all_read': { paramsTuple?: []; params?: {} }
     'tickets.tickets.store': { paramsTuple?: []; params?: {} }
     'tickets.tickets.reply': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'account_purchases.account_payments.subscribe': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_payments.pre_order': { paramsTuple?: []; params?: {} }
+    'lydia.lydia_callbacks.notify': { paramsTuple: [ParamValue]; params: {'orderRef': ParamValue} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
   }
@@ -226,6 +262,7 @@ export type ScannedRoutes = {
     'restocks.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'productId': ParamValue} }
+    'sponsorship_categories.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
     'jobs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.destroy': { paramsTuple?: []; params?: {} }
     'assignments.destroy': { paramsTuple?: []; params?: {} }
@@ -239,8 +276,10 @@ export type ScannedRoutes = {
     'sessions.sessions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
+    'auth.two_factor.challenge': { paramsTuple?: []; params?: {} }
     'auth.keycloak_auth.redirect': { paramsTuple?: []; params?: {} }
     'auth.keycloak_auth.callback': { paramsTuple?: []; params?: {} }
+    'auth.keycloak_auth.logout': { paramsTuple?: []; params?: {} }
     'profile.profile.show': { paramsTuple?: []; params?: {} }
     'profile.qrs.mine': { paramsTuple?: []; params?: {} }
     'members.index': { paramsTuple?: []; params?: {} }
@@ -277,6 +316,10 @@ export type ScannedRoutes = {
     'events.get_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.qr': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
+    'sponsorship_categories.receivables': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.receivables_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -301,6 +344,7 @@ export type ScannedRoutes = {
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
+    'payments.index': { paramsTuple?: []; params?: {} }
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -320,11 +364,14 @@ export type ScannedRoutes = {
     'account_purchases.account_purchases.pre_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'account_purchases.account_purchases.pre_order_qr': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'account_purchases.account_purchases.subscriptions': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_payments.show': { paramsTuple: [ParamValue]; params: {'orderRef': ParamValue} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
+    'auth.two_factor.challenge': { paramsTuple?: []; params?: {} }
     'auth.keycloak_auth.redirect': { paramsTuple?: []; params?: {} }
     'auth.keycloak_auth.callback': { paramsTuple?: []; params?: {} }
+    'auth.keycloak_auth.logout': { paramsTuple?: []; params?: {} }
     'profile.profile.show': { paramsTuple?: []; params?: {} }
     'profile.qrs.mine': { paramsTuple?: []; params?: {} }
     'members.index': { paramsTuple?: []; params?: {} }
@@ -361,6 +408,10 @@ export type ScannedRoutes = {
     'events.get_response': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.roster': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.qr': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
+    'sponsorship_categories.receivables': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.receivables_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.shopping_list_pdf': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'orders.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -385,6 +436,7 @@ export type ScannedRoutes = {
     'fast_passes.index': { paramsTuple?: []; params?: {} }
     'fast_passes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'transactions.index': { paramsTuple?: []; params?: {} }
+    'payments.index': { paramsTuple?: []; params?: {} }
     'clients.summary': { paramsTuple?: []; params?: {} }
     'clients.index': { paramsTuple?: []; params?: {} }
     'clients.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -404,9 +456,11 @@ export type ScannedRoutes = {
     'account_purchases.account_purchases.pre_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'account_purchases.account_purchases.pre_order_qr': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'account_purchases.account_purchases.subscriptions': { paramsTuple?: []; params?: {} }
+    'account_purchases.account_payments.show': { paramsTuple: [ParamValue]; params: {'orderRef': ParamValue} }
     'event_stream': { paramsTuple?: []; params?: {} }
   }
   PUT: {
+    'accountSecurity.account_password.update': { paramsTuple?: []; params?: {} }
     'members.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.sync_permissions': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -419,6 +473,7 @@ export type ScannedRoutes = {
     'stock_movements.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'restocks.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'sponsorship_categories.prices': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
     'jobs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.update': { paramsTuple?: []; params?: {} }
     'assignments.update': { paramsTuple?: []; params?: {} }
@@ -441,6 +496,7 @@ export type ScannedRoutes = {
     'restocks.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'events.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_products.update': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'productId': ParamValue} }
+    'sponsorship_categories.update': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'categoryId': ParamValue} }
     'jobs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'event_jobs.update': { paramsTuple?: []; params?: {} }
     'assignments.update': { paramsTuple?: []; params?: {} }

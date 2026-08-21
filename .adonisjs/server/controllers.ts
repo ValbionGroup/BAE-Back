@@ -5,6 +5,7 @@
 
 export const controllers = {
   AccessToken: () => import('#controllers/access_token_controller'),
+  AccountPassword: () => import('#controllers/account_password_controller'),
   AccountPayments: () => import('#controllers/account_payments_controller'),
   AccountPurchases: () => import('#controllers/account_purchases_controller'),
   Activity: () => import('#controllers/activity_controller'),
@@ -26,6 +27,7 @@ export const controllers = {
   NewAccount: () => import('#controllers/new_account_controller'),
   Notifications: () => import('#controllers/notifications_controller'),
   Orders: () => import('#controllers/orders_controller'),
+  PasswordReset: () => import('#controllers/password_reset_controller'),
   Payments: () => import('#controllers/payments_controller'),
   Permissions: () => import('#controllers/permissions_controller'),
   PreOrders: () => import('#controllers/pre_orders_controller'),
@@ -47,5 +49,6 @@ export const controllers = {
   Suppliers: () => import('#controllers/suppliers_controller'),
   Tickets: () => import('#controllers/tickets_controller'),
   Transactions: () => import('#controllers/transactions_controller'),
+  TwoFactor: () => import('#controllers/two_factor_controller'),
   Vouchers: () => import('#controllers/vouchers_controller'),
 }

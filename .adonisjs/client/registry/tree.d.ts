@@ -11,9 +11,18 @@ export interface ApiDefinition {
       destroy: typeof routes['auth.access_token.destroy']
       destroyAll: typeof routes['auth.access_token.destroy_all']
     }
+    passwordReset: {
+      request: typeof routes['auth.password_reset.request']
+      reset: typeof routes['auth.password_reset.reset']
+    }
+    twoFactor: {
+      challenge: typeof routes['auth.two_factor.challenge']
+      verify: typeof routes['auth.two_factor.verify']
+    }
     keycloakAuth: {
       redirect: typeof routes['auth.keycloak_auth.redirect']
       callback: typeof routes['auth.keycloak_auth.callback']
+      logout: typeof routes['auth.keycloak_auth.logout']
     }
   }
   profile: {
@@ -22,6 +31,17 @@ export interface ApiDefinition {
     }
     qrs: {
       mine: typeof routes['profile.qrs.mine']
+    }
+  }
+  accountSecurity: {
+    accountPassword: {
+      update: typeof routes['accountSecurity.account_password.update']
+    }
+    twoFactor: {
+      store: typeof routes['accountSecurity.two_factor.store']
+      confirm: typeof routes['accountSecurity.two_factor.confirm']
+      recoveryCodes: typeof routes['accountSecurity.two_factor.recovery_codes']
+      disable: typeof routes['accountSecurity.two_factor.disable']
     }
   }
   members: {
@@ -129,6 +149,17 @@ export interface ApiDefinition {
     shoppingList: typeof routes['event_products.shopping_list']
     shoppingListPdf: typeof routes['event_products.shopping_list_pdf']
   }
+  sponsorshipCategories: {
+    index: typeof routes['sponsorship_categories.index']
+    store: typeof routes['sponsorship_categories.store']
+    update: typeof routes['sponsorship_categories.update']
+    prices: typeof routes['sponsorship_categories.prices']
+    qr: typeof routes['sponsorship_categories.qr']
+    rotate: typeof routes['sponsorship_categories.rotate']
+    destroy: typeof routes['sponsorship_categories.destroy']
+    receivables: typeof routes['sponsorship_categories.receivables']
+    receivablesPdf: typeof routes['sponsorship_categories.receivables_pdf']
+  }
   orders: {
     index: typeof routes['orders.index']
     store: typeof routes['orders.store']
@@ -203,6 +234,9 @@ export interface ApiDefinition {
   transactions: {
     index: typeof routes['transactions.index']
   }
+  payments: {
+    index: typeof routes['payments.index']
+  }
   clients: {
     summary: typeof routes['clients.summary']
     index: typeof routes['clients.index']
@@ -271,6 +305,16 @@ export interface ApiDefinition {
       preOrder: typeof routes['account_purchases.account_purchases.pre_order']
       preOrderQr: typeof routes['account_purchases.account_purchases.pre_order_qr']
       subscriptions: typeof routes['account_purchases.account_purchases.subscriptions']
+    }
+    accountPayments: {
+      subscribe: typeof routes['account_purchases.account_payments.subscribe']
+      preOrder: typeof routes['account_purchases.account_payments.pre_order']
+      show: typeof routes['account_purchases.account_payments.show']
+    }
+  }
+  lydia: {
+    lydiaCallbacks: {
+      notify: typeof routes['lydia.lydia_callbacks.notify']
     }
   }
   eventStream: typeof routes['event_stream']

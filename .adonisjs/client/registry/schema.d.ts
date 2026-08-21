@@ -55,6 +55,54 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/access_token_controller').default['destroyAll']>>>
     }
   }
+  'auth.password_reset.request': {
+    methods: ["POST"]
+    pattern: '/v1/auth/password/forgot'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/password_reset').forgotPasswordValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/password_reset').forgotPasswordValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/password_reset_controller').default['request']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/password_reset_controller').default['request']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'auth.password_reset.reset': {
+    methods: ["POST"]
+    pattern: '/v1/auth/password/reset'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/password_reset').resetPasswordValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/password_reset').resetPasswordValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/password_reset_controller').default['reset']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/password_reset_controller').default['reset']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'auth.two_factor.challenge': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/auth/2fa/challenge'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['challenge']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['challenge']>>>
+    }
+  }
+  'auth.two_factor.verify': {
+    methods: ["POST"]
+    pattern: '/v1/auth/2fa/verify'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/two_factor').twoFactorVerifyValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/two_factor').twoFactorVerifyValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['verify']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['verify']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
   'auth.keycloak_auth.redirect': {
     methods: ["GET","HEAD"]
     pattern: '/v1/auth/keycloak/redirect'
@@ -79,6 +127,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/keycloak_auth_controller').default['callback']>>>
     }
   }
+  'auth.keycloak_auth.logout': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/auth/keycloak/logout'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/keycloak_auth_controller').default['logout']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/keycloak_auth_controller').default['logout']>>>
+    }
+  }
   'profile.profile.show': {
     methods: ["GET","HEAD"]
     pattern: '/v1/account/profile'
@@ -101,6 +161,66 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['mine']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/qrs_controller').default['mine']>>>
+    }
+  }
+  'accountSecurity.account_password.update': {
+    methods: ["PUT"]
+    pattern: '/v1/account/password'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/account').changePasswordValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/account').changePasswordValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_password_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_password_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'accountSecurity.two_factor.store': {
+    methods: ["POST"]
+    pattern: '/v1/account/2fa'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['store']>>>
+    }
+  }
+  'accountSecurity.two_factor.confirm': {
+    methods: ["POST"]
+    pattern: '/v1/account/2fa/confirm'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/two_factor').twoFactorConfirmValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/two_factor').twoFactorConfirmValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['confirm']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['confirm']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'accountSecurity.two_factor.recovery_codes': {
+    methods: ["POST"]
+    pattern: '/v1/account/2fa/recovery-codes'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['recoveryCodes']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['recoveryCodes']>>>
+    }
+  }
+  'accountSecurity.two_factor.disable': {
+    methods: ["POST"]
+    pattern: '/v1/account/2fa/disable'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/two_factor').twoFactorDisableValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/two_factor').twoFactorDisableValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['disable']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/two_factor_controller').default['disable']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'members.index': {
@@ -979,6 +1099,114 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/event_products_controller').default['destroy']>>>
     }
   }
+  'sponsorship_categories.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/sponsorship-categories'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['index']>>>
+    }
+  }
+  'sponsorship_categories.store': {
+    methods: ["POST"]
+    pattern: '/v1/events/:id/sponsorship-categories'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/sponsorship').sponsorshipCategoryValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/sponsorship').sponsorshipCategoryValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'sponsorship_categories.update': {
+    methods: ["PATCH"]
+    pattern: '/v1/events/:id/sponsorship-categories/:categoryId'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/sponsorship').sponsorshipCategoryValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { id: ParamValue; categoryId: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/sponsorship').sponsorshipCategoryValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'sponsorship_categories.prices': {
+    methods: ["PUT"]
+    pattern: '/v1/events/:id/sponsorship-categories/:categoryId/prices'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/sponsorship').sponsorshipPricesValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { id: ParamValue; categoryId: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/sponsorship').sponsorshipPricesValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['prices']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['prices']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'sponsorship_categories.qr': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/sponsorship-categories/:categoryId/qr'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { id: ParamValue; categoryId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['qr']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['qr']>>>
+    }
+  }
+  'sponsorship_categories.rotate': {
+    methods: ["POST"]
+    pattern: '/v1/events/:id/sponsorship-categories/:categoryId/qr/rotate'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { id: ParamValue; categoryId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['rotate']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['rotate']>>>
+    }
+  }
+  'sponsorship_categories.destroy': {
+    methods: ["DELETE"]
+    pattern: '/v1/events/:id/sponsorship-categories/:categoryId'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { id: ParamValue; categoryId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['destroy']>>>
+    }
+  }
+  'sponsorship_categories.receivables': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/receivables'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['receivables']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['receivables']>>>
+    }
+  }
+  'sponsorship_categories.receivables_pdf': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/events/:id/receivables/pdf'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['receivablesPdf']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sponsorship_categories_controller').default['receivablesPdf']>>>
+    }
+  }
   'event_products.shopping_list': {
     methods: ["GET","HEAD"]
     pattern: '/v1/events/:id/shopping-list'
@@ -1507,6 +1735,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/transactions_controller').default['index']>>>
     }
   }
+  'payments.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/payments'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/payments_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/payments_controller').default['index']>>>
+    }
+  }
   'clients.summary': {
     methods: ["GET","HEAD"]
     pattern: '/v1/clients/summary'
@@ -1985,6 +2225,54 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['subscriptions']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_purchases_controller').default['subscriptions']>>>
+    }
+  }
+  'account_purchases.account_payments.subscribe': {
+    methods: ["POST"]
+    pattern: '/v1/account/subscriptions'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/account_purchase').createAccountSubscriptionValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/account_purchase').createAccountSubscriptionValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_payments_controller').default['subscribe']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_payments_controller').default['subscribe']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'account_purchases.account_payments.pre_order': {
+    methods: ["POST"]
+    pattern: '/v1/account/pre-orders'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/account_purchase').createAccountPreOrderValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/account_purchase').createAccountPreOrderValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_payments_controller').default['preOrder']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_payments_controller').default['preOrder']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'account_purchases.account_payments.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/v1/account/payments/:orderRef'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { orderRef: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_payments_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_payments_controller').default['show']>>>
+    }
+  }
+  'lydia.lydia_callbacks.notify': {
+    methods: ["POST"]
+    pattern: '/v1/lydia/callback/:orderRef'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { orderRef: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/lydia_callbacks_controller').default['notify']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/lydia_callbacks_controller').default['notify']>>>
     }
   }
   'event_stream': {
