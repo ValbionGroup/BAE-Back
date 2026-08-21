@@ -1,21 +1,17 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
 import User from '#models/user'
 import { authorizationRequest, endSessionUrl, exchange } from '#services/oidc_service'
 import { isSsoApp, provision } from '#services/sso_provisioning_service'
 import { clearSessionCookie, setSessionCookie } from '#services/session_cookie'
+import { frontendUrl } from '#services/frontend_url'
 import type { SsoApp } from '#services/sso_provisioning_service'
 
 /** Une seule entrée de session porte les trois valeurs — voir `redirect()`. */
 const PENDING_KEY = 'sso_pending'
 
 type PendingLogin = { state: string; codeVerifier: string; app: SsoApp }
-
-function frontendUrl(app: SsoApp): string {
-  return app === 'dashboard' ? env.get('DASHBOARD_URL') : env.get('PUBLIC_APP_URL')
-}
 
 /**
  * SSO en mode BFF. Deux routes seulement, et **une seule URI de callback** :
