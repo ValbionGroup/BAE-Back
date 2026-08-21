@@ -60,6 +60,7 @@ services:
       LYDIA_VENDOR_TOKEN: ${LYDIA_VENDOR_TOKEN:-}
       LYDIA_PRIVATE_TOKEN: ${LYDIA_PRIVATE_TOKEN:-}
       LYDIA_CALLBACK_BASE_URL: ${LYDIA_CALLBACK_BASE_URL:-http://localhost:3333}
+      LIMITER_STORE: ${LIMITER_STORE:-memory}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     ports:

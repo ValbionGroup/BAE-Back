@@ -35,6 +35,7 @@ x-app-environment: &app-environment
   LYDIA_VENDOR_TOKEN: ${LYDIA_VENDOR_TOKEN}
   LYDIA_PRIVATE_TOKEN: ${LYDIA_PRIVATE_TOKEN}
   LYDIA_CALLBACK_BASE_URL: ${LYDIA_CALLBACK_BASE_URL}
+  LIMITER_STORE: ${LIMITER_STORE:-memory}
 
 services:
   # PostgreSQL Database
