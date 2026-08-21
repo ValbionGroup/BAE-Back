@@ -14,21 +14,18 @@ export type QrTokenPayload = JWTPayload &
         preOrderId: number
         eventId: number
       }
-    // Reconnaître une personne au comptoir sans qu'elle ait ni fast pass ni
-    // précommande — le cas courant. Le §11.3 prescrivait ce troisième membre
-    // plutôt que de détourner `fast_pass`, qui affirmerait un droit inexistant.
     | {
         type: 'identity'
         userId: number
       }
-    // Le seul jeton qui ne désigne personne : il ouvre une grille tarifaire, pas
-    // un compte. Il n'expire pas non plus — `qr_nonce` est sa seule révocation.
     | {
         type: 'sponsorship_category'
         categoryId: number
         nonce: string
       }
   )
+
+const TWO_FACTOR_CHALLENGE = 'two_factor_challenge'
 
 export default class JwtService {
   readonly #algorithm = jwtConfig.algorithm
@@ -53,18 +50,10 @@ export default class JwtService {
     return payload
   }
 
-  /**
-   * ⚠️ `setExpirationTime()` de `jose` lit un **nombre** comme un horodatage UNIX
-   * absolu, pas comme une durée. Passer `ttlSeconds` tel quel datait donc chaque
-   * jeton de janvier 1970 : tous naissaient expirés. On calcule l'échéance
-   * explicitement.
-   */
   async generateQrToken(
     data: Omit<QrTokenPayload, keyof JWTPayload>,
     ttlSeconds: number | null = 60
   ): Promise<string> {
-    // `null` et non `0` : `0` serait lu comme une échéance absolue et daterait le
-    // jeton de janvier 1970.
     if (ttlSeconds === null) return this.sign(data)
 
     const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds
@@ -73,5 +62,19 @@ export default class JwtService {
 
   async verifyQrToken(token: string): Promise<QrTokenPayload> {
     return this.verify<QrTokenPayload>(token)
+  }
+
+  async signTwoFactorChallenge(userId: number, ttlSeconds: number): Promise<string> {
+    const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds
+    return this.sign({ type: TWO_FACTOR_CHALLENGE, userId }, { expiresIn: expiresAt })
+  }
+
+  async verifyTwoFactorChallenge(token: string): Promise<number | null> {
+    const payload = await this.verify<JWTPayload & { type?: unknown; userId?: unknown }>(token)
+
+    if (payload.type !== TWO_FACTOR_CHALLENGE) return null
+    if (typeof payload.userId !== 'number') return null
+
+    return payload.userId
   }
 }

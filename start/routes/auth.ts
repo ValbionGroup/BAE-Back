@@ -1,28 +1,25 @@
 import router from '@adonisjs/core/services/router'
 import { controllers } from '#generated/controllers'
 import { middleware } from '#start/kernel'
+import { throttle } from '#start/limiter'
 
 router
   .group(() => {
     router.post('signup', [controllers.NewAccount, 'store'])
-    router.post('login', [controllers.AccessToken, 'store'])
+    router.post('login', [controllers.AccessToken, 'store']).use(throttle.login)
     router.post('logout', [controllers.AccessToken, 'destroy']).use(middleware.auth())
     router.delete('logout-all', [controllers.AccessToken, 'destroyAll']).use(middleware.auth())
 
-    // Anonymes, donc exemptées de CSRF par le prédicat de `config/shield.ts`.
-    router.post('password/forgot', [controllers.PasswordReset, 'request'])
-    router.post('password/reset', [controllers.PasswordReset, 'reset'])
+    router
+      .post('password/forgot', [controllers.PasswordReset, 'request'])
+      .use(throttle.passwordForgot)
+    router.post('password/reset', [controllers.PasswordReset, 'reset']).use(throttle.passwordReset)
 
-    // Hors `middleware.auth()` : c'est la porte d'entrée, l'utilisateur n'est pas
-    // encore authentifié. **Une seule URI de callback**, parce que chacune doit
-    // être whitelistée par EirbWare — la zone visée voyage dans la session, à
-    // côté du `state`, et jamais dans l'URL de retour.
+    router.get('2fa/challenge', [controllers.TwoFactor, 'challenge'])
+    router.post('2fa/verify', [controllers.TwoFactor, 'verify'])
+
     router.get('keycloak/redirect', [controllers.KeycloakAuth, 'redirect'])
     router.get('keycloak/callback', [controllers.KeycloakAuth, 'callback'])
-
-    // ⚠️ GET et authentifiée : c'est une **navigation**, le navigateur doit
-    // suivre la redirection vers l'IdP. Un POST serait refusé par le CSRF dès
-    // lors que la session n'est portée que par le cookie.
     router.get('keycloak/logout', [controllers.KeycloakAuth, 'logout']).use(middleware.auth())
   })
   .prefix('v1/auth')
@@ -52,7 +49,11 @@ router
 router
   .group(() => {
     router.put('/password', [controllers.AccountPassword, 'update'])
+    router.post('/2fa', [controllers.TwoFactor, 'store'])
+    router.post('/2fa/confirm', [controllers.TwoFactor, 'confirm'])
+    router.post('/2fa/recovery-codes', [controllers.TwoFactor, 'recoveryCodes'])
+    router.post('/2fa/disable', [controllers.TwoFactor, 'disable'])
   })
   .prefix('v1/account')
   .as('accountSecurity')
-  .use([middleware.auth(), middleware.audience('member')])
+  .use([middleware.auth(), middleware.audience('member'), throttle.accountSecurity])

@@ -2,15 +2,33 @@ import User from '#models/user'
 import { loginValidator } from '#validators/user'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import { clearSessionCookie, setSessionCookie } from '#services/session_cookie'
+import ApiException from '#exceptions/api_exception'
+import JwtService from '#services/jwt_service'
+import { activeSecretExists } from '#services/two_factor_service'
+import {
+  clearSessionCookie,
+  clearTwoFactorCookie,
+  setSessionCookie,
+  setTwoFactorCookie,
+} from '#services/session_cookie'
+import { CHALLENGE_TTL_SECONDS } from '#controllers/two_factor_controller'
 
 export default class AccessTokenController {
   async store({ request, response }: HttpContext) {
     const { email, password } = await request.validateUsing(loginValidator)
 
-    // `verifyPasswordCredentials` et non `verifyCredentials` : voir le garde du
-    // modèle, sans lequel un compte SSO (mot de passe `null`) produit un 500.
     const user = await User.verifyPasswordCredentials(email, password)
+
+    if (await activeSecretExists(user.id)) {
+      const challenge = await new JwtService().signTwoFactorChallenge(
+        user.id,
+        CHALLENGE_TTL_SECONDS
+      )
+      setTwoFactorCookie(response, challenge)
+
+      throw new ApiException('E_TWO_FACTOR_REQUIRED', 'Un code de vérification est requis.', 401)
+    }
+
     const token = await User.accessTokens.create(user)
 
     await db
@@ -23,9 +41,8 @@ export default class AccessTokenController {
 
     const value = token.value!.release()
 
-    // Le cookie est la voie du navigateur ; le corps reste rempli pour les
-    // appels hors navigateur (tests, scripts). Les deux portent le même jeton.
     setSessionCookie(response, value)
+    clearTwoFactorCookie(response)
 
     return { data: value }
   }
@@ -36,9 +53,8 @@ export default class AccessTokenController {
       await User.accessTokens.delete(user, user.currentAccessToken.identifier)
     }
 
-    // Seul le serveur peut effacer un cookie `httpOnly` : sans cette ligne, le
-    // navigateur continuerait de présenter un jeton que la base a révoqué.
     clearSessionCookie(response)
+    clearTwoFactorCookie(response)
 
     return response.noContent()
   }
@@ -50,9 +66,8 @@ export default class AccessTokenController {
       await User.accessTokens.delete(user, token.identifier)
     }
 
-    // Même raison que dans `destroy` : la session courante fait partie du lot,
-    // et un cookie laissé en place présenterait un jeton déjà révoqué.
     clearSessionCookie(response)
+    clearTwoFactorCookie(response)
 
     return response.noContent()
   }

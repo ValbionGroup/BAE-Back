@@ -1,5 +1,6 @@
 import UserTransformer from '#transformers/user_transformer'
 import type { HttpContext } from '@adonisjs/core/http'
+import { twoFactorStateOf } from '#services/two_factor_service'
 import MemberTransformer from '#transformers/member_transformer'
 
 export default class ProfileController {
@@ -9,13 +10,10 @@ export default class ProfileController {
       query.preload('role', (roleQuery) => roleQuery.preload('permissions'))
     )
 
-    // `MemberTransformer` lit le nom sur `member.user` depuis que l'identité a
-    // quitté `members`. Le compte est déjà en main : le rattacher évite d'aller
-    // relire la même ligne, et sans lui le profil répond « null null ».
     if (user.member) user.member.$setRelated('user', user)
 
     return serialize({
-      user: UserTransformer.transform(user),
+      user: UserTransformer.transform(user, await twoFactorStateOf(user.id)),
       member: MemberTransformer.transform(user.member),
       permissions: user.member?.role?.permissions.map((entry) => entry.permission) ?? [],
     })

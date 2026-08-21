@@ -9,6 +9,7 @@ import PasswordResetToken from '#models/password_reset_token'
 import { MemberFactory } from '#database/factories/members_factory'
 import { PasswordResetNotification } from '#mails/password_reset_notification'
 import { errorCodeOf } from '#tests/helpers/api_error'
+import { clearLimits } from '#tests/helpers/limiter'
 
 const CURRENT = 'mot-de-passe-actuel'
 const NEXT = 'NouveauMotDePasse1'
@@ -19,6 +20,7 @@ test.group('Mot de passe oublié', (group) => {
   let fake: Fake
 
   group.each.setup(() => testUtils.db().withGlobalTransaction())
+  group.each.setup(() => clearLimits())
   group.each.setup(() => {
     fake = mail.fake()
     return () => mail.restore()

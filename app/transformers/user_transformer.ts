@@ -1,18 +1,26 @@
 import type User from '#models/user'
 import { BaseTransformer } from '@adonisjs/core/transformers'
+import type { TwoFactorState } from '#services/two_factor_service'
 
-/**
- * `hasPassword` est dérivé, jamais la colonne : `users.password` porte un hash
- * bcrypt et n'a rien à faire dans une charge utile. Le front en a besoin parce
- * que la colonne est nullable depuis le SSO — un compte provisionné par Keycloak
- * n'a aucun mot de passe à changer, et l'écran Sécurité doit pouvoir taire son
- * panneau plutôt que d'offrir un formulaire qui n'aboutira jamais.
- */
+const NO_TWO_FACTOR: TwoFactorState = {
+  twoFactorEnabled: false,
+  twoFactorConfirmedAt: null,
+  recoveryCodesRemaining: 0,
+}
+
 export default class UserTransformer extends BaseTransformer<User> {
+  constructor(
+    resource: User,
+    private readonly twoFactor: TwoFactorState = NO_TWO_FACTOR
+  ) {
+    super(resource)
+  }
+
   toObject() {
     return {
       ...this.pick(this.resource, ['id', 'casId', 'email', 'createdAt', 'updatedAt']),
       hasPassword: this.resource.password !== null,
+      ...this.twoFactor,
     }
   }
 }

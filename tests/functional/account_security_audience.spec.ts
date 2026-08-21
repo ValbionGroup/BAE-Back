@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 import Client from '#models/client'
 import User from '#models/user'
 import { errorCodeOf } from '#tests/helpers/api_error'
+import { clearLimits } from '#tests/helpers/limiter'
 
 /**
  * Seuls les membres du bureau définissent une 2FA ou changent leur mot de passe.
@@ -19,6 +20,7 @@ import { errorCodeOf } from '#tests/helpers/api_error'
  */
 test.group('Sécurité du compte — réservée aux membres', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
+  group.each.setup(() => clearLimits())
 
   async function makeClient(): Promise<User> {
     const user = await User.create({
@@ -41,6 +43,10 @@ test.group('Sécurité du compte — réservée aux membres', (group) => {
 
     const routes: ReadonlyArray<[method: 'put' | 'post', path: string]> = [
       ['put', '/v1/account/password'],
+      ['post', '/v1/account/2fa'],
+      ['post', '/v1/account/2fa/confirm'],
+      ['post', '/v1/account/2fa/recovery-codes'],
+      ['post', '/v1/account/2fa/disable'],
     ]
 
     for (const [method, path] of routes) {

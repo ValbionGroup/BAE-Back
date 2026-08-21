@@ -4,12 +4,14 @@ import User from '#models/user'
 import type Member from '#models/member'
 import { MemberFactory } from '#database/factories/members_factory'
 import { errorCodeOf } from '#tests/helpers/api_error'
+import { clearLimits } from '#tests/helpers/limiter'
 
 const CURRENT = 'mot-de-passe-actuel'
 const NEXT = 'NouveauMotDePasse1'
 
 test.group('Compte — changement de mot de passe', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
+  group.each.setup(() => clearLimits())
 
   async function makeMember(password: string | null): Promise<User> {
     const member: Member = await MemberFactory.create()
