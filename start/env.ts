@@ -92,4 +92,15 @@ export default await Env.create(new URL('../', import.meta.url), {
   LYDIA_VENDOR_TOKEN: Env.schema.secret(),
   LYDIA_PRIVATE_TOKEN: Env.schema.secret(),
   LYDIA_CALLBACK_BASE_URL: Env.schema.string({ format: 'url', tld: false }),
+
+  /*
+  |----------------------------------------------------------
+  | Limitation de débit
+  |----------------------------------------------------------
+  */
+  // Aucun Redis n'est déployé : le magasin vit en base. Les tests forcent
+  // `memory` depuis `config/limiter.ts`, faute d'un fichier `.env.test`.
+  // Optionnelle pour que l'application démarre sans l'ajouter au `.env` :
+  // `config/limiter.ts` retombe sur `database`.
+  LIMITER_STORE: Env.schema.enum.optional(['database', 'memory'] as const),
 })
