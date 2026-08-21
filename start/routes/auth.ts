@@ -9,6 +9,10 @@ router
     router.post('logout', [controllers.AccessToken, 'destroy']).use(middleware.auth())
     router.delete('logout-all', [controllers.AccessToken, 'destroyAll']).use(middleware.auth())
 
+    // Anonymes, donc exemptées de CSRF par le prédicat de `config/shield.ts`.
+    router.post('password/forgot', [controllers.PasswordReset, 'request'])
+    router.post('password/reset', [controllers.PasswordReset, 'reset'])
+
     // Hors `middleware.auth()` : c'est la porte d'entrée, l'utilisateur n'est pas
     // encore authentifié. **Une seule URI de callback**, parce que chacune doit
     // être whitelistée par EirbWare — la zone visée voyage dans la session, à
