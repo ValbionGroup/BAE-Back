@@ -15,3 +15,20 @@ import vine from '@vinejs/vine'
  */
 export const emailRule = () => vine.string().email().maxLength(254)
 export const passwordRule = () => vine.string().minLength(8).maxLength(32)
+
+/**
+ * La règle des mots de passe **qu'on écrit aujourd'hui** : douze caractères, une
+ * majuscule, un chiffre. Elle existe à côté de `passwordRule()` et ne la remplace
+ * pas, parce que celle-ci garde `signupValidator` : la resserrer changerait le
+ * comportement d'un endpoint que personne n'a demandé de toucher.
+ *
+ * Ces trois exigences ne sont pas choisies ici : la page Sécurité affiche
+ * « ≥ 12 caractères · 1 majuscule · 1 chiffre » et sa jauge de force note
+ * exactement ces trois règles. L'API ne fait que cesser de contredire l'écran.
+ *
+ * Le plafond est à 72 et non aux 32 de `passwordRule()` : scrypt n'a pas de limite
+ * d'entrée, et 32 caractères écartent les phrases de passe comme les sorties de
+ * gestionnaire de mots de passe sans rien protéger.
+ */
+export const strongPasswordRule = () =>
+  vine.string().minLength(12).maxLength(72).regex(/[A-Z]/).regex(/\d/)

@@ -32,3 +32,23 @@ router
   .prefix('v1/account')
   .as('profile')
   .use(middleware.auth())
+
+/**
+ * Un **second** groupe sur le même préfixe, et non deux routes de plus dans celui
+ * du dessus.
+ *
+ * ⚠️ La raison est la seule chose importante de ce fichier : `audience('member')`
+ * posé sur le groupe précédent casserait la zone publique en silence. `/profile` et
+ * `/qr` sont l'ossature de l'application client — un adhérent sans ligne dans
+ * `members` doit continuer à lire son profil et afficher son QR.
+ *
+ * Ici, à l'inverse, l'appartenance est la règle : définir une 2FA ou changer son
+ * mot de passe est réservé aux membres du bureau.
+ */
+router
+  .group(() => {
+    router.put('/password', [controllers.AccountPassword, 'update'])
+  })
+  .prefix('v1/account')
+  .as('accountSecurity')
+  .use([middleware.auth(), middleware.audience('member')])
