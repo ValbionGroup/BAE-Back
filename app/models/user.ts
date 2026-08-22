@@ -11,7 +11,18 @@ import FastPass from '#models/fast_pass'
 import Member from '#models/member'
 import PreOrder from '#models/pre_order'
 
-export default class User extends compose(UserSchema, withAuthFinder(hash)) {
+export default class User extends compose(
+  UserSchema,
+  // ⚠️ Une fabrique, et non `hash` directement. Ce module est évalué **avant** le
+  // boot de l'application : Ace importe tous les fichiers de `commands/` pour en
+  // lire les métadonnées, et `member_create` importe ce modèle. À cet instant le
+  // service `hash` vaut encore `undefined`, et le mixin fige la valeur reçue dans
+  // une fermeture — le binding ESM a beau devenir vivant après le boot, le mixin
+  // ne le relit jamais. La fonction, elle, diffère la lecture jusqu'au hachage.
+  // Sans elle, `member:create` meurt sur « Cannot read properties of undefined »
+  // alors que la même authentification passe par HTTP, où le boot précède tout.
+  withAuthFinder(() => hash.use())
+) {
   static accessTokens = DbAccessTokensProvider.forModel(User)
   declare currentAccessToken?: AccessToken
 
