@@ -68,6 +68,9 @@ importers:
       puppeteer:
         specifier: ^24.43.1
         version: 24.43.1(supports-color@10.2.2)(typescript@5.9.3)
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -117,9 +120,6 @@ importers:
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
-      qrcode:
-        specifier: ^1.5.4
-        version: 1.5.4
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
