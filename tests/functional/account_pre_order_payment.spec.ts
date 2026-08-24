@@ -227,6 +227,71 @@ test.group('Précommande payée en ligne', (group) => {
   })
 
   /**
+   * Le défaut visé : `pre_order_items` a pour clé primaire
+   * `(pre_order_id, product_id)`. Deux lignes du même produit faisaient donc
+   * échouer l'insert **au callback**, c'est-à-dire une fois le client débité —
+   * paiement encaissé, précommande inexistante.
+   */
+  test('deux lignes du même produit ne font qu’une, après encaissement', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const user = await makeClient('merge@test.fr')
+    const { event, product } = await makeEvent(6, 350)
+
+    const opened = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({
+        eventId: event.id,
+        lines: [
+          { productId: product.id, quantity: 2 },
+          { productId: product.id, quantity: 3 },
+        ],
+      })
+      .loginAs(user)
+
+    opened.assertStatus(200)
+    const body = opened.body() as { data: { order_ref: string; amount_cents: number } }
+    // 5 × 350 = 1750, moins 10 % de remise de précommande.
+    assert.equal(body.data.amount_cents, 1575)
+
+    await httpClient.post(`/v1/lydia/callback/${body.data.order_ref}`).json({})
+
+    const rows = await db.from('pre_orders').where('user_id', user.id)
+    assert.lengthOf(rows, 1)
+
+    const items = await db.from('pre_order_items').where('pre_order_id', rows[0].id)
+    assert.lengthOf(items, 1)
+    assert.equal(Number(items[0].quantity), 5)
+  })
+
+  /** Le plafond par ligne se contournerait sinon en scindant la commande. */
+  test('le plafond par article résiste au découpage en plusieurs lignes', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const user = await makeClient('cap@test.fr')
+    const { event, product } = await makeEvent(6, 350)
+
+    const response = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({
+        eventId: event.id,
+        lines: [
+          { productId: product.id, quantity: 40 },
+          { productId: product.id, quantity: 20 },
+        ],
+      })
+      .loginAs(user)
+
+    response.assertStatus(422)
+    assert.equal(
+      (response.body() as unknown as { error: { code: string } }).error.code,
+      'E_PRE_ORDER_QUANTITY_TOO_HIGH'
+    )
+  })
+
+  /**
    * Le défaut visé : relire le prix depuis le menu courant, si bien que
    * retoucher le tarif d'une soirée réécrit ce que les clients ont déjà payé.
    */

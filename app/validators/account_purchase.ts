@@ -18,6 +18,8 @@ export const createAccountPreOrderValidator = vine.create({
         productId: vine.number().positive(),
         // Plafond volontairement bas : une précommande est un repas, pas une
         // commande de gros, et un nombre aberrant coûterait à la cuisine.
+        // Re-testé après fusion des lignes (`MAX_LINE_QUANTITY`, quote service) :
+        // ici seul, deux lignes de 50 le contourneraient.
         quantity: vine.number().positive().max(50),
       })
     )

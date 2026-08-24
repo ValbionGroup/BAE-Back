@@ -8,6 +8,12 @@ import {
   preOrderDiscountPercent,
 } from '#services/public_catalog_service'
 
+/**
+ * Plafond par produit, repris de `createAccountPreOrderValidator` : une
+ * précommande est un repas, pas une commande de gros.
+ */
+export const MAX_LINE_QUANTITY = 50
+
 export interface QuoteLine {
   productId: number
   quantity: number
@@ -55,7 +61,7 @@ export async function quotePreOrder(
   let subtotal = 0
   const priced: PricedQuoteLine[] = []
 
-  for (const line of lines) {
+  for (const line of mergeQuoteLines(lines)) {
     const price = prices.get(line.productId)
     if (price === undefined) {
       throw new ApiException(
@@ -78,6 +84,36 @@ export async function quotePreOrder(
     lines: priced,
     discountPercent: percent,
   }
+}
+
+/**
+ * Fusionne les lignes portant le même produit.
+ *
+ * ⚠️ Sans cette fusion, deux lignes du même produit dans une même commande font
+ * **échouer l'insert de `pre_order_items` après encaissement** : sa clé primaire
+ * est `(pre_order_id, product_id)`. Le client est débité, la précommande
+ * n'existe pas. Le total, lui, est le même dans les deux cas.
+ *
+ * Le plafond par ligne est re-testé **après** fusion : sinon deux lignes de 50
+ * le contournent, et c'est précisément la forme d'entrée qu'on accepte ici.
+ */
+function mergeQuoteLines(lines: readonly QuoteLine[]): QuoteLine[] {
+  const merged = new Map<number, number>()
+
+  for (const line of lines) {
+    merged.set(line.productId, (merged.get(line.productId) ?? 0) + line.quantity)
+  }
+
+  return [...merged].map(([productId, quantity]) => {
+    if (quantity > MAX_LINE_QUANTITY) {
+      throw new ApiException(
+        'E_PRE_ORDER_QUANTITY_TOO_HIGH',
+        `Un même article ne peut pas dépasser ${MAX_LINE_QUANTITY} unités par précommande.`,
+        422
+      )
+    }
+    return { productId, quantity }
+  })
 }
 
 export function applyDiscount(subtotalCents: number, percent: number): number {
