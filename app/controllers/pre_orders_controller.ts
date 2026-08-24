@@ -1,6 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { collect, kitchenTicketsFor, setPreOrderStatus } from '#services/pre_order_service'
-import { orderStatusValidator } from '#validators/order'
+import {
+  collect,
+  kitchenTicketsFor,
+  setPickupAt,
+  setPreOrderStatus,
+} from '#services/pre_order_service'
+import { orderStatusValidator, preOrderPickupValidator } from '#validators/order'
 import { broadcastPreOrder } from '#services/orders_realtime'
 
 export default class PreOrdersController {
@@ -11,6 +16,23 @@ export default class PreOrdersController {
   async setStatus({ params, request, serialize }: HttpContext) {
     const payload = await request.validateUsing(orderStatusValidator)
     const ticket = await setPreOrderStatus(Number(params.id), payload.status)
+    broadcastPreOrder(ticket)
+    return serialize(ticket)
+  }
+
+  /**
+   * Pose, déplace ou retire le créneau de retrait.
+   *
+   * Diffusé comme un changement de statut : la file de la cuisine trie sur
+   * l'heure de retrait, donc déplacer un créneau réordonne l'écran de tout le
+   * monde.
+   */
+  async setPickup({ params, request, serialize }: HttpContext) {
+    const payload = await request.validateUsing(preOrderPickupValidator)
+    const ticket = await setPickupAt(
+      Number(params.id),
+      payload.pickupAt === null ? null : payload.pickupAt.toISO()
+    )
     broadcastPreOrder(ticket)
     return serialize(ticket)
   }

@@ -1,6 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import PreOrder from '#models/pre_order'
+import Event from '#models/event'
 import ApiException from '#exceptions/api_exception'
 import { assertTransition, type OrderStatus } from '#services/order_service'
 import { resolveBuyerNames } from '#services/buyer_service'
@@ -223,4 +224,126 @@ export async function collect(preOrderId: number): Promise<PreOrderTicket> {
   })
 
   return findTicket(preOrderId)
+}
+
+/**
+ * Pas des créneaux de retrait. Le client choisit un quart d'heure, pas une
+ * minute : la cuisine sert par vagues, et un grain plus fin ne produirait
+ * qu'une file impossible à préparer.
+ */
+export const PICKUP_SLOT_MINUTES = 15
+
+/**
+ * Durée retenue quand `events.duration` est nulle — la colonne est facultative
+ * (`validators/event.ts`), et sans repli une soirée sans horaire de fin
+ * n'offrirait aucun créneau du tout.
+ *
+ * ⚠️ `events.duration` est en **secondes**, comme l'écrit le front
+ * (`(endMin - startMin) * 60`, `coordination-new-modal.ts`).
+ */
+export const DEFAULT_EVENT_DURATION_SECONDS = 4 * 60 * 60
+
+export type PickupWindow = { start: DateTime; end: DateTime }
+
+export function pickupWindowOf(date: DateTime, duration: number | null): PickupWindow {
+  return { start: date, end: date.plus({ seconds: duration ?? DEFAULT_EVENT_DURATION_SECONDS }) }
+}
+
+/**
+ * Un créneau vaut s'il tombe **dans** la soirée et **sur** un quart d'heure plein.
+ *
+ * Les deux chemins d'écriture passent par ici — la commande du client et la
+ * correction du staff. Sans cela le client pourrait poser une heure que l'écran
+ * d'administration ne saurait pas proposer, donc pas non plus reprendre.
+ *
+ * L'alignement se teste sur les minutes locales sans se soucier du fuseau : tous
+ * les décalages en usage sont des multiples de 15 minutes, donc un quart d'heure
+ * plein le reste d'un fuseau à l'autre.
+ */
+export function assertPickupSlot(pickupAt: DateTime, window: PickupWindow): void {
+  if (
+    pickupAt.minute % PICKUP_SLOT_MINUTES !== 0 ||
+    pickupAt.second !== 0 ||
+    pickupAt.millisecond !== 0
+  ) {
+    throw new ApiException(
+      'E_PICKUP_SLOT_MISALIGNED',
+      `L'heure de retrait doit tomber sur un créneau de ${PICKUP_SLOT_MINUTES} minutes.`,
+      422
+    )
+  }
+
+  if (pickupAt < window.start || pickupAt > window.end) {
+    throw new ApiException(
+      'E_PICKUP_SLOT_OUT_OF_RANGE',
+      'Cette heure de retrait tombe en dehors de la soirée.',
+      422
+    )
+  }
+}
+
+/**
+ * Pose, déplace ou retire l'heure de retrait d'une précommande.
+ *
+ * Modifiable tant que la commande n'a pas été remise : un retard de cuisine se
+ * répercute sur des créneaux déjà annoncés, c'est le cas d'usage principal.
+ * `null` retire le créneau, ce qui remet la commande en tête de file
+ * (`due` vaut alors `true`, cf. `kitchenTicketsFor`).
+ */
+export async function setPickupAt(
+  preOrderId: number,
+  pickupAt: string | null
+): Promise<PreOrderTicket> {
+  await db.transaction(async (trx) => {
+    const preOrder = await PreOrder.query({ client: trx })
+      .where('id', preOrderId)
+      .preload('event')
+      .forUpdate()
+      .first()
+
+    if (!preOrder) {
+      throw new ApiException('E_PRE_ORDER_NOT_FOUND', "Cette précommande n'existe pas.", 404)
+    }
+
+    const rows = await trx.from('pre_order_items').where('pre_order_id', preOrderId)
+    if (
+      rows.length > 0 &&
+      rows.every((row) => Number(row.received_quantity) >= Number(row.quantity))
+    ) {
+      throw new ApiException(
+        'E_PRE_ORDER_ALREADY_COLLECTED',
+        'Cette précommande a déjà été remise : son heure de retrait ne veut plus rien dire.',
+        409
+      )
+    }
+
+    if (pickupAt === null) {
+      preOrder.pickupAt = null
+    } else {
+      const parsed = DateTime.fromISO(pickupAt)
+      if (!parsed.isValid) {
+        throw new ApiException('E_PICKUP_AT_INVALID', 'Cette heure de retrait est illisible.', 422)
+      }
+
+      assertPickupSlot(parsed, pickupWindowOf(preOrder.event.date, preOrder.event.duration))
+      preOrder.pickupAt = parsed
+    }
+
+    await preOrder.save()
+  })
+
+  return findTicket(preOrderId)
+}
+
+/**
+ * Même règle, appliquée au moment de la commande : le client choisit son
+ * créneau avant que la précommande n'existe, donc avant qu'on puisse la charger.
+ */
+export async function assertPickupSlotForEvent(eventId: number, pickupAt: DateTime): Promise<void> {
+  const event = await Event.find(eventId)
+  if (!event) {
+    throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
+  }
+
+  assertPickupSlot(pickupAt, pickupWindowOf(event.date, event.duration))
 }

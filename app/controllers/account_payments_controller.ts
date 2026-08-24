@@ -8,6 +8,7 @@ import {
 } from '#validators/account_purchase'
 import { openPayment, toPaymentView } from '#services/payment_service'
 import { quotePreOrder } from '#services/pre_order_quote_service'
+import { assertPickupSlotForEvent } from '#services/pre_order_service'
 
 /**
  * Un quart d'heure : assez pour payer sur son téléphone, assez court pour que
@@ -65,6 +66,13 @@ export default class AccountPaymentsController {
     const user = auth.getUserOrFail()
 
     const quote = await quotePreOrder(user.id, payload.eventId, payload.lines)
+
+    // Le créneau choisi par le client passe par la **même** règle que celui que
+    // le staff pose ensuite : sans cela le client peut réserver une heure que
+    // l'écran d'administration ne sait ni proposer ni reprendre.
+    if (payload.pickupAt) {
+      await assertPickupSlotForEvent(payload.eventId, payload.pickupAt)
+    }
 
     const expireTimeSeconds = Math.max(
       CLOSE_MARGIN_SECONDS,

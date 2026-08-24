@@ -61,6 +61,10 @@ router
       .use(middleware.can('order:write'))
 
     router
+      .patch('/pre-orders/:id/pickup', [controllers.PreOrders, 'setPickup'])
+      .use(middleware.can('order:write'))
+
+    router
       .post('/pre-orders/:id/collect', [controllers.PreOrders, 'collect'])
       .use(middleware.can('order:write'))
 

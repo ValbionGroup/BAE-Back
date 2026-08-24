@@ -24,3 +24,18 @@ export const orderCheckoutValidator = vine.create({
 export const orderStatusValidator = vine.create({
   status: vine.enum(['pending', 'in_progress', 'ready', 'completed', 'cancelled'] as const),
 })
+
+/**
+ * Déplacement du créneau de retrait d'une précommande par le staff.
+ *
+ * `null` est une valeur reçue, pas une absence : elle **retire** le créneau, ce
+ * qui n'est pas la même chose que « ne pas y toucher ». D'où `nullable()` et
+ * non `optional()`.
+ *
+ * L'alignement sur le quart d'heure et l'appartenance à la soirée ne sont pas
+ * vérifiés ici : ils dépendent de la soirée, donc de la base. Voir
+ * `assertPickupSlot` dans `pre_order_service`.
+ */
+export const preOrderPickupValidator = vine.create({
+  pickupAt: vine.date({ formats: ['iso8601'] }).nullable(),
+})

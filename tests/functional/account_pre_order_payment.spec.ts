@@ -292,6 +292,63 @@ test.group('Précommande payée en ligne', (group) => {
   })
 
   /**
+   * Le client choisit son créneau, mais pas n'importe lequel : il doit tomber
+   * sur un quart d'heure de la soirée, sinon le staff ne pourrait ni le
+   * proposer ni le reprendre depuis son écran.
+   */
+  test('un créneau de retrait hors quart d’heure est refusé', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const user = await makeClient('slot@test.fr')
+    const { event, product } = await makeEvent(6, 350)
+
+    const response = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({
+        eventId: event.id,
+        // Ancré sur l'heure pleine puis décalé de 7 min : la date de la soirée
+        // est posée à `now + 18 h`, donc à des minutes quelconques.
+        pickupAt: event.date.startOf('hour').plus({ hours: 1, minutes: 7 }).toISO(),
+        lines: [{ productId: product.id, quantity: 1 }],
+      })
+      .loginAs(user)
+
+    response.assertStatus(422)
+    assert.equal(
+      (response.body() as unknown as { error: { code: string } }).error.code,
+      'E_PICKUP_SLOT_MISALIGNED'
+    )
+  })
+
+  test('un créneau de retrait aligné est conservé jusqu’à la précommande', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const user = await makeClient('slot-ok@test.fr')
+    const { event, product } = await makeEvent(6, 350)
+    // Idem : on repart de l'heure pleine, sinon le créneau hérite des minutes
+    // arbitraires de `now + 18 h` et tombe hors quart d'heure.
+    const pickupAt = event.date.startOf('hour').plus({ hours: 1 })
+
+    const opened = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({
+        eventId: event.id,
+        pickupAt: pickupAt.toISO(),
+        lines: [{ productId: product.id, quantity: 1 }],
+      })
+      .loginAs(user)
+
+    opened.assertStatus(200)
+    const orderRef = (opened.body() as { data: { order_ref: string } }).data.order_ref
+    await httpClient.post(`/v1/lydia/callback/${orderRef}`).json({})
+
+    const [row] = await db.from('pre_orders').where('user_id', user.id)
+    assert.equal(DateTime.fromJSDate(new Date(row.pickup_at)).toMillis(), pickupAt.toMillis())
+  })
+
+  /**
    * Le défaut visé : relire le prix depuis le menu courant, si bien que
    * retoucher le tarif d'une soirée réécrit ce que les clients ont déjà payé.
    */

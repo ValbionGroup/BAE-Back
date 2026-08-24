@@ -5,6 +5,7 @@ import Event from '#models/event'
 import FastPass from '#models/fast_pass'
 import ApiException from '#exceptions/api_exception'
 import { primaryCategoryName } from '#services/product_category_service'
+import { pickupWindowOf } from '#services/pre_order_service'
 
 /**
  * Le catalogue tel qu'un visiteur **non authentifié** le voit.
@@ -75,6 +76,12 @@ export interface PublicEventView {
   description: string | null
   /** ISO 8601. */
   startsAt: string
+  /**
+   * Fin de la soirée, donc dernier créneau de retrait possible. Calculée ici
+   * plutôt qu'exposée sous forme de durée : la colonne `events.duration` est en
+   * secondes et nullable, deux pièges que le client n'a pas à connaître.
+   */
+  endsAt: string
   preOrdersCloseAt: string
   /** Nombre de précommandes acceptées. `0` ferme la soirée. */
   capacity: number
@@ -111,6 +118,7 @@ function toEventView(event: Event, placed: number, now: DateTime): PublicEventVi
     name: event.name,
     description: event.description,
     startsAt: event.date.toISO()!,
+    endsAt: pickupWindowOf(event.date, event.duration).end.toISO()!,
     preOrdersCloseAt: closesAt.toISO()!,
     capacity: event.capacity,
     placed,
