@@ -15,7 +15,7 @@ async function seed(options: { paid?: boolean; pickupInMinutes?: number | null }
     description: null,
     date: DateTime.fromISO('2026-02-14'),
     status: 'ongoing',
-    duration: 4,
+    duration: 4 * 60 * 60,
   })
   const product = await Product.create({
     name: 'Hot-dog classique',

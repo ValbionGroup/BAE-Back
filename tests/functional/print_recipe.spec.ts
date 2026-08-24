@@ -61,7 +61,7 @@ test.group('Fiche recette PDF', (group) => {
       description: null,
       date: DateTime.fromISO('2026-02-14'),
       status: 'scheduled',
-      duration: 4,
+      duration: 4 * 60 * 60,
     })
     await event.related('products').attach({ [recipe.id]: { quantity: 50, price: 0 } })
 

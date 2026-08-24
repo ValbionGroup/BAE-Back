@@ -326,7 +326,7 @@ test.group('Adhérents — activité', (group) => {
       description: null,
       date: DateTime.now(),
       status: 'ongoing',
-      duration: 4,
+      duration: 4 * 60 * 60,
     })
     const product = await Product.create({
       name: 'Hot-dog',

@@ -15,7 +15,7 @@ async function seed() {
     description: null,
     date: DateTime.fromISO('2026-02-14'),
     status: 'ongoing',
-    duration: 4,
+    duration: 4 * 60 * 60,
   })
 
   const hotdog = await Product.create({

@@ -15,7 +15,7 @@ async function makeEvent(capacity: number, startsIn: object = { days: 7 }): Prom
     description: 'Hot-dogs, bières, crêpes',
     date: DateTime.now().plus(startsIn),
     status: 'scheduled',
-    duration: 4,
+    duration: 4 * 60 * 60,
     capacity,
   })
 }

@@ -15,7 +15,7 @@ async function seedMenuFixture() {
     description: null,
     date: DateTime.fromISO('2026-02-14'),
     status: 'scheduled',
-    duration: 4,
+    duration: 4 * 60 * 60,
   })
 
   const good = await Good.create({
@@ -201,7 +201,7 @@ test.group('Event products — écriture du menu', (group) => {
       description: null,
       date: DateTime.fromISO('2026-01-24'),
       status: 'completed',
-      duration: 3,
+      duration: 3 * 60 * 60,
     })
     await past.related('products').attach({ [product.id]: { quantity: 150, price: 350 } })
 

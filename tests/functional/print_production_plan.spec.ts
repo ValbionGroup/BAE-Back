@@ -16,7 +16,7 @@ async function makeEvent(name = 'Soirée Hivernale') {
     description: null,
     date: DateTime.fromISO('2026-02-14'),
     status: 'scheduled',
-    duration: 4,
+    duration: 4 * 60 * 60,
   })
 }
 

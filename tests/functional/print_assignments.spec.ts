@@ -21,7 +21,7 @@ test.group("Feuille d'affectation PDF", (group) => {
       description: null,
       date: DateTime.fromISO('2026-02-14'),
       status: 'scheduled',
-      duration: 4,
+      duration: 4 * 60 * 60,
     })
     const job = await Job.create({ name: 'Cuisine', type: 'during', description: null })
     await event.related('jobs').attach({ [job.id]: { count: 2 } })
@@ -51,7 +51,7 @@ test.group("Feuille d'affectation PDF", (group) => {
       description: null,
       date: DateTime.fromISO('2026-02-14'),
       status: 'scheduled',
-      duration: 4,
+      duration: 4 * 60 * 60,
     })
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, [])
