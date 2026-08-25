@@ -2,17 +2,18 @@ import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import Good from '#models/good'
 import Supplier from '#models/supplier'
 
+// Prix en **centimes**, comme toute valeur monétaire depuis le 2026-08-25.
 const BASE_PRICES: Record<string, number> = {
-  'Saucisses Strasbourg x10': 4.95,
-  'Pain hot-dog x12': 2.75,
-  'Moutarde 270g': 1.79,
-  'Oignons frits 100g': 1.45,
-  'Frites surgelées': 2.4,
-  'Huile de friture': 3.2,
-  'Steak végétal x8': 5.6,
-  'Farine T55': 1.1,
-  'Pâte à tartiner 400g': 3.45,
-  'Bière blonde 25cl x24': 11.95,
+  'Saucisses Strasbourg x10': 495,
+  'Pain hot-dog x12': 275,
+  'Moutarde 270g': 179,
+  'Oignons frits 100g': 145,
+  'Frites surgelées': 240,
+  'Huile de friture': 320,
+  'Steak végétal x8': 560,
+  'Farine T55': 110,
+  'Pâte à tartiner 400g': 345,
+  'Bière blonde 25cl x24': 1195,
 }
 
 const RETAILER_FACTORS: Record<string, number> = {
@@ -38,7 +39,9 @@ export default class extends BaseSeeder {
         if (base === undefined) continue
         const favoredIndex = good.id % 3
         const wobble = retailerIndex === favoredIndex ? 0.9 : 1.0
-        pivot[good.id] = { price: Number((base * factor * wobble).toFixed(2)) }
+        // `factor` et `wobble` sont fractionnaires : sans arrondi explicite, un
+        // flottant partirait dans une colonne entière.
+        pivot[good.id] = { price: Math.round(base * factor * wobble) }
       }
 
       await supplier.related('goods').sync(pivot)

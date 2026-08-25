@@ -1,13 +1,14 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import Furniture from '#models/furniture'
 
+// Prix en **centimes**, comme toute valeur monétaire depuis le 2026-08-25.
 const FURNITURES: readonly { name: string; price: number; quantity: number }[] = [
-  { name: 'Serviette papier', price: 0.01, quantity: 800 },
-  { name: 'Barquette carton', price: 0.08, quantity: 300 },
-  { name: 'Gobelet 20cl', price: 0.03, quantity: 500 },
-  { name: 'Couvert plastique', price: 0.02, quantity: 600 },
-  { name: 'Nappe jetable', price: 0.45, quantity: 15 },
-  { name: 'Sac poubelle 50L', price: 0.15, quantity: 60 },
+  { name: 'Serviette papier', price: 1, quantity: 800 },
+  { name: 'Barquette carton', price: 8, quantity: 300 },
+  { name: 'Gobelet 20cl', price: 3, quantity: 500 },
+  { name: 'Couvert plastique', price: 2, quantity: 600 },
+  { name: 'Nappe jetable', price: 45, quantity: 15 },
+  { name: 'Sac poubelle 50L', price: 15, quantity: 60 },
 ]
 
 export default class extends BaseSeeder {
@@ -16,7 +17,7 @@ export default class extends BaseSeeder {
       'name',
       FURNITURES.map((furniture) => ({
         name: furniture.name,
-        price: furniture.price.toFixed(2),
+        price: furniture.price,
         quantity: furniture.quantity,
       }))
     )

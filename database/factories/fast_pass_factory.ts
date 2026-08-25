@@ -8,7 +8,7 @@ export const FastPassFactory = factory
     return {
       label: years === 1 ? 'Adhésion 1 an' : `Adhésion ${years} ans`,
       description: faker.lorem.sentence(),
-      price: years * faker.number.int({ min: 10, max: 12 }),
+      price: years * faker.number.int({ min: 10, max: 12 }) * 100,
       duration: years,
     }
   })

@@ -6,7 +6,7 @@ import { MemberFactory } from './members_factory.ts'
 export const RestockFactory = factory
   .define(Restock, async ({ faker }) => {
     return {
-      totalPrice: faker.commerce.price(),
+      totalPrice: faker.number.int({ min: 1000, max: 50000 }),
       memberId: null,
       supplierId: null,
     }
