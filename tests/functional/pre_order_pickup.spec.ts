@@ -27,7 +27,7 @@ async function seed(pickupAt: DateTime | null = null) {
     recipe: null,
   })
   const owner = await MemberFactory.with('user', 1).create()
-  const transaction = await Transaction.create({ type: 'lydia', amount: '7.00' })
+  const transaction = await Transaction.create({ type: 'lydia', amount: 700 })
 
   const preOrder = await PreOrder.create({
     userId: owner.id,

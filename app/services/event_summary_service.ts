@@ -23,6 +23,7 @@ export interface EventSummary {
   sponsoredCents: number
   payerName: string | null
   receivableByCategory: { label: string; dueCents: number }[]
+  /** `amount` en **centimes**, comme `revenueCents` et `cashedCents`. */
   cashedByMethod: { method: string; amount: number; count: number }[]
   lines: SummaryLine[]
 }
@@ -105,7 +106,7 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
   for (const row of cashedRows) {
     const method = String(row.type)
     const entry = byMethod.get(method) ?? { amount: 0, count: 0 }
-    entry.amount += Number(row.amount)
+    entry.amount += row.amount
     entry.count += 1
     byMethod.set(method, entry)
   }

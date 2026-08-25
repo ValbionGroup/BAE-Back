@@ -44,7 +44,7 @@ export function toView(subscription: Subscription): SubscriptionView {
     subscribedAt: asDateTime(subscription.subscribedAt).toISODate()!,
     expiresAt: expiresAt.toISODate()!,
     status: statusOf(expiresAt),
-    amount: transaction ? Number(transaction.amount) : null,
+    amount: transaction ? transaction.amount : null,
     paymentMethod: transaction ? transaction.type : null,
   }
 }

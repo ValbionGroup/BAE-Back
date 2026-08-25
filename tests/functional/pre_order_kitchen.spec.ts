@@ -28,7 +28,7 @@ async function seed(options: { paid?: boolean; pickupInMinutes?: number | null }
   ).create()
 
   const transaction =
-    options.paid === false ? null : await Transaction.create({ type: 'lydia', amount: '7.00' })
+    options.paid === false ? null : await Transaction.create({ type: 'lydia', amount: 700 })
 
   const pickupAt =
     options.pickupInMinutes === null || options.pickupInMinutes === undefined

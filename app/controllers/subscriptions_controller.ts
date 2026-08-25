@@ -46,7 +46,7 @@ export default class SubscriptionsController {
 
       const transaction = payload.payment
         ? await Transaction.create(
-            { amount: String(payload.payment.amount), type: payload.payment.type },
+            { amount: payload.payment.amount, type: payload.payment.type },
             { client: trx }
           )
         : null

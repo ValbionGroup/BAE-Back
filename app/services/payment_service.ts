@@ -199,7 +199,7 @@ export async function confirmPayment(orderRef: string): Promise<void> {
     const transaction = new Transaction()
     transaction.useTransaction(trx)
     transaction.type = 'lydia'
-    transaction.amount = (payment.amountCents / 100).toFixed(2)
+    transaction.amount = payment.amountCents
     await transaction.save()
 
     const intent = JSON.parse(payment.intent) as Record<string, unknown>

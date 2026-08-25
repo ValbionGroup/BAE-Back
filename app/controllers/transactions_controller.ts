@@ -17,7 +17,7 @@ function toPayload(transaction: Transaction): TransactionPayload {
   return {
     id: transaction.id,
     type: transaction.type,
-    amount: Number(transaction.amount),
+    amount: transaction.amount,
     eventId,
     orderIds: orders.map((order) => order.id),
     createdAt: transaction.createdAt ? transaction.createdAt.toISO() : null,

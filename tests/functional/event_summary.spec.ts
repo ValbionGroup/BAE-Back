@@ -138,7 +138,7 @@ test.group('Bilan de soirée', (group) => {
       .table('transactions')
       .insert({
         type: 'cash',
-        amount: 12.5,
+        amount: 1250,
         created_at: DateTime.now().toSQL(),
         updated_at: DateTime.now().toSQL(),
       })
@@ -155,6 +155,7 @@ test.group('Bilan de soirée', (group) => {
 
     assert.isDefined(cash)
     assert.equal(cash!.count, 1, 'compter par commande la multiplierait')
-    assert.equal(cash!.amount, 12.5)
+    assert.strictEqual(cash!.amount, 1250)
+    assert.isTrue(Number.isInteger(cash!.amount), 'un montant ne porte jamais de decimale')
   })
 })

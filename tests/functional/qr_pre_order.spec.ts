@@ -27,7 +27,7 @@ async function seedPreOrder(userId: number, options: { paid: boolean; received?:
   })
 
   const transaction = options.paid
-    ? await Transaction.create({ type: 'cash', amount: '7.00' })
+    ? await Transaction.create({ type: 'cash', amount: 700 })
     : null
 
   const preOrder = await PreOrder.create({

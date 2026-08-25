@@ -92,7 +92,7 @@ interface MenuEntry {
   name: string
 }
 
-/** ⚠️ `price` est un entier **en centimes** ; `transactions.amount` est en euros. */
+/** `price` et `transactions.amount` sont tous deux des entiers **en centimes**. */
 async function menuOf(
   eventId: number,
   trx?: TransactionClientContract
@@ -366,8 +366,7 @@ export async function writeOrder(
   const transaction = new Transaction()
   transaction.useTransaction(trx)
   transaction.type = paymentMethod
-  // Centimes → euros, en chaîne : `decimal` transite en string dans les deux sens.
-  transaction.amount = (draft.totalCents / 100).toFixed(2)
+  transaction.amount = draft.totalCents
   await transaction.save()
 
   const order = new Order()
