@@ -8,7 +8,7 @@ export default class extends BaseSchema {
       table.increments('id')
 
       table.enum('type', ['cash', 'lydia']).notNullable()
-      table.decimal('amount', 10, 2).unsigned().notNullable()
+      table.integer('amount').unsigned().notNullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

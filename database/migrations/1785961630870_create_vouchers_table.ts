@@ -14,7 +14,7 @@ export default class extends BaseSchema {
         .inTable('suppliers')
         .onDelete('CASCADE')
 
-      table.decimal('value', 10, 2).notNullable()
+      table.integer('value').notNullable()
       table.date('expires_at').notNullable()
       table.string('condition').nullable() // e.g. 'à partir de 80 €'
       table.timestamp('used_at').nullable()

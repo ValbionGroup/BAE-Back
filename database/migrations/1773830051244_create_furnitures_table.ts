@@ -9,7 +9,7 @@ export default class extends BaseSchema {
 
       table.string('name').notNullable()
       table.integer('quantity').notNullable()
-      table.string('price').notNullable()
+      table.integer('price').notNullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

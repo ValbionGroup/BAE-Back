@@ -242,7 +242,7 @@ export class FurnitureSchema extends BaseModel {
   @column()
   declare name: string
   @column()
-  declare price: string
+  declare price: number
   @column()
   declare quantity: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -257,7 +257,7 @@ export class GoodSupplierSchema extends BaseModel {
   @column()
   declare goodId: number
   @column()
-  declare price: string
+  declare price: number
   @column()
   declare supplierId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -800,7 +800,7 @@ export class RestockSchema extends BaseModel {
   @column()
   declare supplierId: number | null
   @column()
-  declare totalPrice: string
+  declare totalPrice: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -1001,7 +1001,7 @@ export class TransactionSchema extends BaseModel {
   static $columns = ['amount', 'createdAt', 'id', 'type', 'updatedAt'] as const
   $columns = TransactionSchema.$columns
   @column()
-  declare amount: string
+  declare amount: number
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
   @column({ isPrimary: true })
@@ -1114,5 +1114,5 @@ export class VoucherSchema extends BaseModel {
   @column.dateTime()
   declare usedAt: DateTime | null
   @column()
-  declare value: string
+  declare value: number
 }

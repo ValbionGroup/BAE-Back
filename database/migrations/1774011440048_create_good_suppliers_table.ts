@@ -23,7 +23,7 @@ export default class extends BaseSchema {
         .onDelete('CASCADE')
         .onUpdate('CASCADE')
 
-      table.decimal('price', 10, 2).notNullable()
+      table.integer('price').notNullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

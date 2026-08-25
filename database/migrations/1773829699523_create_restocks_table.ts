@@ -16,7 +16,7 @@ export default class extends BaseSchema {
 
       table.integer('member_id').unsigned().references('id').inTable('members').onDelete('SET NULL')
 
-      table.decimal('total_price', 10, 2).notNullable()
+      table.integer('total_price').notNullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')
