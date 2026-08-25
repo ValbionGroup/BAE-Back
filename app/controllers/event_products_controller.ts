@@ -22,6 +22,19 @@ interface MenuLinePayload {
   category: string | null
 }
 
+/**
+ * Coût des denrées d'une recette, en centimes **non arrondis**, ou `null` si un
+ * ingrédient n'a aucun prix fournisseur.
+ *
+ * L'unité vient de `good_suppliers.price`, entier de centimes : `unitCost` et
+ * `price` d'une même ligne de menu sont donc enfin comparables. Ils ne l'étaient
+ * pas — `price` en centimes, `unitCost` en euros — et leur soustraction a déjà
+ * affiché une marge fausse d'un facteur 100.
+ *
+ * ⚠️ Le résultat n'est pas entier : `pivot_quantity` est un `decimal(10,4)`,
+ * parce qu'une recette consomme des fractions d'unité (0,25 L de sirop). C'est
+ * l'appelant qui arrondit, et il le fait le plus tard possible.
+ */
 function unitCostOf(product: Product): number | null {
   let cost = 0
   for (const good of product.goods) {
@@ -41,8 +54,10 @@ function toMenuLine(product: Product): MenuLinePayload {
     isVegetarian: product.isVegetarian ?? false,
     quantity,
     price: Number(product.$extras.pivot_price),
-    unitCost,
-    totalCost: unitCost === null ? null : unitCost * quantity,
+    // `totalCost` part du coût **non arrondi** : le dériver de `unitCost` déjà
+    // arrondi multiplierait l'erreur d'arrondi par la quantité.
+    unitCost: unitCost === null ? null : Math.round(unitCost),
+    totalCost: unitCost === null ? null : Math.round(unitCost * quantity),
     category: primaryCategoryName(product),
   }
 }

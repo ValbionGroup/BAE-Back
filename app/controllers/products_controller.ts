@@ -244,6 +244,9 @@ export default class ProductsController {
         }
         cost += Number(good.$extras.pivot_quantity) * minPrice
       }
+      // ⚠️ Ce `Number()` reste, contrairement à ses voisins supprimés ailleurs :
+      // `last_price` vient d'un `db.raw` (sous-requête corrélée), dont Lucid ne
+      // type pas le retour. La coercion y est légitime.
       const lastPrice = product.$extras.last_price
       return {
         id: product.id,
@@ -252,7 +255,10 @@ export default class ProductsController {
         category: primaryCategoryName(product),
         ingredientCount: product.goods.length,
         lastPrice: lastPrice === null || lastPrice === undefined ? null : Number(lastPrice),
-        cost,
+        // `cost` et `lastPrice` sont désormais tous deux en **centimes** :
+        // `lastPrice - cost` est une marge juste, ce qu'elle n'était pas.
+        // L'arrondi vient des quantités fractionnaires des recettes.
+        cost: cost === null ? null : Math.round(cost),
       }
     })
     return serialize(summaries)
