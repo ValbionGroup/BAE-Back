@@ -8,8 +8,8 @@ import { ANONYMOUS_BUYER, resolveBuyerName, resolveBuyerNames } from '#services/
 import { findCategory, gridOf } from '#services/sponsorship_service'
 
 export const ORDER_STATUSES = ['pending', 'in_progress', 'ready', 'completed', 'cancelled'] as const
-
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
+export type PaymentMethod = 'cash' | 'lydia' | 'card'
 
 /** Libellés lus au comptoir : un refus nomme un état, pas un code. */
 export const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -246,13 +246,6 @@ async function discountsOf(
   return byOrder
 }
 
-/**
- * Refuse de vendre plus que ce qui a été produit.
- *
- * ⚠️ `produced = 0` laisse passer : une soirée qui ne déclare aucune production
- * aurait sinon toute sa carte en rupture et ne pourrait rien encaisser. Absence
- * d'information n'est pas absence de stock — même règle que la caisse.
- */
 async function assertSellable(
   quantities: Map<number, number>,
   eventId: number,
@@ -300,104 +293,124 @@ async function assertSellable(
   }
 }
 
-/**
- * Transaction, commande et lignes en une seule écriture : un échec à mi-chemin
- * laisserait de l'argent sans commande, ou l'inverse.
- */
+export interface OrderDraft {
+  eventId: number
+  lines: OrderLinePayload[]
+  totalCents: number
+  sponsorship: { categoryId: number; label: string; payerName: string | null } | null
+}
+
+export async function priceCart(
+  eventId: number,
+  lines: readonly CheckoutLine[],
+  sponsorshipCategoryId: number | null,
+  trx: TransactionClientContract
+): Promise<OrderDraft> {
+  const quantities = mergeLines(lines)
+
+  const event = await Event.query({ client: trx }).where('id', eventId).forUpdate().first()
+  if (!event) {
+    throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
+  }
+
+  const menu = await menuOf(eventId, trx)
+
+  const category = sponsorshipCategoryId ? await findCategory(eventId, sponsorshipCategoryId) : null
+  const grid = category ? await gridOf(category.id, trx) : new Map<number, number>()
+
+  const priced: OrderLinePayload[] = []
+  let totalCents = 0
+  for (const [productId, quantity] of quantities) {
+    const entry = menu.get(productId)
+    if (!entry) {
+      const row = await trx.from('products').where('id', productId).select('name').first()
+      const label = row ? String(row.name) : `#${productId}`
+      throw new ApiException(
+        'E_PRODUCT_NOT_ON_MENU',
+        `« ${label} » n'est pas au menu de cette soirée.`,
+        422
+      )
+    }
+
+    const unitPrice = grid.get(productId) ?? entry.price
+    totalCents += unitPrice * quantity
+    priced.push({
+      productId,
+      productName: entry.name,
+      quantity,
+      unitPrice,
+      listPrice: entry.price,
+    })
+  }
+
+  await assertSellable(quantities, eventId, menu, trx)
+
+  return {
+    eventId,
+    lines: priced,
+    totalCents,
+    sponsorship: category
+      ? { categoryId: category.id, label: category.label, payerName: event.payerName }
+      : null,
+  }
+}
+
+/** Écrit la transaction comptable, la commande et ses lignes. */
+export async function writeOrder(
+  draft: OrderDraft,
+  memberId: number | null,
+  clientId: number | null,
+  paymentMethod: PaymentMethod,
+  trx: TransactionClientContract
+): Promise<OrderPayload> {
+  const transaction = new Transaction()
+  transaction.useTransaction(trx)
+  transaction.type = paymentMethod
+  // Centimes → euros, en chaîne : `decimal` transite en string dans les deux sens.
+  transaction.amount = (draft.totalCents / 100).toFixed(2)
+  await transaction.save()
+
+  const order = new Order()
+  order.useTransaction(trx)
+  order.eventId = draft.eventId
+  order.memberId = memberId
+  order.clientId = clientId
+  order.transactionId = transaction.id
+  order.status = 'pending'
+  if (draft.sponsorship) {
+    order.sponsorshipCategoryId = draft.sponsorship.categoryId
+    order.sponsorshipCategoryLabel = draft.sponsorship.label
+    order.payerName = draft.sponsorship.payerName
+  }
+  await order.save()
+
+  await trx.table('order_products').insert(
+    draft.lines.map((line) => ({
+      order_id: order.id,
+      product_id: line.productId,
+      quantity: line.quantity,
+      unit_price_cents: line.unitPrice,
+      list_price_cents: line.listPrice,
+    }))
+  )
+
+  const names = await resolveBuyerNames(clientId === null ? [] : [clientId], trx)
+  const clientName = clientId === null ? ANONYMOUS_BUYER : (names.get(clientId) ?? ANONYMOUS_BUYER)
+
+  return buildPayload(order, draft.lines, [], await numberOf(order, trx), clientName)
+}
+
 export async function checkout(
   eventId: number,
   lines: readonly CheckoutLine[],
   memberId: number | null,
   clientId: number | null,
-  paymentMethod: 'cash' | 'lydia' = 'cash',
+  paymentMethod: PaymentMethod = 'cash',
   sponsorshipCategoryId: number | null = null
 ): Promise<OrderPayload> {
-  const quantities = mergeLines(lines)
-
   return db.transaction(async (trx) => {
-    // Verrou sur la soirée : il sérialise les encaissements concurrents, sans
-    // quoi deux caisses lisant le même « vendu » vendraient le dernier article
-    // deux fois. `FOR UPDATE` ne peut pas porter sur l'agrégat lui-même.
-    const event = await Event.query({ client: trx }).where('id', eventId).forUpdate().first()
-    if (!event) {
-      throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
-    }
-
-    const menu = await menuOf(eventId, trx)
-
-    // La catégorie est relue ici, jamais crue sur parole : un QR d'une autre
-    // soirée doit échouer même si l'écran l'a laissé passer.
-    const category = sponsorshipCategoryId
-      ? await findCategory(eventId, sponsorshipCategoryId)
-      : null
-    const grid = category ? await gridOf(category.id, trx) : new Map<number, number>()
-
-    // Prix arrêtés depuis le menu : rien de ce que le client annonce n'est lu.
-    const priced: OrderLinePayload[] = []
-    let totalCents = 0
-    for (const [productId, quantity] of quantities) {
-      const entry = menu.get(productId)
-      if (!entry) {
-        const row = await trx.from('products').where('id', productId).select('name').first()
-        const label = row ? String(row.name) : `#${productId}`
-        throw new ApiException(
-          'E_PRODUCT_NOT_ON_MENU',
-          `« ${label} » n'est pas au menu de cette soirée.`,
-          422
-        )
-      }
-      // Un article absent de la grille se vend au prix public.
-      const unitPrice = grid.get(productId) ?? entry.price
-      totalCents += unitPrice * quantity
-      priced.push({
-        productId,
-        productName: entry.name,
-        quantity,
-        unitPrice,
-        listPrice: entry.price,
-      })
-    }
-
-    await assertSellable(quantities, eventId, menu, trx)
-
-    const transaction = new Transaction()
-    transaction.useTransaction(trx)
-    transaction.type = paymentMethod
-    // Centimes → euros, en chaîne : `decimal` transite en string dans les deux sens.
-    transaction.amount = (totalCents / 100).toFixed(2)
-    await transaction.save()
-
-    const order = new Order()
-    order.useTransaction(trx)
-    order.eventId = eventId
-    order.memberId = memberId
-    order.clientId = clientId
-    order.transactionId = transaction.id
-    order.status = 'pending'
-    if (category) {
-      order.sponsorshipCategoryId = category.id
-      // Recopiés : la catégorie peut être supprimée et le payeur renommé, or un
-      // justificatif réédité ne doit pas changer de débiteur.
-      order.sponsorshipCategoryLabel = category.label
-      order.payerName = event.payerName
-    }
-    await order.save()
-
-    await trx.table('order_products').insert(
-      priced.map((line) => ({
-        order_id: order.id,
-        product_id: line.productId,
-        quantity: line.quantity,
-        unit_price_cents: line.unitPrice,
-        list_price_cents: line.listPrice,
-      }))
-    )
-
-    const names = await resolveBuyerNames(clientId === null ? [] : [clientId], trx)
-    const clientName =
-      clientId === null ? ANONYMOUS_BUYER : (names.get(clientId) ?? ANONYMOUS_BUYER)
-
-    return buildPayload(order, priced, [], await numberOf(order, trx), clientName)
+    const draft = await priceCart(eventId, lines, sponsorshipCategoryId, trx)
+    return writeOrder(draft, memberId, clientId, paymentMethod, trx)
   })
 }
 
@@ -413,7 +426,6 @@ export async function listForEvent(eventId: number): Promise<OrderPayload[]> {
     .filter((id): id is number => id !== null && id !== undefined)
   const names = await resolveBuyerNames(clientIds)
 
-  // Le numéro est le rang dans la soirée : les commandes sont déjà triées par id.
   return orders
     .map((order, index) =>
       buildPayload(
@@ -441,11 +453,6 @@ export interface SellableLine {
   remainingQty: number
 }
 
-/**
- * ⚠️ Les commandes annulées sont exclues du vendu : les compter rendrait
- * invendables des articles qui n'ont jamais quitté le comptoir. Le plancher à
- * zéro est voulu — on assemble à la demande, donc vendre plus que produit arrive.
- */
 export async function sellableForEvent(eventId: number): Promise<SellableLine[]> {
   const menuRows = await db
     .from('event_products')

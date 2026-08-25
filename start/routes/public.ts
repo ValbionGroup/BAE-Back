@@ -38,3 +38,10 @@ router
   })
   .prefix('v1/lydia')
   .as('lydia')
+
+router
+  .group(() => {
+    router.post('/callback/:orderRef', [controllers.SumupCallbacks, 'notify'])
+  })
+  .prefix('v1/sumup')
+  .as('sumup')

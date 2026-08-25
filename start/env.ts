@@ -95,6 +95,22 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
+  | Paiement — SumUp (carte au comptoir)
+  |----------------------------------------------------------
+  */
+  // `fake` partout sauf en production : les jetons du BAE sont ceux de
+  // production, et un checkout lancé par erreur allume un vrai terminal.
+  SUMUP_DRIVER: Env.schema.enum(['http', 'fake'] as const),
+  SUMUP_URL: Env.schema.string({ format: 'url', tld: false }),
+  SUMUP_API_KEY: Env.schema.secret(),
+  SUMUP_MERCHANT_CODE: Env.schema.string(),
+  // Un seul poste de caisse tourne à la fois, donc un seul lecteur. Il s'obtient
+  // depuis le back-office SumUp ou par `node ace sumup:readers`.
+  SUMUP_READER_ID: Env.schema.string(),
+  SUMUP_CALLBACK_BASE_URL: Env.schema.string({ format: 'url', tld: false }),
+
+  /*
+  |----------------------------------------------------------
   | Limitation de débit
   |----------------------------------------------------------
   */

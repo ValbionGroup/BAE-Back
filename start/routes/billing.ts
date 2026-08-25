@@ -27,6 +27,16 @@ router
     router.get('/payments', [controllers.Payments, 'index']).use(middleware.can('payment:read'))
 
     router
+      .get('/card-payments/:orderRef', [controllers.CardPayments, 'show'])
+      .use(middleware.can('order:write'))
+    router
+      .post('/card-payments/:orderRef/refresh', [controllers.CardPayments, 'refresh'])
+      .use(middleware.can('order:write'))
+    router
+      .post('/card-payments/:orderRef/cancel', [controllers.CardPayments, 'destroy'])
+      .use(middleware.can('order:write'))
+
+    router
       .get('/clients/summary', [controllers.Clients, 'summary'])
       .use(middleware.can('client:read'))
     router.get('/clients', [controllers.Clients, 'index']).use(middleware.can('client:read'))

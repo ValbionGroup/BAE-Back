@@ -99,6 +99,10 @@ router
       .use(middleware.can('order:write'))
 
     router
+      .post('/events/:id/card-payments', [controllers.CardPayments, 'store'])
+      .use(middleware.can('order:write'))
+
+    router
       .get('/events/:id/sellable', [controllers.Orders, 'sellable'])
       .use(middleware.can('order:read'))
 

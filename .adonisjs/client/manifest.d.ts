@@ -11,4 +11,5 @@
 /// <reference path="../../config/logger.ts" />
 /// <reference path="../../config/lydia.ts" />
 /// <reference path="../../config/mail.ts" />
+/// <reference path="../../config/sumup.ts" />
 /// <reference path="../../config/transmit.ts" />

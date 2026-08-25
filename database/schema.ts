@@ -613,7 +613,7 @@ export class PaymentSchema extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
   @column()
-  declare userId: number
+  declare userId: number | null
 }
 
 export class PermissionSchema extends BaseModel {

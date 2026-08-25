@@ -7,7 +7,12 @@ export function ordersChannel(eventId: number | string): string {
   return `events/${eventId}/orders`
 }
 
-export type OrderEvent = 'order.created' | 'order.updated' | 'order.cancelled' | 'pre_order.updated'
+export type OrderEvent =
+  | 'order.created'
+  | 'order.updated'
+  | 'order.cancelled'
+  | 'pre_order.updated'
+  | 'card_payment.updated'
 
 /**
  * Réutilise `permissionsOfMember`, la résolution qu'emploie déjà
@@ -37,5 +42,18 @@ export function broadcastPreOrder(ticket: { eventId: number }): void {
   transmit.broadcast(ordersChannel(ticket.eventId), {
     event: 'pre_order.updated',
     preOrder: ticket as unknown as Record<string, never>,
+  })
+}
+
+export function broadcastCardPayment(
+  eventId: number,
+  orderRef: string,
+  status: string,
+  order: OrderPayload | null
+): void {
+  transmit.broadcast(ordersChannel(eventId), {
+    event: 'card_payment.updated',
+    cardPayment: { orderRef, status },
+    order,
   })
 }
