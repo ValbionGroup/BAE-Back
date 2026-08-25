@@ -8,7 +8,8 @@ import {
 } from '#services/print/print_layout'
 import type { ShoppingList, ShoppingListLine } from '#services/shopping_list_service'
 
-const eur = (n: number) => `${n.toFixed(2).replace('.', ',')} €`
+// Reçoit des **centimes** : toute la liste de courses est en centimes entiers.
+const eur = (cents: number) => `${(cents / 100).toFixed(2).replace('.', ',')} €`
 
 interface RetailerColumn {
   id: number

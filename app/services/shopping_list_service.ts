@@ -125,7 +125,7 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
     const missingQty = Math.max(0, needQty - stockQty)
     if (missingQty === 0) continue
 
-    const ownPrice = Number(furniture.price)
+    const ownPrice = furniture.price
     lines.push({
       kind: 'furniture',
       id: furniture.id,
@@ -156,7 +156,11 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
     for (const supplier of line.suppliers) supplierIds.set(supplier.id, supplier.name)
   }
 
-  const supplierTotals: SupplierTotal[] = [...supplierIds.entries()].map(([id, name]) => {
+  // ⚠️ Les totaux sont tenus **non arrondis** jusqu'à l'émission : `missingQty`
+  // est fractionnaire — une recette consomme des fractions d'unité — donc son
+  // produit par un prix en centimes ne tombe pas juste. Arrondir ici fausserait
+  // `savings`, qui est une différence entre deux de ces totaux.
+  const rawSupplierTotals = [...supplierIds.entries()].map(([id, name]) => {
     let total = 0
     let covered = 0
     for (const line of goodLines) {
@@ -168,10 +172,15 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
     return { id, name, total, fullCoverage: covered === goodLines.length }
   })
 
-  supplierTotals.sort((a, b) => a.total - b.total || a.name.localeCompare(b.name, 'fr'))
+  rawSupplierTotals.sort((a, b) => a.total - b.total || a.name.localeCompare(b.name, 'fr'))
 
-  const complete = supplierTotals.filter((entry) => entry.fullCoverage)
+  const complete = rawSupplierTotals.filter((entry) => entry.fullCoverage)
   const cheapestSingle = complete.length > 0 ? Math.min(...complete.map((e) => e.total)) : null
+
+  const supplierTotals: SupplierTotal[] = rawSupplierTotals.map((entry) => ({
+    ...entry,
+    total: Math.round(entry.total),
+  }))
 
   const furnitureLines = lines.filter((line) => line.kind === 'furniture')
 
@@ -189,13 +198,15 @@ export async function buildShoppingList(eventId: string): Promise<ShoppingList> 
     eventName: event.name,
     lines,
     lineCount: lines.length,
-    optimumTotal,
+    optimumTotal: Math.round(optimumTotal),
     totals: {
-      optimumGoodsTotal,
-      furnitureTotal,
+      optimumGoodsTotal: Math.round(optimumGoodsTotal),
+      furnitureTotal: Math.round(furnitureTotal),
     },
     supplierTotals,
-    savings: cheapestSingle === null ? null : cheapestSingle - optimumGoodsTotal,
+    // L'écart se calcule sur les valeurs **non arrondies** : soustraire deux
+    // arrondis y ferait apparaître un centime venu de nulle part.
+    savings: cheapestSingle === null ? null : Math.round(cheapestSingle - optimumGoodsTotal),
     unpricedCount,
   }
 }

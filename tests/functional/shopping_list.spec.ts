@@ -109,7 +109,7 @@ test.group('Shopping list — arithmétique', (group) => {
 
   test('reads furniture stock from the row, not from batches', async ({ assert }) => {
     const event = await makeEvent()
-    const tray = await Furniture.create({ name: 'Barquettes', quantity: 30, price: '0.12' })
+    const tray = await Furniture.create({ name: 'Barquettes', quantity: 30, price: 12 })
     const recipe = await Product.create({
       name: 'Frites portion',
       isVegetarian: true,
@@ -127,7 +127,7 @@ test.group('Shopping list — arithmétique', (group) => {
     assert.strictEqual(line.missingQty, 170)
     assert.isEmpty(line.suppliers)
     assert.isNull(line.bestSupplier)
-    assert.strictEqual(line.bestPrice, 0.12)
+    assert.strictEqual(line.bestPrice, 12)
   })
 
   test('flags a missing good that no supplier prices', async ({ assert }) => {
@@ -188,7 +188,7 @@ test.group('Shopping list — arithmétique', (group) => {
       [sausage, 1],
     ])
 
-    const tray = await Furniture.create({ name: 'Barquettes', quantity: 0, price: '0.12' })
+    const tray = await Furniture.create({ name: 'Barquettes', quantity: 0, price: 12 })
     const friesRecipe = await Product.create({
       name: 'Frites portion',
       isVegetarian: true,
@@ -204,10 +204,10 @@ test.group('Shopping list — arithmétique', (group) => {
 
     const list = await buildShoppingList(String(event.id))
 
-    assert.strictEqual(list.optimumTotal, 84)
+    assert.strictEqual(list.optimumTotal, 2460)
     assert.strictEqual(list.savings, 10)
     assert.strictEqual(list.totals.optimumGoodsTotal, 60)
-    assert.strictEqual(list.totals.furnitureTotal, 24)
+    assert.strictEqual(list.totals.furnitureTotal, 2400)
   })
 
   test('reports null savings when no supplier covers everything', async ({ assert }) => {
