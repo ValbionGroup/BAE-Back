@@ -221,12 +221,14 @@ test.group('Catalogue public — formules', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
   /**
-   * `fast_passes.price` est un décimal en **euros**, alors que
-   * `event_products.price` est un entier en **centimes**. La conversion a lieu
-   * dans le service pour que l'API n'expose qu'une seule unité monétaire.
+   * `fast_passes.price` est un entier en **centimes**, comme toute valeur
+   * monétaire : `price_cents` le reporte sans rien convertir. Le suffixe du
+   * champ public survit au chantier parce qu'il fait partie du contrat.
+   *
+   * ⚠️ `duration` est un nombre d'**années**, d'où `2` et non `730`.
    */
-  test('convertit le tarif des formules en centimes', async ({ client, assert }) => {
-    await FastPass.create({ label: '2 ans', description: null, duration: 730, price: 42 })
+  test('reporte le tarif des formules sans le convertir', async ({ client, assert }) => {
+    await FastPass.create({ label: '2 ans', description: null, duration: 2, price: 4200 })
 
     const response = await client.get('/v1/public/fast-passes')
     const body = response.body().data as {

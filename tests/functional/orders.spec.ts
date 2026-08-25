@@ -50,7 +50,7 @@ async function seedMenu() {
 test.group('Orders — encaissement', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  test('enregistre la commande, ses lignes et la transaction en euros', async ({
+  test('enregistre la commande, ses lignes et la transaction en centimes', async ({
     client,
     assert,
   }) => {
@@ -77,7 +77,7 @@ test.group('Orders — encaissement', (group) => {
 
     // 2 × 250 + 1 × 300 = 800 centimes = 8,00 €
     const transaction = await Transaction.findOrFail(order.transactionId!)
-    assert.equal(Number(transaction.amount), 8)
+    assert.strictEqual(transaction.amount, 800)
     assert.equal(transaction.type, 'cash')
 
     const lines = await db.from('order_products').where('order_id', order.id).orderBy('product_id')
@@ -154,7 +154,7 @@ test.group('Orders — encaissement', (group) => {
 
     const order = await Order.query().where('eventId', event.id).firstOrFail()
     const transaction = await Transaction.findOrFail(order.transactionId!)
-    assert.equal(Number(transaction.amount), 5)
+    assert.strictEqual(transaction.amount, 500)
     assert.equal(response.body().data.total_cents, 500)
   })
 

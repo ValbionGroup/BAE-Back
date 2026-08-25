@@ -136,7 +136,7 @@ test.group('Orders — prise en charge', (group) => {
 
     const order = await Order.findOrFail(response.body().data.id)
     const transaction = await Transaction.findOrFail(order.transactionId!)
-    assert.equal(Number(transaction.amount), 6)
+    assert.strictEqual(transaction.amount, 600)
   })
 
   test('tient l’invariant gross = total + discount + sponsored, avec et sans catégorie', async ({

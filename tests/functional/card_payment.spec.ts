@@ -132,7 +132,7 @@ test.group('Encaissement par carte — SumUp', (group) => {
     const order = await Order.query().where('eventId', event.id).firstOrFail()
     const transaction = await Transaction.findOrFail(order.transactionId)
     assert.equal(transaction.type, 'card')
-    assert.equal(transaction.amount, '5.00')
+    assert.strictEqual(transaction.amount, 500)
 
     const payment = await Payment.findByOrFail('orderRef', orderRef)
     assert.equal(payment.status, 'paid')

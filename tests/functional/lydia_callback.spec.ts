@@ -174,7 +174,7 @@ test.group('Notification de paiement Lydia', (group) => {
 
     assert.equal(payment.status, 'paid')
     assert.equal(rows[0].transaction_id, payment.transactionId)
-    assert.equal(Number(transaction.amount), 15)
+    assert.strictEqual(transaction.amount, 1500)
     assert.equal(transaction.type, 'lydia')
   })
 })

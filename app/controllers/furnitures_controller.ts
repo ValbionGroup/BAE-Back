@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Furniture from '#models/furniture'
 
+/** ⚠️ `price` est reçu et stocké en **centimes entiers**. */
 export default class FurnituresController {
   async index({ serialize }: HttpContext) {
     return serialize(await Furniture.all())

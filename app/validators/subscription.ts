@@ -8,7 +8,7 @@ export const createSubscriptionValidator = vine.create({
   // l'encaissement en ligne n'existe pas encore.
   payment: vine
     .object({
-      amount: vine.number().min(0),
+      amount: vine.number().withoutDecimals().min(0),
       type: vine.enum(['cash', 'lydia'] as const),
     })
     .optional(),

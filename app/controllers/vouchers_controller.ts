@@ -67,7 +67,7 @@ export default class VouchersController {
     const payload = await request.validateUsing(voucherValidator)
     const voucher = new Voucher()
     voucher.supplierId = payload.supplierId ?? null
-    voucher.value = String(payload.value)
+    voucher.value = payload.value
     voucher.expiresAt = parseDate(payload.expiresAt, 'expiresAt')
     voucher.condition = payload.condition ?? null
     voucher.usedAt = payload.usedAt ? parseDate(payload.usedAt, 'usedAt') : null
@@ -81,7 +81,7 @@ export default class VouchersController {
     const payload = await request.validateUsing(voucherUpdateValidator)
 
     if ('supplierId' in payload) voucher.supplierId = payload.supplierId ?? null
-    if (payload.value !== undefined) voucher.value = String(payload.value)
+    if (payload.value !== undefined) voucher.value = payload.value
     if (payload.expiresAt !== undefined) {
       voucher.expiresAt = parseDate(payload.expiresAt, 'expiresAt')
     }

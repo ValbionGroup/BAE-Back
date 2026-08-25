@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Restock from '#models/restock'
 
+/** ⚠️ `totalPrice` est reçu et stocké en **centimes entiers**. */
 export default class RestocksController {
   async index({ serialize }: HttpContext) {
     const restocks = await Restock.query()

@@ -1,6 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import FastPass from '#models/fast_pass'
 
+/**
+ * ⚠️ `price` est en **centimes entiers**, et `duration` en **années** — pas en
+ * jours, malgré le commentaire d'origine de la migration.
+ */
 export default class FastPassesController {
   async index({ serialize }: HttpContext) {
     return serialize(await FastPass.query())

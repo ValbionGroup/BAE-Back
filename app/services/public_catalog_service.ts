@@ -217,11 +217,11 @@ export interface PublicFastPassView {
   /** Durée de l'adhésion en **années**, telle que stockée. */
   durationYears: number
   /**
-   * En **centimes**, alors que `fast_passes.price` est un décimal en euros.
+   * En **centimes**, comme `fast_passes.price` et toute valeur monétaire.
    *
-   * La conversion a lieu ici pour que l'API n'ait qu'une seule unité monétaire :
-   * `event_products.price` est déjà en centimes, et faire cohabiter les deux
-   * dans les réponses obligerait chaque appelant à se souvenir laquelle il lit.
+   * Le suffixe ne distingue plus rien — il n'y a qu'une seule unité — mais il
+   * fait partie du contrat public depuis le 2026-08-17 et le retirer casserait
+   * les clients pour rien.
    */
   priceCents: number
 }
@@ -240,7 +240,7 @@ export async function listFastPasses(): Promise<PublicFastPassCatalog> {
     label: pass.label,
     description: pass.description,
     durationYears: pass.duration,
-    priceCents: Math.round(Number(pass.price) * 100),
+    priceCents: pass.price,
   }))
 
   return { bonusPercent: fastPassBonusPercent(), plans }
