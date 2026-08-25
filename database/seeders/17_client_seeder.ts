@@ -8,14 +8,18 @@ import User from '#models/user'
 
 /**
  * Peuple la page Adhérents avec les quatre états qu'elle sait afficher — à jour,
- * bientôt expirée, expirée, jamais cotisé. `FastPassFactory` tire des durées
- * entre 1 et 12 **jours**, ce qui rendrait toute cotisation expirée le
- * lendemain : les formules d'adhésion sont donc créées ici, avec une durée
- * annuelle.
+ * bientôt expirée, expirée, jamais cotisé.
+ *
+ * ⚠️ `fast_passes.duration` est un nombre d'**années**, pas de jours : `expiryOf`
+ * fait `plus({ years })`. Ces formules portaient `duration: 365` — écrit pour
+ * dire « un an », lu comme trois cent soixante-cinq ans, donc jamais expiré.
+ * Aucun des quatre états n'était réellement représenté.
+ *
+ * `price` est en **centimes**, comme toute valeur monétaire.
  */
 const ANNUAL_FORMULAS = [
-  { label: 'Adhésion 2025-2026', price: 15, duration: 365 },
-  { label: 'Adhésion 2024-2025', price: 12, duration: 365 },
+  { label: 'Adhésion 2025-2026', price: 1500, duration: 1 },
+  { label: 'Adhésion 2024-2025', price: 1200, duration: 1 },
 ] as const
 
 interface SeedClient {
@@ -160,7 +164,7 @@ export default class extends BaseSeeder {
         const isCurrent = index === seed.subscribedDaysAgo.length - 1
         const formula = isCurrent ? formulas[0] : formulas[1]
         const transaction = await Transaction.create({
-          amount: String(formula.price),
+          amount: formula.price,
           type: index % 2 === 0 ? 'lydia' : 'cash',
         })
 
