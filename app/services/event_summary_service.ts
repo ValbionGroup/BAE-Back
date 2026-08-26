@@ -106,7 +106,12 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
   for (const row of cashedRows) {
     const method = String(row.type)
     const entry = byMethod.get(method) ?? { amount: 0, count: 0 }
-    entry.amount += row.amount
+    // ⚠️ `Number()` n'est pas décoratif : le pilote rend une colonne numérique en
+    // **chaîne**, et `0 + '8.50'` vaut `'08.50'`. Le total par moyen de paiement
+    // se construisait donc par concaténation — « 08.508.0019.0043.00… » servi
+    // tel quel au bilan. Toutes les autres sommes de ce fichier convertissent ;
+    // celle-ci avait été oubliée.
+    entry.amount += Number(row.amount)
     entry.count += 1
     byMethod.set(method, entry)
   }
