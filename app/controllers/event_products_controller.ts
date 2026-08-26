@@ -4,7 +4,6 @@ import Event from '#models/event'
 import Product from '#models/product'
 import ApiException from '#exceptions/api_exception'
 import { minSupplierPrice } from '#services/pricing_service'
-import { primaryCategoryName } from '#services/product_category_service'
 import { eventProductValidator, eventProductUpdateValidator } from '#validators/event_product'
 import { buildShoppingList } from '#services/shopping_list_service'
 import { buildShoppingListHtml } from '#services/print/print_shopping_list'
@@ -58,7 +57,7 @@ function toMenuLine(product: Product): MenuLinePayload {
     // arrondi multiplierait l'erreur d'arrondi par la quantité.
     unitCost: unitCost === null ? null : Math.round(unitCost),
     totalCost: unitCost === null ? null : Math.round(unitCost * quantity),
-    category: primaryCategoryName(product),
+    category: product.productCategory?.name ?? null,
   }
 }
 
@@ -66,10 +65,14 @@ async function loadEventWithMenu(id: string): Promise<Event> {
   const event = await Event.query()
     .where('id', id)
     .preload('products', (products) => {
+      // ⚠️ `goods.preload('suppliers')` **reste** : c'est lui qui porte les prix
+      // fournisseurs dont dérive le coût de la recette. Seul
+      // `goods.preload('category')` disparaît — il ne servait qu'à la catégorie
+      // dérivée, que la colonne propre remplace.
       products.preload('goods', (goods) => {
         goods.preload('suppliers')
-        goods.preload('category')
       })
+      products.preload('productCategory')
       products.orderBy('name')
     })
     .first()

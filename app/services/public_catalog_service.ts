@@ -4,7 +4,6 @@ import env from '#start/env'
 import Event from '#models/event'
 import FastPass from '#models/fast_pass'
 import ApiException from '#exceptions/api_exception'
-import { primaryCategoryName } from '#services/product_category_service'
 import { pickupWindowOf } from '#services/pre_order_service'
 
 /**
@@ -180,7 +179,10 @@ export async function menuFor(
     .where('id', eventId)
     .where('capacity', '>', 0)
     .preload('products', (products) => {
-      products.preload('goods', (goods) => goods.preload('category'))
+      // Le préchargement des denrées a disparu avec la catégorie dérivée : le
+      // catalogue public n'expose aucun coût, il ne lisait `goods` que pour en
+      // tirer la catégorie.
+      products.preload('productCategory')
       products.orderBy('name')
     })
     .first()
@@ -205,7 +207,7 @@ export async function menuFor(
       description: product.description,
       isVegetarian: product.isVegetarian ?? false,
       price: Number(product.$extras.pivot_price),
-      category: primaryCategoryName(product),
+      category: product.productCategory?.name ?? null,
     })),
   }
 }

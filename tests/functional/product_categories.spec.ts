@@ -4,6 +4,7 @@ import Product from '#models/product'
 import ProductCategory from '#models/product_category'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
+import { EventFactory } from '#database/factories/event_factory'
 
 function cuisinier() {
   return MemberFactory.create().then((member) =>
@@ -88,5 +89,54 @@ test.group('Catégories de recettes — CRUD', (group) => {
       .json({ name: 'Interdite' })
       .loginAs(user)
     response.assertStatus(403)
+  })
+})
+
+test.group('Catégories de recettes — ce que l’API expose', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('le résumé des recettes rend la catégorie propre', async ({ client, assert }) => {
+    const user = await cuisinier()
+    const category = await ProductCategory.create({ name: 'Desserts de vérification' })
+    const recipe = await recipeNamed('Crêpe de vérification', category.id)
+
+    const response = await client.get('/v1/products/summary').loginAs(user)
+    response.assertStatus(200)
+
+    const row = (response.body().data as { id: number; category: string | null }[]).find(
+      (entry) => entry.id === recipe.id
+    )
+    assert.equal(row?.category, 'Desserts de vérification')
+  })
+
+  test('une recette non classée rend null, et non une chaîne vide', async ({ client, assert }) => {
+    const user = await cuisinier()
+    const recipe = await recipeNamed('Sans catégorie de vérification')
+
+    const response = await client.get('/v1/products/summary').loginAs(user)
+
+    const row = (response.body().data as { id: number; category: string | null }[]).find(
+      (entry) => entry.id === recipe.id
+    )
+    assert.isNull(row?.category)
+  })
+
+  /**
+   * ⚠️ Le menu de soirée est l'endpoint que lit la **caisse** : ses onglets en
+   * dérivent. C'est ici que la bascule se voit à l'écran.
+   */
+  test('le menu d’une soirée rend la catégorie propre', async ({ client, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['menu:read', 'stock:read'])
+    const category = await ProductCategory.create({ name: 'Plats de vérification' })
+    const recipe = await recipeNamed('Hot-dog de vérification', category.id)
+    const event = await EventFactory.create()
+    await event.related('products').attach({ [recipe.id]: { quantity: 10, price: 350 } })
+
+    const response = await client.get(`/v1/events/${event.id}/products`).loginAs(user)
+    response.assertStatus(200)
+
+    const lines = response.body().data as { product_id: number; category: string | null }[]
+    assert.equal(lines.find((l) => l.product_id === recipe.id)?.category, 'Plats de vérification')
   })
 })

@@ -9,18 +9,6 @@ import { buildRecipeHtml } from '#services/print/print_recipe'
 import { printFooterTemplate } from '#services/print/print_layout'
 import { pdfService } from '#services/pdf_service'
 
-// TODO: consume `#services/product_category_service`, of which this is an exact
-// copy — while both definitions coexist they can drift apart, and the same
-// product would change category depending on which screen looks at it.
-function primaryCategoryName(product: Product): string | null {
-  const [primary] = [...product.goods].sort(
-    (a, b) =>
-      Number(a.$extras.pivot_rank ?? 0) - Number(b.$extras.pivot_rank ?? 0) ||
-      a.name.localeCompare(b.name)
-  )
-  return primary?.category?.name ?? null
-}
-
 // Every pivot pointing at `products` is `ON DELETE CASCADE`: deleting a recipe
 // does not orphan its sales, it erases them. These are the tables whose rows are
 // history, and whose presence therefore forbids the deletion.
@@ -231,7 +219,10 @@ export default class ProductsController {
           `(SELECT ep.price FROM event_products ep JOIN events e ON e.id = ep.event_id WHERE ep.product_id = products.id ORDER BY e.date DESC LIMIT 1) as last_price`
         )
       )
-      .preload('goods', (goodsQuery) => goodsQuery.preload('suppliers').preload('category'))
+      // `suppliers` reste — il porte les prix dont dérive le coût. `category`
+      // sur les denrées ne servait qu'à la catégorie dérivée.
+      .preload('goods', (goodsQuery) => goodsQuery.preload('suppliers'))
+      .preload('productCategory')
       .orderBy('name')
 
     const summaries = products.map((product) => {
@@ -252,7 +243,7 @@ export default class ProductsController {
         id: product.id,
         name: product.name,
         isVegetarian: product.isVegetarian,
-        category: primaryCategoryName(product),
+        category: product.productCategory?.name ?? null,
         ingredientCount: product.goods.length,
         lastPrice: lastPrice === null || lastPrice === undefined ? null : Number(lastPrice),
         // `cost` et `lastPrice` sont désormais tous deux en **centimes** :

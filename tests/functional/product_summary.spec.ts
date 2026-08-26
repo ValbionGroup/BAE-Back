@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import ProductCategory from '#models/product_category'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
@@ -24,14 +25,21 @@ test.group('Product summary', (group) => {
     response.assertBodyContains({ data: [{ id: product.id, name: product.name }] })
   })
 
-  test('labels a product with its lowest-rank ingredient category', async ({ client, assert }) => {
+  /**
+   * ⚠️ **La règle a changé le 2026-08-26.** La catégorie était dérivée de
+   * l'ingrédient de plus faible `rank` ; elle est désormais portée par la
+   * recette. Les catégories de denrées classent le **stockage**, celle de la
+   * recette classe la **vente** — le test le montre en donnant à l'ingrédient
+   * une catégorie que le résumé ne doit surtout pas reprendre.
+   */
+  test('labels a product with the category the product carries', async ({ client, assert }) => {
     const user = await asProductReader()
-    const product = await ProductFactory.create()
+    const category = await ProductCategory.create({ name: 'Desserts' })
+    const product = await ProductFactory.merge({ productCategoryId: category.id }).create()
 
-    const mainCategory = await CategoryFactory.merge({ name: 'Boisson' }).create()
-    const sideCategory = await CategoryFactory.merge({ name: 'Dessert' }).create()
-    const mainGood = await GoodFactory.merge({ categoryId: mainCategory.id }).create()
-    const sideGood = await GoodFactory.merge({ categoryId: sideCategory.id }).create()
+    const goodCategory = await CategoryFactory.merge({ name: 'Frais' }).create()
+    const mainGood = await GoodFactory.merge({ categoryId: goodCategory.id }).create()
+    const sideGood = await GoodFactory.create()
 
     await product.related('goods').attach({
       [sideGood.id]: { quantity: 1, rank: 2, instruction: null },
@@ -42,7 +50,7 @@ test.group('Product summary', (group) => {
 
     response.assertStatus(200)
     const row = response.body().data.find((p: { id: number }) => p.id === product.id)
-    assert.equal(row.category, 'Boisson')
+    assert.equal(row.category, 'Desserts')
     assert.equal(row.ingredient_count, 2)
   })
 

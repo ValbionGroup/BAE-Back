@@ -2,6 +2,7 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 import testUtils from '@adonisjs/core/services/test_utils'
 import Category from '#models/category'
+import ProductCategory from '#models/product_category'
 import Event from '#models/event'
 import Good from '#models/good'
 import Product from '#models/product'
@@ -129,27 +130,30 @@ test.group('Event products — lecture du menu', (group) => {
     assert.equal(response.body().error.code, 'E_FORBIDDEN')
   })
 
-  test('derives the recipe category from its lowest-rank ingredient', async ({
+  /**
+   * ⚠️ **La règle a changé le 2026-08-26.** La catégorie d'une recette était
+   * dérivée de son ingrédient de plus faible `rank` ; elle est désormais
+   * **portée par la recette** (`products.product_category_id`). Ce test
+   * affirmait l'ancienne règle — il affirme la nouvelle, et reste au même
+   * endroit parce que c'est cet endpoint que lit la caisse pour ses onglets.
+   *
+   * La catégorie des **denrées** ne l'influence plus du tout : le test le montre
+   * en classant l'ingrédient dans « Frais » et la recette dans « Plats ».
+   */
+  test('serves the recipe category the recipe carries, not its ingredient’s', async ({
     client,
     assert,
   }) => {
     const { event, product, good } = await seedMenuFixture()
 
     const frais = await Category.create({ name: 'Frais' })
-    const sec = await Category.create({ name: 'Sec' })
-
     good.categoryId = frais.id
     await good.save()
 
-    const bun = await Good.create({
-      name: 'Pain hot-dog x12',
-      unit: 'pcs',
-      brand: 'Harrys',
-      categoryId: sec.id,
-    })
-    await product.related('goods').attach({
-      [bun.id]: { quantity: 1, rank: 2, instruction: null },
-    })
+    const plats = await ProductCategory.create({ name: 'Plats' })
+    product.productCategoryId = plats.id
+    await product.save()
+
     await event.related('products').attach({ [product.id]: { quantity: 10, price: 0 } })
 
     const member = await MemberFactory.create()
@@ -158,7 +162,7 @@ test.group('Event products — lecture du menu', (group) => {
     const response = await client.get(`/v1/events/${event.id}/products`).loginAs(user)
 
     response.assertStatus(200)
-    assert.equal(response.body().data[0].category, 'Frais')
+    assert.equal(response.body().data[0].category, 'Plats')
   })
 
   test('reports a null category when no ingredient is categorised', async ({ client, assert }) => {
