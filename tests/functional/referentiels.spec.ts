@@ -4,6 +4,9 @@ import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import Category from '#models/category'
 import Supplier from '#models/supplier'
+import Job from '#models/job'
+import { JobFactory } from '#database/factories/job_factory'
+import { EventFactory } from '#database/factories/event_factory'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 
@@ -149,5 +152,65 @@ test.group('Référentiels — suppression d’une enseigne', (group) => {
 
     response.assertStatus(204)
     assert.isNull(await Supplier.find(supplier.id))
+  })
+})
+
+test.group('Référentiels — suppression d’un poste', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  function coordo() {
+    return MemberFactory.create().then((member) =>
+      grantPermissions(member, ['job:read', 'job:write', 'job:delete'])
+    )
+  }
+
+  /**
+   * ⚠️ `member_job_preferences` est en CASCADE : sans ce refus, supprimer un
+   * poste effaçait les vœux que des membres avaient pris le temps d'exprimer.
+   */
+  test('refuse tant qu’un membre a exprimé un vœu, et le vœu survit', async ({
+    client,
+    assert,
+  }) => {
+    const user = await coordo()
+    const job = await JobFactory.create()
+    const member = await MemberFactory.create()
+    await member.related('preferences').attach({ [job.id]: { rank: 1 } })
+
+    const response = await client.delete(`/v1/jobs/${job.id}`).loginAs(user)
+
+    response.assertStatus(409)
+    response.assertBodyContains({ error: { code: 'E_JOB_IN_USE' } })
+
+    const rows = await db
+      .from('member_job_preferences')
+      .where('job_id', job.id)
+      .count('* as total')
+      .first()
+    assert.equal(Number(rows?.total ?? 0), 1)
+    assert.isNotNull(await Job.find(job.id))
+  })
+
+  test('refuse tant qu’une soirée en a besoin', async ({ client, assert }) => {
+    const user = await coordo()
+    const job = await JobFactory.create()
+    const event = await EventFactory.create()
+    await event.related('jobs').attach({ [job.id]: { count: 2 } })
+
+    const response = await client.delete(`/v1/jobs/${job.id}`).loginAs(user)
+
+    response.assertStatus(409)
+    response.assertBodyContains({ error: { code: 'E_JOB_IN_USE' } })
+    assert.isNotNull(await Job.find(job.id))
+  })
+
+  test('supprime un poste que rien n’utilise', async ({ client, assert }) => {
+    const user = await coordo()
+    const job = await JobFactory.create()
+
+    const response = await client.delete(`/v1/jobs/${job.id}`).loginAs(user)
+
+    response.assertStatus(204)
+    assert.isNull(await Job.find(job.id))
   })
 })

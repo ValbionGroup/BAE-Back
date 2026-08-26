@@ -48,6 +48,34 @@ export default class JobsController {
         return
       }
 
+      // ⚠️ Trois tables sont en CASCADE sur `jobs` : les besoins par soirée, les
+      // éligibilités, et les vœux des membres. Les laisser partir en silence
+      // effacerait un travail humain — un membre a classé ses préférences.
+      //
+      // Distinct de `E_JOB_SETTLED` : celui-là se corrige en déclôturant une
+      // soirée, celui-ci en retirant le poste des soirées qui le demandent.
+      const [needed, preferred, eligible] = await Promise.all([
+        trx.from('event_jobs').where('job_id', job.id).count('* as total').first(),
+        trx.from('member_job_preferences').where('job_id', job.id).count('* as total').first(),
+        trx.from('job_eligible_members').where('job_id', job.id).count('* as total').first(),
+      ])
+
+      const causes = [
+        Number(needed?.total ?? 0) > 0 ? `${Number(needed?.total)} soirée(s)` : null,
+        Number(preferred?.total ?? 0) > 0 ? `${Number(preferred?.total)} vœu(x)` : null,
+        Number(eligible?.total ?? 0) > 0 ? `${Number(eligible?.total)} éligibilité(s)` : null,
+      ].filter((cause): cause is string => cause !== null)
+
+      if (causes.length > 0) {
+        response.conflict({
+          error: {
+            code: 'E_JOB_IN_USE',
+            message: `« ${job.name} » est encore rattaché à ${causes.join(', ')} : retirez-le d’abord.`,
+          },
+        })
+        return
+      }
+
       await MemberEventAssignedJob.query({ client: trx })
         .where('jobId', job.id)
         .whereNull('settledAt')
