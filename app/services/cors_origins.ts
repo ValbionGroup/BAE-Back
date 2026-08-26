@@ -1,11 +1,14 @@
 /**
  * L'allowlist CORS de production, dérivée des URL des deux fronts.
  *
- * ⚠️ **Un `Origin` HTTP vaut toujours `scheme://host[:port]`.** La liste écrite à
- * la main valait `['bae.eirb.fr', 'dashboard.bae.eirb.fr', 'order.bae.eirb.fr']`
- * — sans schéma, donc **aucune de ces valeurs ne pouvait matcher** : en
- * production, tout appel navigateur aurait été refusé. Le défaut était invisible
- * en développement, où `origin: true` accepte tout.
+ * ⚠️ **Un `Origin` HTTP vaut toujours `scheme://host[:port]`.** Une liste écrite
+ * à la main y valait des noms d'hôtes nus — sans schéma, donc **aucune de ces
+ * valeurs ne pouvait matcher** : en production, tout appel navigateur aurait été
+ * refusé. Le défaut était invisible en développement, où `origin: true` accepte
+ * tout. C'est la raison d'être de cette dérivation.
+ *
+ * Domaines de production au 2026-08-26 : `erp.bae.valbion.com` (dashboard) et
+ * `bae.valbion.com` (public), l'API étant sur `api.bae.valbion.com`.
  *
  * Dérivée de `DASHBOARD_URL` / `PUBLIC_APP_URL` et non redéclarée : ce sont déjà
  * les destinations vers lesquelles le callback SSO redirige. Deux listes des

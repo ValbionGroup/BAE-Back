@@ -52,9 +52,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   // lui le cookie est `host-only`, ce qui convient tant que tout tient sur
   // `localhost` (le port n'entre pas dans l'identité d'un cookie).
   //
-  // En production les trois origines sont distinctes — `api.`, `dashboard.` et
-  // `order.bae.eirb.fr` — et un cookie posé par l'API ne serait alors envoyé par
-  // aucun des deux fronts. Il faut y valoir `.bae.eirb.fr`.
+  // En production les trois origines sont distinctes — `api.bae.valbion.com`,
+  // `erp.bae.valbion.com` et `bae.valbion.com` — et un cookie posé par l'API ne
+  // serait alors envoyé par aucun des deux fronts. Il faut y valoir
+  // **`.bae.valbion.com`**, qui couvre les deux sous-domaines et l'apex.
+  //
+  // ⚠️ Ces domaines datent du 2026-08-26 et de la bascule chez Dyjix. Le retour
+  // chez EirbWare n'est pas exclu : il rendrait `.bae.eirb.fr`.
   COOKIE_DOMAIN: Env.schema.string.optional(),
 
   // Remise consentie sur une précommande, en pourcentage du tarif public.
