@@ -2,3 +2,8 @@
 node_modules
 build
 pnpm-lock.yaml
+
+# Auto-généré par `node ace migration:run`, qui l'aspire de la base vivante.
+# Le formater le remettrait en cause à chaque migration — le générateur émet les
+# `$columns` sur une ligne, Prettier les éclate, et le diff suivant les rejoint.
+database/schema.ts
