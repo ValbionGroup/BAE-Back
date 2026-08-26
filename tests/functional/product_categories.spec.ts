@@ -171,7 +171,8 @@ test.group('Catégories de recettes — écriture sur la recette', (group) => {
       .loginAs(user)
 
     response.assertStatus(200)
-    assert.isNull((await Product.findOrFail(recipe.id)).productCategoryId)
+    const reloaded = await Product.findOrFail(recipe.id)
+    assert.isNull(reloaded.productCategoryId)
   })
 
   /**
@@ -190,7 +191,8 @@ test.group('Catégories de recettes — écriture sur la recette', (group) => {
       .loginAs(user)
 
     response.assertStatus(200)
-    assert.equal((await Product.findOrFail(recipe.id)).productCategoryId, category.id)
+    const reloaded = await Product.findOrFail(recipe.id)
+    assert.equal(reloaded.productCategoryId, category.id)
   })
 
   /** Un 404 franc plutôt qu'une violation de clé étrangère en 500. */
@@ -265,6 +267,7 @@ test.group('Seeders — le reclassement de l’existant', (group) => {
       { name: good.name, unit: 'kg', brand: '', categoryId: category.id },
     ])
 
-    assert.isNull((await Good.findOrFail(good.id)).categoryId)
+    const reloaded = await Good.findOrFail(good.id)
+    assert.isNull(reloaded.categoryId)
   })
 })
