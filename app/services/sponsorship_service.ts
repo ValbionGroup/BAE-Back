@@ -5,7 +5,7 @@ import Event from '#models/event'
 import SponsorshipCategory from '#models/sponsorship_category'
 import ApiException from '#exceptions/api_exception'
 import JwtService from '#services/jwt_service'
-import { SPONSORSHIP_MODES } from '#validators/sponsorship'
+import type { SPONSORSHIP_MODES } from '#validators/sponsorship'
 
 export interface CategoryPrice {
   productId: number
