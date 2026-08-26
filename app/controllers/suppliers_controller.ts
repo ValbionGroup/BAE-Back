@@ -4,13 +4,36 @@ import db from '@adonisjs/lucid/services/db'
 import { supplierUpdateValidator, supplierValidator } from '#validators/catalog'
 
 export default class SuppliersController {
+  /**
+   * Toujours sans `preload('goods')` / `preload('restocks')` — cela ramènerait
+   * tout le catalogue et l'intégralité des réassorts. Les deux compteurs sont
+   * des **agrégats groupés**, trois requêtes bornées quel que soit le volume.
+   *
+   * Ils disent d'avance ce qu'une suppression rencontrerait : `destroy` refuse
+   * en 409 dès qu'un bon d'achat ou un prix est rattaché.
+   *
+   * L'ordre alphabétique n'est pas cosmétique : la liste est parcourue à l'œil.
+   */
   async index({ serialize }: HttpContext) {
-    // Deliberately without `preload('goods')` / `preload('restocks')`: the only
-    // consumer is the supplier picker, which needs the id and the name. Preloading
-    // would return the whole catalogue and every restock ever recorded. The
-    // alphabetical order is not cosmetic either: the list is scanned by eye in a
-    // `<select>`.
-    return serialize(await Supplier.query().orderBy('name'))
+    const suppliers = await Supplier.query().orderBy('name')
+
+    const [priceRows, voucherRows] = await Promise.all([
+      db.from('good_suppliers').select('supplier_id').count('* as total').groupBy('supplier_id'),
+      db.from('vouchers').select('supplier_id').count('* as total').groupBy('supplier_id'),
+    ])
+
+    const pricesBy = new Map(priceRows.map((row) => [Number(row.supplier_id), Number(row.total)]))
+    const vouchersBy = new Map(
+      voucherRows.map((row) => [Number(row.supplier_id), Number(row.total)])
+    )
+
+    return serialize(
+      suppliers.map((supplier) => ({
+        ...supplier.serialize(),
+        pricedGoodsCount: pricesBy.get(supplier.id) ?? 0,
+        voucherCount: vouchersBy.get(supplier.id) ?? 0,
+      }))
+    )
   }
 
   async store({ request, serialize }: HttpContext) {

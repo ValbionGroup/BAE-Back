@@ -103,7 +103,14 @@ test.group('Settled credit durability', (group) => {
     client,
     assert,
   }) => {
-    const { job, member, user } = await settledEvening()
+    const { event, job, member, user } = await settledEvening()
+
+    // ⚠️ Détaché d'abord, depuis le 2026-08-26 : `JobsController.destroy` refuse
+    // désormais (`E_JOB_IN_USE`) un poste dont une soirée a encore besoin —
+    // `event_jobs` est en CASCADE, et le supprimer effaçait ce besoin en
+    // silence. Ce que ce test affirme porte sur les **affectations non
+    // consolidées**, pas sur le besoin de soirée que la fixture crée au passage.
+    await event.related('jobs').detach([job.id])
 
     const response = await client.delete(`/v1/jobs/${job.id}`).loginAs(user)
 

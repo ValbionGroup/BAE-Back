@@ -214,3 +214,64 @@ test.group('Référentiels — suppression d’un poste', (group) => {
     assert.isNull(await Job.find(job.id))
   })
 })
+
+test.group('Référentiels — compteurs d’usage', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  /**
+   * ⚠️ La base de dev est partagée et peuplée : on ne compte que ce que le test
+   * a lui-même créé, jamais un total global.
+   */
+  test('compte les denrées classées dans chaque catégorie', async ({ client, assert }) => {
+    const user = await catalogueur()
+    const category = await Category.create({ name: 'Surgelés' })
+    await db.table('goods').insert({
+      name: `Petits pois ${category.id}`,
+      unit: 'kg',
+      brand: '',
+      category_id: category.id,
+      created_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toSQL(),
+    })
+
+    const response = await client.get('/v1/categories').loginAs(user)
+    response.assertStatus(200)
+
+    const row = (response.body().data as { id: number; goods_count: number }[]).find(
+      (entry) => entry.id === category.id
+    )
+    assert.equal(row?.goods_count, 1)
+  })
+
+  test('compte les prix et les bons d’achat de chaque enseigne', async ({ client, assert }) => {
+    const user = await catalogueur()
+    const supplier = await supplierWithVoucher('Enseigne comptée')
+
+    const response = await client.get('/v1/suppliers').loginAs(user)
+    response.assertStatus(200)
+
+    const row = (
+      response.body().data as {
+        id: number
+        voucher_count: number
+        priced_goods_count: number
+      }[]
+    ).find((entry) => entry.id === supplier.id)
+
+    assert.equal(row?.voucher_count, 1)
+    assert.equal(row?.priced_goods_count, 0)
+  })
+
+  /** Une catégorie que rien ne classe rend `0`, pas `undefined`. */
+  test('rend zéro pour une catégorie vide', async ({ client, assert }) => {
+    const user = await catalogueur()
+    const category = await Category.create({ name: 'Catégorie vide' })
+
+    const response = await client.get('/v1/categories').loginAs(user)
+
+    const row = (response.body().data as { id: number; goods_count: number }[]).find(
+      (entry) => entry.id === category.id
+    )
+    assert.equal(row?.goods_count, 0)
+  })
+})
