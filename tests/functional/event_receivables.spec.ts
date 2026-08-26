@@ -45,7 +45,8 @@ async function order(
   productId: number,
   quantity: number,
   unitPriceCents: number,
-  status = 'pending'
+  status = 'pending',
+  label = 'Staff BDE'
 ) {
   const [row] = await db
     .table('orders')
@@ -53,7 +54,7 @@ async function order(
       event_id: eventId,
       status,
       sponsorship_category_id: categoryId,
-      sponsorship_category_label: categoryId ? 'Staff BDE' : null,
+      sponsorship_category_label: categoryId ? label : null,
       payer_name: categoryId ? 'BDE' : null,
       created_at: new Date(),
       updated_at: new Date(),
@@ -164,5 +165,44 @@ test.group('Justificatif de prise en charge', (group) => {
     response.assertStatus(200)
     assert.equal(response.header('content-type'), 'application/pdf')
     assert.equal(response.body().subarray(0, 4).toString(), '%PDF')
+  })
+
+  // La raison d'être de la prise en charge interne : le BAE offre l'écart, il
+  // n'a personne à qui présenter la note.
+  test('laisse une catégorie interne hors du justificatif', async ({ assert }) => {
+    const { event, burger } = await seed()
+
+    const offered = await SponsorshipCategory.create({
+      eventId: event.id,
+      label: 'Invités du BAE',
+      mode: 'internal',
+      qrNonce: 'nonce-interne',
+    })
+    await order(event.id, offered.id, burger.id, 3, 0, 'pending', 'Invités du BAE')
+
+    const statement = await receivablesForEvent(event.id)
+
+    assert.lengthOf(statement.categories, 0)
+    assert.equal(statement.dueCents, 0)
+  })
+
+  test('ne retient que la part externe quand les deux modes coexistent', async ({ assert }) => {
+    const { event, burger, category } = await seed()
+    await order(event.id, category.id, burger.id, 2, 100)
+
+    const offered = await SponsorshipCategory.create({
+      eventId: event.id,
+      label: 'Invités du BAE',
+      mode: 'internal',
+      qrNonce: 'nonce-interne',
+    })
+    await order(event.id, offered.id, burger.id, 5, 0, 'pending', 'Invités du BAE')
+
+    const statement = await receivablesForEvent(event.id)
+
+    // Les 2 000 centimes offerts ne gonflent pas la créance du BDE.
+    assert.lengthOf(statement.categories, 1)
+    assert.equal(statement.categories[0].label, 'Staff BDE')
+    assert.equal(statement.dueCents, 600)
   })
 })

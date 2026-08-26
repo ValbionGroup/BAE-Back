@@ -47,12 +47,14 @@ export default class AccountPaymentsController {
       throw new ApiException('E_FAST_PASS_NOT_FOUND', 'Formule introuvable.', 404)
     }
 
-    const amountCents = Math.round(Number(fastPass.price) * 100)
-
     const payment = await openPayment({
       user,
       kind: 'subscription',
-      amountCents,
+      // ⚠️ `fast_passes.price` est **déjà** en centimes entiers depuis le
+      // 2026-08-25. Le `* 100` qui vivait ici datait des montants en euros et
+      // multipliait par cent ce que Lydia réclamait : une formule à 12 € était
+      // présentée au client comme 1 200 €.
+      amountCents: fastPass.price,
       message: `Cotisation BAE — ${fastPass.label}`,
       intent: { fastPassId: fastPass.id },
       expireTimeSeconds: PAYMENT_WINDOW_SECONDS,

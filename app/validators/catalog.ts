@@ -53,3 +53,16 @@ export const productCategoryValidator = vine.create({
 export const productCategoryUpdateValidator = vine.create({
   name: vine.string().trim().minLength(1).maxLength(255).optional(),
 })
+
+/**
+ * Un code-barres rattaché à une denrée (`good_barcodes.code`).
+ *
+ * Chiffres seuls : les symbologies que lit le scanner (EAN-8, EAN-13, UPC-A,
+ * ITF-14) sont toutes numériques. Refuser le reste ici évite qu'une saisie
+ * manuelle avec espaces ou tiret crée un second code pour la même boîte — le
+ * front normalise déjà (`rawCode.replace(/\s/g, '')`), mais la saisie n'est pas
+ * la seule porte d'entrée.
+ */
+export const goodBarcodeValidator = vine.create({
+  code: vine.string().trim().minLength(1).maxLength(32).regex(/^\d+$/),
+})

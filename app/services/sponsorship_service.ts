@@ -5,16 +5,21 @@ import Event from '#models/event'
 import SponsorshipCategory from '#models/sponsorship_category'
 import ApiException from '#exceptions/api_exception'
 import JwtService from '#services/jwt_service'
+import type { SPONSORSHIP_MODES } from '#validators/sponsorship'
 
 export interface CategoryPrice {
   productId: number
   priceCents: number
 }
 
+export type SponsorshipMode = (typeof SPONSORSHIP_MODES)[number]
+
 export interface CategoryPayload {
   id: number
   eventId: number
   label: string
+  /** `external` : refacturée au payeur. `internal` : offerte par le BAE. */
+  mode: SponsorshipMode
   prices: CategoryPrice[]
 }
 
@@ -29,6 +34,7 @@ function toPayload(category: SponsorshipCategory, prices: CategoryPrice[]): Cate
     id: category.id,
     eventId: category.eventId,
     label: category.label,
+    mode: category.mode as SponsorshipMode,
     prices: prices.sort((a, b) => a.productId - b.productId),
   }
 }
@@ -98,21 +104,42 @@ export async function gridOf(
   return new Map((prices.get(categoryId) ?? []).map((row) => [row.productId, row.priceCents]))
 }
 
-export async function create(eventId: number, label: string): Promise<CategoryPayload> {
-  const event = await Event.find(eventId)
-  if (!event) {
-    throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
-  }
-
-  // Sans payeur, l'écart consenti ne serait réclamé à personne : ce serait une
-  // perte sèche, ce que la prise en charge est justement censée exclure.
-  if (!event.payerName) {
+/**
+ * Le payeur n'est exigé qu'en **externe** : c'est lui qui recevra le
+ * justificatif. En interne il n'y a personne à réclamer — l'écart est offert,
+ * et le bilan le compte en manque à gagner plutôt qu'en créance.
+ */
+async function requirePayerWhenExternal(event: Event, mode: SponsorshipMode): Promise<void> {
+  if (mode === 'external' && !event.payerName) {
     throw new ApiException(
       'E_SPONSORSHIP_NO_PAYER',
       "Renseignez d'abord qui rembourse la différence.",
       422
     )
   }
+}
+
+/** Une catégorie déjà vendue est figée : son mode a servi à calculer un bilan. */
+async function hasOrders(categoryId: number): Promise<boolean> {
+  const sold = await db
+    .from('orders')
+    .where('sponsorship_category_id', categoryId)
+    .select('id')
+    .first()
+  return Boolean(sold)
+}
+
+export async function create(
+  eventId: number,
+  label: string,
+  mode: SponsorshipMode
+): Promise<CategoryPayload> {
+  const event = await Event.find(eventId)
+  if (!event) {
+    throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
+  }
+
+  await requirePayerWhenExternal(event, mode)
 
   const existing = await SponsorshipCategory.query()
     .where('eventId', eventId)
@@ -125,19 +152,47 @@ export async function create(eventId: number, label: string): Promise<CategoryPa
   const category = await SponsorshipCategory.create({
     eventId,
     label,
+    mode,
     qrNonce: randomBytes(8).toString('base64url'),
   })
 
   return toPayload(category, [])
 }
 
-export async function rename(
+export interface CategoryChanges {
+  label?: string
+  mode?: SponsorshipMode
+}
+
+/**
+ * Le renommage reste libre — l'historique est protégé par la copie du libellé
+ * sur `orders`. La **bascule de mode**, elle, se verrouille dès la première
+ * commande : le bilan et le justificatif se lisent en joignant cette colonne,
+ * donc la changer après coup réécrirait des documents déjà rendus.
+ */
+export async function update(
   eventId: number,
   categoryId: number,
-  label: string
+  changes: CategoryChanges
 ): Promise<CategoryPayload> {
   const category = await findCategory(eventId, categoryId)
-  category.label = label
+
+  if (changes.mode !== undefined && changes.mode !== category.mode) {
+    if (await hasOrders(category.id)) {
+      throw new ApiException(
+        'E_CATEGORY_IN_USE',
+        'Des commandes ont été passées sur cette catégorie : son mode ne peut plus changer.',
+        409
+      )
+    }
+
+    const event = await Event.findOrFail(eventId)
+    await requirePayerWhenExternal(event, changes.mode)
+    category.mode = changes.mode
+  }
+
+  if (changes.label !== undefined) category.label = changes.label
+
   await category.save()
   return categoryOf(eventId, categoryId)
 }
@@ -186,13 +241,7 @@ export async function setPrices(
 export async function remove(eventId: number, categoryId: number): Promise<void> {
   const category = await findCategory(eventId, categoryId)
 
-  const sold = await db
-    .from('orders')
-    .where('sponsorship_category_id', category.id)
-    .select('id')
-    .first()
-
-  if (sold) {
+  if (await hasOrders(category.id)) {
     throw new ApiException(
       'E_CATEGORY_IN_USE',
       'Des commandes ont été passées sur cette catégorie : elle ne peut plus être supprimée.',

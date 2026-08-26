@@ -36,11 +36,14 @@ async function lastTransactionId(): Promise<number> {
 }
 
 /** Ouvre une cotisation en attente et rend de quoi la notifier. */
-async function openSubscriptionPayment(httpClient: ApiClient, email: string, priceEuros = 15) {
+async function openSubscriptionPayment(httpClient: ApiClient, email: string, priceCents = 1500) {
   const user = await makeClient(email)
   const formula = await FastPass.create({
     label: 'Année',
-    price: priceEuros,
+    // ⚠️ **Centimes**, comme toute valeur monétaire depuis le 2026-08-25. Le
+    // paramètre s'appelait `priceEuros` et valait 15 : la fixture entérinait la
+    // double conversion qu'appliquait alors le contrôleur.
+    price: priceCents,
     duration: 1,
     description: null,
   })

@@ -23,10 +23,14 @@ async function makeClient(email: string): Promise<User> {
   return user
 }
 
-function makeFastPass(priceEuros: number): Promise<FastPass> {
+/** ⚠️ `priceCents` : `fast_passes.price` est en **centimes entiers** depuis le
+ *  2026-08-25. Le paramètre s'appelait `priceEuros` et le test attendait ce
+ *  nombre multiplié par cent — la fixture entérinait la double conversion que
+ *  le contrôleur appliquait alors. */
+function makeFastPass(priceCents: number): Promise<FastPass> {
   return FastPass.create({
     label: 'Année',
-    price: priceEuros,
+    price: priceCents,
     duration: 1,
     description: null,
   })
@@ -48,7 +52,7 @@ test.group('Cotisation payée en ligne', (group) => {
     assert,
   }) => {
     const user = await makeClient('a@test.fr')
-    const formula = await makeFastPass(15)
+    const formula = await makeFastPass(1500)
 
     const response = await httpClient
       .post('/v1/account/subscriptions')
@@ -70,7 +74,7 @@ test.group('Cotisation payée en ligne', (group) => {
     assert,
   }) => {
     const user = await makeClient('b@test.fr')
-    const formula = await makeFastPass(15)
+    const formula = await makeFastPass(1500)
 
     await httpClient
       .post('/v1/account/subscriptions')
@@ -88,7 +92,7 @@ test.group('Cotisation payée en ligne', (group) => {
   test('un compte sans ligne clients est refusé', async ({ client: httpClient }) => {
     const member = await MemberFactory.create()
     const user = await User.findOrFail(member.id)
-    const formula = await makeFastPass(15)
+    const formula = await makeFastPass(1500)
 
     const response = await httpClient
       .post('/v1/account/subscriptions')

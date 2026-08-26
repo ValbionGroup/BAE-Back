@@ -539,4 +539,34 @@ test.group('Précommande payée en ligne', (group) => {
     assert.equal(view.total_cents, payment.amountCents)
     assert.equal(view.discount_percent, 15, 'la remise appliquée reste lisible sur la précommande')
   })
+
+  /**
+   * Le défaut visé : un `* 100` resté de l'époque où les montants étaient en
+   * euros. Depuis le passage aux centimes entiers du 2026-08-25,
+   * `fast_passes.price` **est** déjà en centimes — le multiplier à nouveau
+   * présentait une cotisation à 12 € comme 1 200 € sur la page Lydia.
+   *
+   * L'assertion porte sur ce que reçoit le client Lydia, et non sur la réponse
+   * de l'API : c'est le montant transmis qui était faux.
+   */
+  test('la cotisation part chez Lydia au prix exact de la formule', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const user = await makeClient('cotisation@test.fr')
+    const formula = await FastPass.create({
+      label: 'Année',
+      price: 1200,
+      duration: 1,
+      description: null,
+    })
+
+    const response = await httpClient
+      .post('/v1/account/subscriptions')
+      .json({ fastPassId: formula.id })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    assert.equal(lydia.created[0].amountCents, 1200)
+  })
 })

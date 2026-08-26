@@ -25,6 +25,12 @@ export interface ReceivableStatement {
 }
 
 /**
+ * Le justificatif de recouvrement : ce que le tiers payeur doit au BAE.
+ *
+ * ⚠️ **Externe seulement.** Les catégories internes sont offertes par le BAE et
+ * n'apparaissent pas ici — elles se lisent en manque à gagner dans le bilan
+ * (`event_summary_service`, `grantedCents`), jamais en créance.
+ *
  * Les lignes sont groupées par catégorie **et par couple de prix** : une grille
  * modifiée en cours de soirée fait coexister deux prix payés pour le même
  * article, et les fondre en une moyenne donnerait un document faux.
@@ -39,9 +45,13 @@ export async function receivablesForEvent(eventId: number): Promise<ReceivableSt
     .from('order_products')
     .join('orders', 'orders.id', 'order_products.order_id')
     .join('products', 'products.id', 'order_products.product_id')
+    .join('sponsorship_categories', 'sponsorship_categories.id', 'orders.sponsorship_category_id')
     .where('orders.event_id', eventId)
     .whereNot('orders.status', 'cancelled')
     .whereNotNull('orders.sponsorship_category_id')
+    // Seul l'externe se réclame : une catégorie interne est offerte par le BAE,
+    // elle n'a pas de destinataire à qui présenter la note.
+    .where('sponsorship_categories.mode', 'external')
     .groupBy(
       'orders.sponsorship_category_label',
       'products.name',
