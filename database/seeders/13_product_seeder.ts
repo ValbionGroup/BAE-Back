@@ -1,4 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import Product from '#models/product'
 
 const RECIPES: readonly { name: string; isVegetarian: boolean; recipe: string }[] = [
@@ -30,6 +31,8 @@ const RECIPES: readonly { name: string; isVegetarian: boolean; recipe: string }[
 ]
 
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     await Product.fetchOrCreateMany(
       'name',

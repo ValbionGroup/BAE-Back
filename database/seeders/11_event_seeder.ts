@@ -1,4 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import { DateTime } from 'luxon'
 import { EventFactory } from '#database/factories/event_factory'
 
@@ -11,6 +12,8 @@ import { EventFactory } from '#database/factories/event_factory'
  * et l'ancien tirage aléatoire de `status` en donnait sept ouvertes à la fois.
  */
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     const at = (day: DateTime) => day.set({ hour: 19, minute: 30, second: 0, millisecond: 0 })
 

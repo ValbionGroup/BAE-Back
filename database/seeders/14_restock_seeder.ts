@@ -1,9 +1,12 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import { RestockFactory } from '#database/factories/restock_factory'
 import Supplier from '#models/supplier'
 import Member from '#models/member'
 
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     const suppliers = await Supplier.all()
     const members = await Member.all()

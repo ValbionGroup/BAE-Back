@@ -1,4 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import Good from '#models/good'
 import Supplier from '#models/supplier'
 
@@ -25,6 +26,8 @@ const RETAILER_FACTORS: Record<string, number> = {
 const RETAILER_ORDER = ['Leclerc', 'Auchan', 'Carrefour'] as const
 
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     const goods = await Good.all()
     const suppliers = await Supplier.all()

@@ -1,8 +1,11 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
-import { JobFactory } from '#database/factories/job_factory'
+import Job from '#models/job'
 import type { JobPeriod } from '#services/matching_service'
 
-const jobs: Array<{ name: string; type: JobPeriod }> = [
+// Le vocabulaire des postes tenus pendant une soirée : semé en production au
+// même titre que le catalogue RBAC, donc `fetchOrCreateMany` et non une
+// fabrique — un second passage doit retrouver les postes, pas les dupliquer.
+const JOBS: readonly { name: string; type: JobPeriod }[] = [
   { name: 'Installation des tables', type: 'before' },
   { name: 'Décoration de la salle', type: 'before' },
   { name: 'Service', type: 'during' },
@@ -15,6 +18,9 @@ const jobs: Array<{ name: string; type: JobPeriod }> = [
 
 export default class extends BaseSeeder {
   async run() {
-    await JobFactory.merge(jobs).createMany(jobs.length)
+    await Job.fetchOrCreateMany(
+      'name',
+      JOBS.map((job) => ({ name: job.name, type: job.type }))
+    )
   }
 }
