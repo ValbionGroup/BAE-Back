@@ -1,5 +1,5 @@
 import { defineConfig } from '@adonisjs/shield'
-import { SESSION_COOKIE } from '#services/session_cookie'
+import { SESSION_COOKIE, cookieScope } from '#services/session_cookie'
 
 const shieldConfig = defineConfig({
   /**
@@ -83,6 +83,18 @@ const shieldConfig = defineConfig({
      * Expose an encrypted XSRF-TOKEN cookie for frontend HTTP clients.
      */
     enableXsrfCookie: true,
+
+    /**
+     * ⚠️ Without this line, `shield` falls back to `config/app.ts`, whose domain
+     * is empty: the cookie becomes *host-only* on the API, and is therefore
+     * invisible to the front-end, which lives on another subdomain. It then has
+     * nothing to copy into `X-XSRF-TOKEN`, and **every** cookie-authenticated
+     * write returns a 403.
+     *
+     * `cookieScope()` is shared with the session cookie: both scopes must stay
+     * identical, and two separate declarations would eventually diverge.
+     */
+    cookieOptions: cookieScope(),
 
     /**
      * HTTP methods protected by CSRF validation.
