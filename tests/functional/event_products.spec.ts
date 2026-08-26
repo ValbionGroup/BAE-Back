@@ -26,7 +26,11 @@ async function seedMenuFixture() {
   })
 
   const supplier = await Supplier.create({ name: 'Leclerc' })
-  await supplier.related('goods').attach({ [good.id]: { price: 4.95 } })
+  // ⚠️ **Centimes entiers** : `good_suppliers.price` est un `integer` depuis le
+  // chantier « centimes partout ». Cette fixture écrivait 4,95 € — la colonne de
+  // la base de dev étant restée `numeric`, elle passait, et le coût dérivé
+  // remontait en euros face à des prix de vente en centimes.
+  await supplier.related('goods').attach({ [good.id]: { price: 495 } })
 
   const product = await Product.create({
     name: 'Hot-dog classique',
@@ -60,8 +64,10 @@ test.group('Event products — lecture du menu', (group) => {
     assert.equal(lines[0].name, 'Hot-dog classique')
     assert.strictEqual(lines[0].quantity, 220)
     assert.strictEqual(lines[0].price, 350)
-    assert.strictEqual(lines[0].unit_cost, 9.9)
-    assert.strictEqual(lines[0].total_cost, 2178)
+    // 495 centimes × 2 unités de recette.
+    assert.strictEqual(lines[0].unit_cost, 990)
+    // 990 centimes × 220 portions au menu.
+    assert.strictEqual(lines[0].total_cost, 217800)
   })
 
   test('returns an empty list for an evening with no menu', async ({ client, assert }) => {
