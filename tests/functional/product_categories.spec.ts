@@ -5,6 +5,8 @@ import ProductCategory from '#models/product_category'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 import { EventFactory } from '#database/factories/event_factory'
+import Good from '#models/good'
+import Category from '#models/category'
 
 function cuisinier() {
   return MemberFactory.create().then((member) =>
@@ -219,5 +221,50 @@ test.group('Catégories de recettes — écriture sur la recette', (group) => {
 
     response.assertStatus(200)
     assert.isNotNull(await Product.find(recipe.id))
+  })
+})
+
+test.group('Seeders — le reclassement de l’existant', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  /**
+   * ⚠️ **Le défaut d'origine, et le test qui l'attrape.** `fetchOrCreateMany`
+   * est un *fetch-or-create*, pas un *upsert* : sur une base qui porte déjà les
+   * denrées, il les trouve et **ne les met pas à jour**. `category_id` restait
+   * donc `NULL` sans un mot — et comme la catégorie des recettes en dérivait,
+   * toutes les recettes étaient sans catégorie.
+   */
+  test('updateOrCreateMany reclasse une denrée déjà en base', async ({ assert }) => {
+    const category = await Category.create({ name: 'Frais de vérification' })
+    const good = await Good.create({
+      name: 'Denrée de vérification',
+      unit: 'kg',
+      brand: '',
+      categoryId: null,
+    })
+
+    await Good.updateOrCreateMany('name', [
+      { name: good.name, unit: 'kg', brand: '', categoryId: category.id },
+    ])
+
+    const reloaded = await Good.findOrFail(good.id)
+    assert.equal(reloaded.categoryId, category.id)
+  })
+
+  /** La preuve par l'absurde : `fetchOrCreateMany` ne l'aurait pas reclassée. */
+  test('fetchOrCreateMany laisse la denrée telle quelle', async ({ assert }) => {
+    const category = await Category.create({ name: 'Sec de vérification' })
+    const good = await Good.create({
+      name: 'Autre denrée de vérification',
+      unit: 'kg',
+      brand: '',
+      categoryId: null,
+    })
+
+    await Good.fetchOrCreateMany('name', [
+      { name: good.name, unit: 'kg', brand: '', categoryId: category.id },
+    ])
+
+    assert.isNull((await Good.findOrFail(good.id)).categoryId)
   })
 })

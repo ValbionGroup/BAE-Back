@@ -25,7 +25,15 @@ export default class extends BaseSeeder {
     )
     const byName = new Map(categories.map((category) => [category.name, category.id]))
 
-    await Good.fetchOrCreateMany(
+    // ⚠️ `updateOrCreateMany` et non `fetchOrCreateMany` : le second est un
+    // *fetch-or-create*, il trouve les denrées déjà semées et **ne les met pas à
+    // jour**. Sur une base neuve il classait correctement ; sur une base
+    // existante il laissait `category_id` à `NULL` sans un mot — et toute la
+    // catégorisation des recettes en dérivait, donc était vide.
+    //
+    // `Category.fetchOrCreateMany` reste tel quel : une catégorie n'a qu'un nom,
+    // il n'y a rien à mettre à jour.
+    await Good.updateOrCreateMany(
       'name',
       GOODS.map((good) => ({
         name: good.name,
