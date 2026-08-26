@@ -102,11 +102,22 @@ export function computeGoodStockSummary(batches: BatchWithRemaining[]): GoodStoc
   }
 }
 
+/**
+ * What a batch still holds.
+ *
+ * `excludeMovementId` leaves one movement out of the count, which is what
+ * updating a movement needs: its own quantity must not be weighed against
+ * itself, or correcting an out of 3 into 8 on a batch of 10 would be refused
+ * for a stock the batch actually carries.
+ */
 export async function remainingForBatch(
   batch: StockBatch,
-  trx?: TransactionClientContract
+  trx?: TransactionClientContract,
+  excludeMovementId?: number
 ): Promise<number> {
-  const movements = await StockMovement.query({ client: trx }).where('stockBatchId', batch.id)
+  const query = StockMovement.query({ client: trx }).where('stockBatchId', batch.id)
+  if (excludeMovementId !== undefined) query.whereNot('id', excludeMovementId)
+  const movements = await query
 
   const outQty = movements
     .filter((m) => m.movementType === 'out')
