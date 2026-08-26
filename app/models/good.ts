@@ -6,6 +6,7 @@ import Supplier from '#models/supplier'
 import Product from '#models/product'
 import StockMovement from '#models/stock_movement'
 import StockBatch from '#models/stock_batch'
+import GoodBarcode from '#models/good_barcode'
 
 export default class Good extends GoodSchema {
   @belongsTo(() => Category)
@@ -30,4 +31,7 @@ export default class Good extends GoodSchema {
 
   @hasMany(() => StockBatch)
   declare stockBatch: HasMany<typeof StockBatch>
+
+  @hasMany(() => GoodBarcode)
+  declare barcodes: HasMany<typeof GoodBarcode>
 }

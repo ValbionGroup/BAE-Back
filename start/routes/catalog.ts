@@ -64,6 +64,15 @@ router
       .use(middleware.can('good:write'))
     router.delete('/goods/:id', [controllers.Goods, 'destroy']).use(middleware.can('good:delete'))
 
+    // Le code appartient à la denrée qu'il désigne : `good:write`. Le scanner est
+    // le seul à en poser, à la validation de son lot.
+    router
+      .post('/goods/:id/barcodes', [controllers.Goods, 'attachBarcode'])
+      .use(middleware.can('good:write'))
+    router
+      .delete('/goods/:id/barcodes/:code', [controllers.Goods, 'removeBarcode'])
+      .use(middleware.can('good:write'))
+
     // Le tarif appartient à la **denrée** qu'on enrichit, pas à l'enseigne :
     // `good:write`, et non `supplier:write`. Patron de
     // `PUT /events/:id/sponsorship-categories/:categoryId/prices`.

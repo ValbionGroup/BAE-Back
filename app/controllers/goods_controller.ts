@@ -1,9 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
 import Good from '#models/good'
 import ApiException from '#exceptions/api_exception'
 import { bestSupplierPrice, supplierPrices } from '#services/pricing_service'
 import Supplier from '#models/supplier'
-import { supplierPriceValidator } from '#validators/catalog'
+import { supplierPriceValidator, goodBarcodeValidator } from '#validators/catalog'
 
 const UNIQUE_VIOLATION = '23505'
 
@@ -18,89 +19,139 @@ function rethrowBarcodeConflict(error: unknown): never {
   throw error
 }
 
+/**
+ * ⚠️ La requête est partagée par `index`, `show` et `update` **exprès**. Les
+ * tarifs vivent sur le pivot (`$extras.pivot_price`) et ne se sérialisent pas
+ * seuls : `preload('suppliers')` sans `supplierPrices` rend des enseignes sans
+ * montant. Les trois routes avaient déjà divergé une fois là-dessus ; les
+ * codes-barres ajoutent un second `preload` à ne pas oublier, d'où le point
+ * unique.
+ */
+function goodQuery() {
+  return Good.query()
+    .preload('products')
+    .preload('category')
+    .preload('suppliers')
+    .preload('barcodes')
+}
+
+function present(good: Good) {
+  const best = bestSupplierPrice(good)
+  return {
+    ...good.serialize(),
+    barcodes: good.barcodes.map((barcode) => barcode.code),
+    suppliers: supplierPrices(good),
+    bestSupplier: best,
+    bestPrice: best?.price ?? null,
+  }
+}
+
+/** Les codes d'une création : `barcodes` en principal, `barcode` seul toléré. */
+function codesFrom(payload: Record<string, unknown>): string[] {
+  const raw = [
+    ...(Array.isArray(payload.barcodes) ? payload.barcodes : []),
+    ...(payload.barcode ? [payload.barcode] : []),
+  ]
+  const codes = raw.map((code) => String(code).trim()).filter((code) => code !== '')
+  return [...new Set(codes)]
+}
+
 export default class GoodsController {
   async index({ request, serialize }: HttpContext) {
     const barcode = request.qs().barcode
-    const goods = await Good.query()
-      .preload('products')
-      .preload('category')
-      .preload('suppliers')
-      .if(barcode, (query) => query.where('barcode', String(barcode)))
+    const goods = await goodQuery()
+      .if(barcode, (query) =>
+        query.whereHas('barcodes', (sub) => sub.where('code', String(barcode)))
+      )
       .orderBy('name')
 
-    return serialize(
-      goods.map((good) => {
-        const best = bestSupplierPrice(good)
-        return {
-          ...good.serialize(),
-          suppliers: supplierPrices(good),
-          bestSupplier: best,
-          bestPrice: best?.price ?? null,
-        }
-      })
-    )
-  }
-
-  async store({ request, serialize }: HttpContext) {
-    const { name, unit, brand, categoryId, barcode } = request.all()
-    const good = new Good()
-    good.name = name
-    good.unit = unit
-    good.brand = brand ?? ''
-    good.categoryId = categoryId
-    good.barcode = barcode || null
-    await good.save().catch(rethrowBarcodeConflict)
-    return serialize(good)
+    return serialize(goods.map(present))
   }
 
   /**
-   * ⚠️ Même forme que `index` pour les tarifs : `preload('suppliers')` seul rend
-   * les enseignes **sans leur prix**, qui vit sur le pivot dans
-   * `$extras.pivot_price` et ne se sérialise pas. Le panneau de tarifs lit cette
-   * réponse — sans `supplierPrices`, il afficherait des enseignes sans montant.
+   * Denrée et codes dans **une** transaction : sans elle, un code refusé
+   * laisserait derrière lui une denrée sans code, et la personne qui recommence
+   * en créerait une seconde — le doublon que les codes multiples suppriment.
    */
-  async show({ params, serialize }: HttpContext) {
-    const good = await Good.query()
-      .preload('products')
-      .preload('category')
-      .preload('suppliers')
-      .where('id', params.id)
-      .firstOrFail()
+  async store({ request, serialize }: HttpContext) {
+    const payload = request.all()
+    const { name, unit, brand, categoryId } = payload
+    const codes = codesFrom(payload)
 
-    const best = bestSupplierPrice(good)
-    return serialize({
-      ...good.serialize(),
-      suppliers: supplierPrices(good),
-      bestSupplier: best,
-      bestPrice: best?.price ?? null,
-    })
+    const good = await db
+      .transaction(async (trx) => {
+        const created = new Good()
+        created.useTransaction(trx)
+        created.name = name
+        created.unit = unit
+        created.brand = brand ?? ''
+        created.categoryId = categoryId
+        await created.save()
+
+        if (codes.length > 0) {
+          await created.related('barcodes').createMany(codes.map((code) => ({ code })))
+        }
+        return created
+      })
+      .catch(rethrowBarcodeConflict)
+
+    await good.load('barcodes')
+    return serialize({ ...good.serialize(), barcodes: good.barcodes.map((b) => b.code) })
   }
 
+  async show({ params, serialize }: HttpContext) {
+    const good = await goodQuery().where('id', params.id).firstOrFail()
+    return serialize(present(good))
+  }
+
+  /** Les codes ne passent plus par ici : ils ont leurs propres routes. */
   async update({ params, request, serialize }: HttpContext) {
-    const good = await Good.query()
-      .preload('products')
-      .preload('category')
-      .preload('suppliers')
-      .where('id', params.id)
-      .firstOrFail()
+    const good = await goodQuery().where('id', params.id).firstOrFail()
     const payload = request.all()
     good.name = payload.name
     good.unit = payload.unit
     good.categoryId = payload.categoryId
     if ('brand' in payload) good.brand = payload.brand ?? ''
-    if ('barcode' in payload) good.barcode = payload.barcode || null
-    await good.save().catch(rethrowBarcodeConflict)
-    return serialize(good)
+    await good.save()
+    return serialize(present(good))
   }
 
   async destroy({ params }: HttpContext) {
-    const good = await Good.query()
-      .preload('products')
-      .preload('category')
-      .preload('suppliers')
-      .where('id', params.id)
-      .firstOrFail()
+    const good = await Good.query().where('id', params.id).firstOrFail()
     await good.delete()
+  }
+
+  /** Rattache un code lu au scanner à une denrée déjà connue. */
+  async attachBarcode({ params, request, serialize }: HttpContext) {
+    const good = await Good.query().where('id', params.id).firstOrFail()
+    const { code } = await request.validateUsing(goodBarcodeValidator)
+
+    const barcode = await good.related('barcodes').create({ code }).catch(rethrowBarcodeConflict)
+
+    return serialize({ goodId: good.id, code: barcode.code })
+  }
+
+  async removeBarcode({ params, response }: HttpContext) {
+    const good = await Good.query().where('id', params.id).firstOrFail()
+
+    // Vérifié avant de supprimer : un `delete` sur un code absent ne dirait rien,
+    // et l'écran croirait avoir détaché un code encore en place ailleurs.
+    const barcode = await good
+      .related('barcodes')
+      .query()
+      .where('code', String(params.code))
+      .first()
+
+    if (!barcode) {
+      throw new ApiException(
+        'E_BARCODE_NOT_FOUND',
+        "Ce code-barres n'est pas rattaché à ce produit.",
+        404
+      )
+    }
+
+    await barcode.delete()
+    return response.noContent()
   }
 
   /**

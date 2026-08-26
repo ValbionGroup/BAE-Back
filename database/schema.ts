@@ -194,6 +194,21 @@ export class FurnitureSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class GoodBarcodeSchema extends BaseModel {
+  static $columns = ['code', 'createdAt', 'goodId', 'id', 'updatedAt'] as const
+  $columns = GoodBarcodeSchema.$columns
+  @column()
+  declare code: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare goodId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class GoodSupplierSchema extends BaseModel {
   static $columns = ['createdAt', 'goodId', 'price', 'supplierId', 'updatedAt'] as const
   $columns = GoodSupplierSchema.$columns
@@ -210,10 +225,8 @@ export class GoodSupplierSchema extends BaseModel {
 }
 
 export class GoodSchema extends BaseModel {
-  static $columns = ['barcode', 'brand', 'categoryId', 'createdAt', 'id', 'name', 'unit', 'updatedAt'] as const
+  static $columns = ['brand', 'categoryId', 'createdAt', 'id', 'name', 'unit', 'updatedAt'] as const
   $columns = GoodSchema.$columns
-  @column()
-  declare barcode: string | null
   @column()
   declare brand: string
   @column()
