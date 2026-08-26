@@ -25,3 +25,17 @@ export const supplierValidator = vine.create({
 export const supplierUpdateValidator = vine.create({
   name: vine.string().trim().minLength(1).maxLength(255).optional(),
 })
+
+/**
+ * Le tarif d'une denrée chez une enseigne (`good_suppliers.price`).
+ *
+ * ⚠️ **En centimes entiers**, comme tout montant depuis le 2026-08-25, et
+ * **par unité de stock** (`goods.unit` : `pcs`, `kg` ou `liter`). Rien ne
+ * normalise les conditionnements : `pricing_service` compare les prix bruts
+ * entre enseignes, donc un prix « au sac de 5 kg » face à un prix « au kilo »
+ * fausserait la comparaison **et** le prix de référence. L'écran le dit à la
+ * saisie (« Prix par kg »).
+ */
+export const supplierPriceValidator = vine.create({
+  priceCents: vine.number().withoutDecimals().min(0),
+})

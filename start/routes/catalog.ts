@@ -47,6 +47,16 @@ router
       .use(middleware.can('good:write'))
     router.delete('/goods/:id', [controllers.Goods, 'destroy']).use(middleware.can('good:delete'))
 
+    // Le tarif appartient à la **denrée** qu'on enrichit, pas à l'enseigne :
+    // `good:write`, et non `supplier:write`. Patron de
+    // `PUT /events/:id/sponsorship-categories/:categoryId/prices`.
+    router
+      .put('/goods/:id/suppliers/:supplierId', [controllers.Goods, 'setSupplierPrice'])
+      .use(middleware.can('good:write'))
+    router
+      .delete('/goods/:id/suppliers/:supplierId', [controllers.Goods, 'removeSupplierPrice'])
+      .use(middleware.can('good:write'))
+
     router
       .get('/furnitures', [controllers.Furnitures, 'index'])
       .use(middleware.can('furniture:read'))

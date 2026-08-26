@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Good from '#models/good'
 import ApiException from '#exceptions/api_exception'
 import { bestSupplierPrice, supplierPrices } from '#services/pricing_service'
+import Supplier from '#models/supplier'
+import { supplierPriceValidator } from '#validators/catalog'
 
 const UNIQUE_VIOLATION = '23505'
 
@@ -87,5 +89,37 @@ export default class GoodsController {
       .where('id', params.id)
       .firstOrFail()
     await good.delete()
+  }
+
+  /**
+   * Pose ou corrige le tarif d'une denrée chez une enseigne — **le même geste**
+   * du point de vue de l'utilisateur, donc la même route.
+   *
+   * ⚠️ Ce prix décide de trois écrans : `bestSupplierPrice` en fait le prix de
+   * référence du coût de recette, de la liste de courses et du bilan. Saisir
+   * moins cher ailleurs les déplace tous les trois.
+   */
+  async setSupplierPrice({ params, request, response }: HttpContext) {
+    const good = await Good.query().where('id', params.id).firstOrFail()
+    const { priceCents } = await request.validateUsing(supplierPriceValidator)
+
+    // Vérifié explicitement : sans ça, un identifiant inconnu remonterait en
+    // violation de clé étrangère, donc en 500 illisible.
+    const supplier = await Supplier.find(params.supplierId)
+    if (!supplier) {
+      throw new ApiException('E_SUPPLIER_NOT_FOUND', "Cette enseigne n'existe pas.", 404)
+    }
+
+    // `sync(..., false)` : détacher les autres enseignes effacerait les tarifs
+    // qu'on ne touche pas.
+    await good.related('suppliers').sync({ [supplier.id]: { price: priceCents } }, false)
+
+    return response.ok({ goodId: good.id, supplierId: supplier.id, priceCents })
+  }
+
+  async removeSupplierPrice({ params, response }: HttpContext) {
+    const good = await Good.query().where('id', params.id).firstOrFail()
+    await good.related('suppliers').detach([Number(params.supplierId)])
+    return response.noContent()
   }
 }
