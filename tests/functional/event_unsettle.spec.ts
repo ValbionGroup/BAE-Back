@@ -97,13 +97,15 @@ test.group('event:unsettle', (group) => {
     await db.from('events').where('status', 'ongoing').update({ status: 'scheduled' })
     const { event, user } = await closedEvening()
     await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
-    assert.equal((await Event.findOrFail(event.id)).status, 'completed')
+    const afterSettle = await Event.findOrFail(event.id)
+    assert.equal(afterSettle.status, 'completed')
 
     const command = await ace.create(EventUnsettle, [String(event.id)])
     await command.exec()
     command.assertSucceeded()
 
-    assert.equal((await Event.findOrFail(event.id)).status, 'ongoing')
+    const afterUnsettle = await Event.findOrFail(event.id)
+    assert.equal(afterUnsettle.status, 'ongoing')
   })
 
   /** L'invariant « au plus une ouverte » vaut aussi pour la marche arrière. */
@@ -120,7 +122,8 @@ test.group('event:unsettle', (group) => {
     await command.exec()
     command.assertSucceeded()
 
-    assert.equal((await Event.findOrFail(event.id)).status, 'scheduled')
+    const reloaded = await Event.findOrFail(event.id)
+    assert.equal(reloaded.status, 'scheduled')
   })
 
   test('writes nothing in dry-run', async ({ client, assert }) => {

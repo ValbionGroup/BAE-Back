@@ -35,7 +35,8 @@ test.group('Cycle de vie d’une soirée — ouverture', (group) => {
     const response = await client.post(`/v1/events/${event.id}/open`).loginAs(user)
 
     response.assertStatus(200)
-    assert.equal((await Event.findOrFail(event.id)).status, 'ongoing')
+    const reloaded = await Event.findOrFail(event.id)
+    assert.equal(reloaded.status, 'ongoing')
 
     const trace = await ActivityEvent.query()
       .where('subjectType', 'event')
@@ -53,7 +54,8 @@ test.group('Cycle de vie d’une soirée — ouverture', (group) => {
     const response = await client.post(`/v1/events/${event.id}/open`).loginAs(user)
 
     response.assertStatus(200)
-    assert.equal((await Event.findOrFail(event.id)).status, 'ongoing')
+    const reloaded = await Event.findOrFail(event.id)
+    assert.equal(reloaded.status, 'ongoing')
   })
 
   /**
@@ -74,7 +76,8 @@ test.group('Cycle de vie d’une soirée — ouverture', (group) => {
 
     response.assertStatus(409)
     response.assertBodyContains({ error: { code: 'E_EVENT_ALREADY_OPEN' } })
-    assert.equal((await Event.findOrFail(other.id)).status, 'scheduled')
+    const reloaded = await Event.findOrFail(other.id)
+    assert.equal(reloaded.status, 'scheduled')
   })
 
   test('refuse de rouvrir une soirée clôturée — c’est le rôle d’event:unsettle', async ({
@@ -89,7 +92,8 @@ test.group('Cycle de vie d’une soirée — ouverture', (group) => {
 
     response.assertStatus(409)
     response.assertBodyContains({ error: { code: 'E_EVENT_CLOSED' } })
-    assert.equal((await Event.findOrFail(event.id)).status, 'completed')
+    const reloaded = await Event.findOrFail(event.id)
+    assert.equal(reloaded.status, 'completed')
   })
 
   test('refuse l’ouverture à qui n’a pas event:write', async ({ client }) => {

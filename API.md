@@ -58,17 +58,17 @@ requête et dans les réponses. Aucune valeur monétaire ne transite en euros ni
 
 Champs passés de euros à centimes le 2026-08-25 :
 
-| Endpoint | Champ |
-| --- | --- |
-| `GET /transactions` | `amount` |
-| `GET /subscriptions`, `GET /me` | `subscriptions[].amount` |
-| `GET /events/:id/summary` | `cashed_by_method[].amount` |
-| `GET /events/:id/products` | `unit_cost`, `total_cost` |
-| `GET /products/summary` | `cost` |
-| `GET /vouchers` | `value` |
-| `GET /furnitures` | `price` |
-| `GET /fast-passes` | `price` |
-| `GET /restocks` | `total_price` |
+| Endpoint                        | Champ                                               |
+| ------------------------------- | --------------------------------------------------- |
+| `GET /transactions`             | `amount`                                            |
+| `GET /subscriptions`, `GET /me` | `subscriptions[].amount`                            |
+| `GET /events/:id/summary`       | `cashed_by_method[].amount`                         |
+| `GET /events/:id/products`      | `unit_cost`, `total_cost`                           |
+| `GET /products/summary`         | `cost`                                              |
+| `GET /vouchers`                 | `value`                                             |
+| `GET /furnitures`               | `price`                                             |
+| `GET /fast-passes`              | `price`                                             |
+| `GET /restocks`                 | `total_price`                                       |
 | `GET /events/:id/shopping-list` | `best_price`, `supplier_totals[].total`, `totals.*` |
 
 `GET /v1/public/fast-passes` est inchangé : il exposait déjà `price_cents`. Le suffixe ne

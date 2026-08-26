@@ -369,9 +369,7 @@ test.group('Adhérents — activité', (group) => {
     discountPercent: number
     paid: boolean
   }) {
-    const transaction = attrs.paid
-      ? await Transaction.create({ type: 'lydia', amount: 0 })
-      : null
+    const transaction = attrs.paid ? await Transaction.create({ type: 'lydia', amount: 0 }) : null
 
     const [row] = await db
       .table('pre_orders')

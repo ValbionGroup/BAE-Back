@@ -84,11 +84,13 @@ test.group('Event settlement', (group) => {
     const first = await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
     first.assertStatus(200)
     first.assertBodyContains({ data: { status: 'completed' } })
-    assert.equal((await Event.findOrFail(event.id)).status, 'completed')
+    const afterFirst = await Event.findOrFail(event.id)
+    assert.equal(afterFirst.status, 'completed')
 
     const second = await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
     second.assertStatus(200)
-    assert.equal((await Event.findOrFail(event.id)).status, 'completed')
+    const afterSecond = await Event.findOrFail(event.id)
+    assert.equal(afterSecond.status, 'completed')
   })
 
   test('a second settle changes nothing and reports settled: 0', async ({ client, assert }) => {
