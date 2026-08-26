@@ -407,10 +407,18 @@ export default class EventsController {
         .count('* as total')
         .first()
 
+      // Consolider les points et fermer la soirée sont **le même geste**, et il
+      // n'y en a qu'un : le §6.4 du HANDOFF laissait le choix entre cet endpoint
+      // et un passage de `events.status`, et seule la moitié « points » avait
+      // été faite. La caisse et la vue live dérivent de `status` : sans cette
+      // ligne, clôturer ne fermait rien à l'écran ni en base.
+      await trx.from('events').where('id', event.id).update({ status: 'completed' })
+
       return {
         settled: claimed.length,
         alreadySettled: Math.max(0, Number(settledTotal?.total ?? 0) - claimed.length),
         totalDelta,
+        status: 'completed' as const,
       }
     })
 
@@ -429,6 +437,78 @@ export default class EventsController {
     }
 
     return serialize(summary)
+  }
+
+  /**
+   * L'ouverture d'une soirée — le pendant de `settle`, et la **seule** porte
+   * vers `status = 'ongoing'` : `eventUpdateValidator` ne porte plus `status`,
+   * sans quoi un PATCH générique contournerait l'invariant ci-dessous.
+   *
+   * Invariant : **au plus une soirée ouverte**. `EventsStore.activeEvent` prend
+   * la plus ancienne des `ongoing` ; une soirée laissée ouverte captait donc la
+   * caisse et la vue live indéfiniment, quelle que soit la soirée du jour.
+   *
+   * ⚠️ Le verrou est transactionnel, pas structurel : deux ouvertures
+   * simultanées de **soirées différentes** ne se voient pas (chacune verrouille
+   * sa propre ligne, et `WHERE status = 'ongoing'` ne verrouille rien quand il
+   * ne ramène rien). Un index unique partiel serait étanche ; il suppose une
+   * base déjà conforme, ce que celle de dev n'est pas encore.
+   *
+   * Idempotent : rouvrir la soirée déjà ouverte n'écrit rien et répond 200.
+   */
+  async open({ params, response, serialize, auth }: HttpContext) {
+    const event = await Event.findOrFail(params.id)
+
+    const refusal = await db.transaction(async (trx) => {
+      const current = await trx.from('events').where('id', event.id).forUpdate().first()
+
+      if (current.status === 'completed') {
+        return {
+          code: 'E_EVENT_CLOSED',
+          message: 'Cette soirée est clôturée : déclôturez-la d’abord.',
+        }
+      }
+
+      if (current.status === 'ongoing') return null
+
+      const other = await trx
+        .from('events')
+        .where('status', 'ongoing')
+        .whereNot('id', event.id)
+        .forUpdate()
+        .first()
+
+      if (other) {
+        return {
+          code: 'E_EVENT_ALREADY_OPEN',
+          message: `« ${other.name} » est déjà ouverte : clôturez-la avant d’en ouvrir une autre.`,
+        }
+      }
+
+      await trx.from('events').where('id', event.id).update({ status: 'ongoing' })
+      return null
+    })
+
+    if (refusal !== null) {
+      return response.conflict({ error: refusal })
+    }
+
+    await event.refresh()
+
+    // Symétrique de `event.settled` : ouvrir et clôturer sont les deux gestes
+    // d'une soirée qui méritent le fil d'activité.
+    if (auth.user) {
+      await recordEvent({
+        verb: 'event.opened',
+        actorId: auth.user.id,
+        subjectType: 'event',
+        subjectId: event.id,
+        payload: { what: 'a ouvert la soirée', emphasis: event.name },
+        dedupeKey: `event.opened:${event.id}`,
+      })
+    }
+
+    return serialize(event)
   }
 
   async roster({ params, serialize }: HttpContext) {

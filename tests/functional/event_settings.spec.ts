@@ -160,20 +160,35 @@ test.group('Event settings', (group) => {
     response.assertStatus(422)
   })
 
-  test('refuse un statut hors énumération et une date illisible', async ({ client }) => {
+  test('refuse une date illisible', async ({ client }) => {
     const user = await coordinator()
     const event = await EventFactory.create()
-
-    const badStatus = await client
-      .patch(`/v1/events/${event.id}`)
-      .json({ status: 'annulée' })
-      .loginAs(user)
-    badStatus.assertStatus(422)
 
     const badDate = await client
       .patch(`/v1/events/${event.id}`)
       .json({ date: 'la semaine prochaine' })
       .loginAs(user)
     badDate.assertStatus(422)
+  })
+
+  /**
+   * `status` a quitté le validateur : l'état passe par `/open` et `/settle`, qui
+   * portent l'unicité de la soirée ouverte et la consolidation des points. Le
+   * PATCH ne le refuse pas — Vine ignore les clés inconnues — il **ne fait
+   * rien**, et c'est ça qu'il faut tenir.
+   */
+  test('un PATCH ne peut plus changer l’état d’une soirée', async ({ client, assert }) => {
+    const user = await coordinator()
+    const event = await EventFactory.merge({ status: 'scheduled' }).create()
+
+    const response = await client
+      .patch(`/v1/events/${event.id}`)
+      .json({ status: 'completed' })
+      .loginAs(user)
+
+    response.assertStatus(200)
+
+    const reloaded = await Event.findOrFail(event.id)
+    assert.equal(reloaded.status, 'scheduled')
   })
 })

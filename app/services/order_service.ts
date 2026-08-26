@@ -4,6 +4,7 @@ import Event from '#models/event'
 import Order from '#models/order'
 import Transaction from '#models/transaction'
 import ApiException from '#exceptions/api_exception'
+import { assertEventOpen } from '#services/event_lifecycle_service'
 import { ANONYMOUS_BUYER, resolveBuyerName, resolveBuyerNames } from '#services/buyer_service'
 import { findCategory, gridOf } from '#services/sponsorship_service'
 
@@ -312,6 +313,9 @@ export async function priceCart(
   if (!event) {
     throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
   }
+  // Couvre d'un seul geste l'encaissement espèces (`checkout`) et le paiement
+  // par carte (`openCardPayment`) : ce sont les deux seuls appelants.
+  assertEventOpen(event)
 
   const menu = await menuOf(eventId, trx)
 

@@ -3,6 +3,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import ace from '@adonisjs/core/services/ace'
 import { DateTime } from 'luxon'
 import { asCoordinator } from '#tests/helpers/permissions'
+import Event from '#models/event'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
 import { MemberFactory } from '#database/factories/members_factory'
@@ -65,6 +66,29 @@ test.group('Event settlement', (group) => {
     for (const row of rows) {
       assert.isNotNull(row.settledAt)
     }
+  })
+
+  /**
+   * La moitié qui manquait. Consolider les points et fermer la soirée sont **le
+   * même geste** : la caisse et la vue live dérivent de `events.status`, donc
+   * sans ce passage à `completed`, clôturer ne fermait rien — ni à l'écran, ni
+   * en base.
+   */
+  test('la clôture ferme aussi la soirée, et la refaire ne la rouvre pas', async ({
+    client,
+    assert,
+  }) => {
+    const event = await EventFactory.merge({ status: 'ongoing' }).create()
+    const { user } = await seedMember(0)
+
+    const first = await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
+    first.assertStatus(200)
+    first.assertBodyContains({ data: { status: 'completed' } })
+    assert.equal((await Event.findOrFail(event.id)).status, 'completed')
+
+    const second = await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
+    second.assertStatus(200)
+    assert.equal((await Event.findOrFail(event.id)).status, 'completed')
   })
 
   test('a second settle changes nothing and reports settled: 0', async ({ client, assert }) => {

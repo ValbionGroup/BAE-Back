@@ -9,7 +9,6 @@ const eventFields = {
   date: vine.string(),
   duration: vine.number().positive().nullable().optional(),
   description: vine.string().nullable().optional(),
-  status: vine.enum(['scheduled', 'ongoing', 'completed']).optional(),
   /** Plafond de précommandes. `0` ferme la soirée : il n'y a pas de pause. */
   capacity: vine.number().withoutDecimals().min(0).optional(),
   expectedAttendees: vine.number().withoutDecimals().min(0).nullable().optional(),
@@ -19,6 +18,14 @@ const eventFields = {
   preOrderCloseLeadHours: vine.number().withoutDecimals().min(0).nullable().optional(),
 }
 
+/**
+ * ⚠️ **`status` n'est pas ici, et ne doit pas y revenir.** L'état d'une soirée a
+ * exactement deux portes — `POST /events/:id/open` et `POST /events/:id/settle`
+ * — parce que chacune porte une règle qu'un PATCH générique contournerait :
+ * l'unicité de la soirée ouverte, et la consolidation des points à la clôture.
+ * Une clé inconnue est ignorée par Vine, donc un client qui l'enverrait encore
+ * ne casse pas ; il n'obtient simplement aucun effet.
+ */
 export const eventValidator = vine.create(eventFields)
 
 /**

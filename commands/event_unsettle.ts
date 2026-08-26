@@ -81,6 +81,30 @@ export default class EventUnsettle extends BaseCommand {
         .whereNotNull('settled_at')
         .update({ settled_at: null })
 
+      // `settle` fait deux choses — consolider les points **et** passer la soirée
+      // à `completed`. Ne défaire que la première laisserait une soirée fermée à
+      // l'écran mais rouverte en points : la caisse resterait inatteignable.
+      //
+      // Déclôturer, c'est reprendre le service : la soirée redevient `ongoing`.
+      // Sauf si une autre est déjà ouverte — l'invariant « au plus une » tient
+      // aussi ici, et on retombe alors sur `scheduled`, en le disant.
+      if (event.status === 'completed') {
+        const other = await trx
+          .from('events')
+          .where('status', 'ongoing')
+          .whereNot('id', eventId)
+          .first()
+
+        const status = other ? 'scheduled' : 'ongoing'
+        await trx.from('events').where('id', eventId).update({ status })
+
+        if (other) {
+          this.logger.warning(
+            `« ${other.name} » est déjà ouverte : soirée ${eventId} remise en « scheduled » plutôt qu'en « ongoing ».`
+          )
+        }
+      }
+
       this.logger.success(
         `Soirée ${eventId} déconsolidée : ${settledRows.length} affectation(s), ${deltaByMember.size} membre(s), delta total ${totalDelta}`
       )

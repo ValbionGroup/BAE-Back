@@ -145,6 +145,10 @@ router
       .post('/events/:id/matching', [controllers.Events, 'runMatching'])
       .use(middleware.can('event:matching'))
 
+    // Ouvrir relève de la préparation (`event:write`), clôturer de la
+    // consolidation des points (`event:settle`) : deux gestes, deux droits.
+    router.post('/events/:id/open', [controllers.Events, 'open']).use(middleware.can('event:write'))
+
     router
       .post('/events/:id/settle', [controllers.Events, 'settle'])
       .use(middleware.can('event:settle'))

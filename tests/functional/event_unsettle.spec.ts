@@ -1,6 +1,8 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import ace from '@adonisjs/core/services/ace'
+import db from '@adonisjs/lucid/services/db'
+import Event from '#models/event'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
 import { MemberFactory } from '#database/factories/members_factory'
@@ -83,6 +85,42 @@ test.group('event:unsettle', (group) => {
 
     const rerun = await client.post(`/v1/events/${event.id}/matching`).loginAs(user)
     rerun.assertStatus(200)
+  })
+
+  /**
+   * `settle` ferme la soirée en plus de consolider les points. Ne défaire que
+   * la moitié « points » laisserait une soirée `completed` mais déconsolidée :
+   * la caisse resterait inatteignable et la vue live vide, alors même que
+   * l'opérateur vient de la rouvrir.
+   */
+  test('remet la soirée en service', async ({ client, assert }) => {
+    await db.from('events').where('status', 'ongoing').update({ status: 'scheduled' })
+    const { event, user } = await closedEvening()
+    await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
+    assert.equal((await Event.findOrFail(event.id)).status, 'completed')
+
+    const command = await ace.create(EventUnsettle, [String(event.id)])
+    await command.exec()
+    command.assertSucceeded()
+
+    assert.equal((await Event.findOrFail(event.id)).status, 'ongoing')
+  })
+
+  /** L'invariant « au plus une ouverte » vaut aussi pour la marche arrière. */
+  test('retombe sur « scheduled » quand une autre soirée est déjà ouverte', async ({
+    client,
+    assert,
+  }) => {
+    await db.from('events').where('status', 'ongoing').update({ status: 'scheduled' })
+    const { event, user } = await closedEvening()
+    await client.post(`/v1/events/${event.id}/settle`).loginAs(user)
+    await EventFactory.merge({ name: 'Soirée en cours', status: 'ongoing' }).create()
+
+    const command = await ace.create(EventUnsettle, [String(event.id)])
+    await command.exec()
+    command.assertSucceeded()
+
+    assert.equal((await Event.findOrFail(event.id)).status, 'scheduled')
   })
 
   test('writes nothing in dry-run', async ({ client, assert }) => {

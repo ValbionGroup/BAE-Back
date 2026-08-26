@@ -8,6 +8,7 @@ import ProductionRun from '#models/production_run'
 import StockBatch from '#models/stock_batch'
 import StockMovement from '#models/stock_movement'
 import ApiException from '#exceptions/api_exception'
+import { assertEventOpen } from '#services/event_lifecycle_service'
 import { loadBatchesWithRemaining, type BatchWithRemaining } from '#services/stock_service'
 
 export interface PickLine {
@@ -207,6 +208,7 @@ export async function commitProduction(
     if (!event) {
       throw new ApiException('E_EVENT_NOT_FOUND', "Cette soirée n'existe pas.", 404)
     }
+    assertEventOpen(event)
 
     const product = await Product.query({ client: trx })
       .where('id', productId)
