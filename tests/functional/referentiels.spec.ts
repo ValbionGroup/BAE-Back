@@ -1,6 +1,9 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
 import Category from '#models/category'
+import Supplier from '#models/supplier'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 
@@ -62,5 +65,89 @@ test.group('Référentiels — validation des écritures', (group) => {
     response.assertStatus(200)
     const created = await Category.findByOrFail('name', 'Épicerie')
     assert.equal(created.name, 'Épicerie')
+  })
+})
+
+/**
+ * Une enseigne portant un bon d'achat. `vouchers.value` et `expires_at` sont
+ * `NOT NULL` — il n'y a pas de colonne `code`.
+ */
+async function supplierWithVoucher(name: string) {
+  const supplier = await Supplier.create({ name })
+  await db.table('vouchers').insert({
+    supplier_id: supplier.id,
+    value: 50,
+    expires_at: DateTime.now().plus({ months: 6 }).toISODate(),
+    created_at: DateTime.now().toSQL(),
+    updated_at: DateTime.now().toSQL(),
+  })
+  return supplier
+}
+
+test.group('Référentiels — suppression d’une enseigne', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  /**
+   * ⚠️ L'assertion qui compte n'est pas le 409 : c'est que le bon d'achat
+   * **existe encore après**. La FK est en CASCADE, donc sans ce garde-fou la
+   * suppression réussissait en détruisant un objet au porteur.
+   */
+  test('refuse tant qu’un bon d’achat est rattaché, et le bon survit', async ({
+    client,
+    assert,
+  }) => {
+    const user = await catalogueur()
+    const supplier = await supplierWithVoucher('Carrefour')
+
+    const response = await client.delete(`/v1/suppliers/${supplier.id}`).loginAs(user)
+
+    response.assertStatus(409)
+    response.assertBodyContains({ error: { code: 'E_SUPPLIER_IN_USE' } })
+
+    const vouchers = await db
+      .from('vouchers')
+      .where('supplier_id', supplier.id)
+      .count('* as total')
+      .first()
+    assert.equal(Number(vouchers?.total ?? 0), 1)
+    assert.isNotNull(await Supplier.find(supplier.id))
+  })
+
+  test('refuse tant qu’un prix est rattaché', async ({ client, assert }) => {
+    const user = await catalogueur()
+    const supplier = await Supplier.create({ name: 'Metro' })
+    const [good] = await db
+      .table('goods')
+      .insert({
+        name: `Farine ${supplier.id}`,
+        unit: 'kg',
+        brand: '',
+        created_at: DateTime.now().toSQL(),
+        updated_at: DateTime.now().toSQL(),
+      })
+      .returning('id')
+    const goodId = typeof good === 'object' ? Number(good.id) : Number(good)
+    await db.table('good_suppliers').insert({
+      good_id: goodId,
+      supplier_id: supplier.id,
+      price: 250,
+      created_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toSQL(),
+    })
+
+    const response = await client.delete(`/v1/suppliers/${supplier.id}`).loginAs(user)
+
+    response.assertStatus(409)
+    assert.isNotNull(await Supplier.find(supplier.id))
+  })
+
+  test('supprime une enseigne que rien n’utilise', async ({ client, assert }) => {
+    const user = await catalogueur()
+    const supplier = await Supplier.create({ name: 'Enseigne libre' })
+
+    const response = await client.delete(`/v1/suppliers/${supplier.id}`).loginAs(user)
+
+    response.assertStatus(204)
+    assert.isNull(await Supplier.find(supplier.id))
   })
 })
