@@ -8,6 +8,25 @@ import { minSupplierPrice } from '#services/pricing_service'
 import { buildRecipeHtml } from '#services/print/print_recipe'
 import { printFooterTemplate } from '#services/print/print_layout'
 import { pdfService } from '#services/pdf_service'
+import ProductCategory from '#models/product_category'
+import { productUpdateValidator, productValidator } from '#validators/product'
+
+/**
+ * Vérifié explicitement : sans ça, un identifiant inconnu remonterait en
+ * violation de clé étrangère, donc en 500 illisible. Même règle que
+ * `GoodsController.setSupplierPrice`.
+ */
+async function assertCategoryExists(id: number | null | undefined): Promise<void> {
+  if (id === null || id === undefined) return
+  const found = await ProductCategory.find(id)
+  if (!found) {
+    throw new ApiException(
+      'E_PRODUCT_CATEGORY_NOT_FOUND',
+      "Cette catégorie de recette n'existe pas.",
+      404
+    )
+  }
+}
 
 // Every pivot pointing at `products` is `ON DELETE CASCADE`: deleting a recipe
 // does not orphan its sales, it erases them. These are the tables whose rows are
@@ -142,20 +161,22 @@ export default class ProductsController {
   }
 
   async store({ request, serialize }: HttpContext) {
-    const payload = request.all()
-    const name = normalizeText(payload.name)
-    if (name === null) badRequest('Le nom de la recette est obligatoire.')
-
-    const ingredients = 'goods' in payload ? parseIngredients(payload.goods) : []
+    const payload = await request.validateUsing(productValidator)
+    // `goods` reste hors validateur : `parseIngredients` fait plus qu'une
+    // validation de forme, cf. `#validators/product`.
+    const raw = request.all()
+    const ingredients = 'goods' in raw ? parseIngredients(raw.goods) : []
     await assertGoodsExist(ingredients)
+    await assertCategoryExists(payload.productCategoryId)
 
     const product = await db.transaction(async (trx) => {
       const created = new Product()
       created.useTransaction(trx)
-      created.name = name
+      created.name = payload.name
       created.isVegetarian = payload.isVegetarian ?? false
-      created.description = normalizeText(payload.description)
-      created.recipe = normalizeText(payload.recipe)
+      created.description = payload.description ?? null
+      created.recipe = payload.recipe ?? null
+      created.productCategoryId = payload.productCategoryId ?? null
       await created.save()
       if (ingredients.length > 0) await created.related('goods').sync(pivotPayload(ingredients))
       return created
@@ -176,20 +197,25 @@ export default class ProductsController {
 
   async update({ params, request, serialize }: HttpContext) {
     const product = await Product.findOrFail(params.id)
-    const payload = request.all()
+    const payload = await request.validateUsing(productUpdateValidator)
 
-    const name = normalizeText(payload.name)
-    if (name === null) badRequest('Le nom de la recette est obligatoire.')
-
-    const ingredients = 'goods' in payload ? parseIngredients(payload.goods) : null
+    const raw = request.all()
+    const ingredients = 'goods' in raw ? parseIngredients(raw.goods) : null
     if (ingredients !== null) await assertGoodsExist(ingredients)
+    await assertCategoryExists(payload.productCategoryId)
 
     await db.transaction(async (trx) => {
       product.useTransaction(trx)
-      product.name = name
+      product.name = payload.name
       product.isVegetarian = payload.isVegetarian ?? false
-      product.description = normalizeText(payload.description)
-      product.recipe = normalizeText(payload.recipe)
+      product.description = payload.description ?? null
+      product.recipe = payload.recipe ?? null
+      // ⚠️ Seulement si la clé est **présente** : une écriture qui tait la
+      // catégorie ne doit pas déclasser la recette. Vine omet les clés absentes,
+      // c'est ce qui rend le test possible.
+      if ('productCategoryId' in payload) {
+        product.productCategoryId = payload.productCategoryId ?? null
+      }
       await product.save()
       if (ingredients !== null) await product.related('goods').sync(pivotPayload(ingredients))
     })

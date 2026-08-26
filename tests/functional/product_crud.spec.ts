@@ -65,8 +65,11 @@ test.group('Product CRUD', (group) => {
       .json({ description: 'Sans nom' })
       .loginAs(user)
 
-    response.assertStatus(400)
-    response.assertBodyContains({ error: { code: 'E_PRODUCT_INVALID' } })
+    // ⚠️ **422 depuis le 2026-08-26**, et non plus 400 `E_PRODUCT_INVALID` : le
+    // nom passe par `productValidator`, comme partout ailleurs dans le dépôt.
+    // `E_PRODUCT_INVALID` reste le code des refus d'ingrédients, que
+    // `parseIngredients` porte toujours à la main.
+    response.assertStatus(422)
   })
 
   test('replaces the whole ingredient set on update', async ({ client, assert }) => {

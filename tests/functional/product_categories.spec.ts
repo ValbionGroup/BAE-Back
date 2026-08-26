@@ -140,3 +140,84 @@ test.group('Catégories de recettes — ce que l’API expose', (group) => {
     assert.equal(lines.find((l) => l.product_id === recipe.id)?.category, 'Plats de vérification')
   })
 })
+
+test.group('Catégories de recettes — écriture sur la recette', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('classe une recette à la création', async ({ client, assert }) => {
+    const user = await cuisinier()
+    const category = await ProductCategory.create({ name: 'Plats de création' })
+
+    const response = await client
+      .post('/v1/products')
+      .json({ name: 'Burger de vérification', product_category_id: category.id })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    const created = await Product.findByOrFail('name', 'Burger de vérification')
+    assert.equal(created.productCategoryId, category.id)
+  })
+
+  test('déclasse une recette avec null', async ({ client, assert }) => {
+    const user = await cuisinier()
+    const category = await ProductCategory.create({ name: 'Plats à quitter' })
+    const recipe = await recipeNamed('Burger à déclasser', category.id)
+
+    const response = await client
+      .put(`/v1/products/${recipe.id}`)
+      .json({ name: 'Burger à déclasser', product_category_id: null })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    assert.isNull((await Product.findOrFail(recipe.id)).productCategoryId)
+  })
+
+  /**
+   * ⚠️ Une écriture qui ne mentionne pas la catégorie ne doit **pas** déclasser
+   * la recette : un PUT partiel effacerait sinon un classement que personne n'a
+   * demandé de retirer.
+   */
+  test('une écriture qui tait la catégorie la laisse intacte', async ({ client, assert }) => {
+    const user = await cuisinier()
+    const category = await ProductCategory.create({ name: 'Plats conservés' })
+    const recipe = await recipeNamed('Burger renommé', category.id)
+
+    const response = await client
+      .put(`/v1/products/${recipe.id}`)
+      .json({ name: 'Burger renommé autrement' })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    assert.equal((await Product.findOrFail(recipe.id)).productCategoryId, category.id)
+  })
+
+  /** Un 404 franc plutôt qu'une violation de clé étrangère en 500. */
+  test('répond 404 sur une catégorie inconnue', async ({ client }) => {
+    const user = await cuisinier()
+
+    const response = await client
+      .post('/v1/products')
+      .json({ name: 'Recette orpheline', product_category_id: 999999 })
+      .loginAs(user)
+
+    response.assertStatus(404)
+  })
+
+  /**
+   * ⚠️ `store` / `update` utilisaient `request.all()` — le trou que
+   * `CategoriesController` avait. Une clé inconnue ne doit plus atteindre le
+   * modèle.
+   */
+  test('ignore une clé que le validateur ne connaît pas', async ({ client, assert }) => {
+    const user = await cuisinier()
+    const recipe = await recipeNamed('Recette protégée')
+
+    const response = await client
+      .put(`/v1/products/${recipe.id}`)
+      .json({ name: 'Recette protégée', id: 999999 })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    assert.isNotNull(await Product.find(recipe.id))
+  })
+})
