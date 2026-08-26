@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Supplier from '#models/supplier'
+import { supplierUpdateValidator, supplierValidator } from '#validators/catalog'
 
 export default class SuppliersController {
   async index({ serialize }: HttpContext) {
@@ -12,7 +13,7 @@ export default class SuppliersController {
   }
 
   async store({ request, serialize }: HttpContext) {
-    const { name } = request.all()
+    const { name } = await request.validateUsing(supplierValidator)
     const supplier = new Supplier()
     supplier.name = name
     await supplier.save()
@@ -35,8 +36,9 @@ export default class SuppliersController {
       .preload('restocks')
       .where('id', params.id)
       .firstOrFail()
-    const { name } = request.all()
-    supplier.name = name
+    // `merge` et non une affectation : le validateur rend `name` optionnel, et
+    // une clé absente doit laisser la colonne intacte.
+    supplier.merge(await request.validateUsing(supplierUpdateValidator))
     await supplier.save()
     return serialize(supplier)
   }
