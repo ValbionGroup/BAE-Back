@@ -14,7 +14,28 @@ const SECRET_KEY_PATTERNS = [
   'refresh',
 ] as const
 
-const SECRET_URL_PATTERNS = ['/auth/login', '/auth/signup', '/auth/logout', '/account/sessions']
+const SECRET_URL_PATTERNS = [
+  '/auth/login',
+  '/auth/signup',
+  '/auth/logout',
+  '/account/sessions',
+  '/auth/keycloak/callback',
+]
+
+// Whole parameter names, not substrings as in `SECRET_KEY_PATTERNS`: a query
+// string carries `?barcode=` next to `?code=`, and a substring match would
+// blind the stocks logs to protect nothing.
+const SECRET_QUERY_PARAMS = new Set([
+  'code',
+  'state',
+  'session_state',
+  'nonce',
+  'signature',
+  'key',
+  'id_token',
+  'access_token',
+  'refresh_token',
+])
 
 const MAX_DEPTH = 8
 
@@ -52,4 +73,35 @@ export function redactResponseBody(url: string, body: unknown): unknown {
     return undefined
   }
   return redactSecrets(body)
+}
+
+/**
+ * Masks the secrets a query string carries, keeping the path and the harmless
+ * parameters readable.
+ *
+ * ⚠️ Redacting the response body is not enough: `request_logger_middleware`
+ * stores the full url in `logs.url` **and** in `logs.message`, so a
+ * `GET /v1/auth/keycloak/callback?code=…` used to write the SSO authorization
+ * code in clear in two columns, readable with `log:read`.
+ */
+export function redactUrl(url: string): string {
+  const separator = url.indexOf('?')
+  if (separator === -1) {
+    return url
+  }
+
+  const path = url.slice(0, separator)
+  const query = url.slice(separator + 1)
+  if (query === '') {
+    return path
+  }
+
+  const params = new URLSearchParams(query)
+  for (const name of [...params.keys()]) {
+    if (SECRET_QUERY_PARAMS.has(name.toLowerCase()) || isSecretKey(name)) {
+      params.set(name, REDACTED)
+    }
+  }
+
+  return `${path}?${params.toString()}`
 }

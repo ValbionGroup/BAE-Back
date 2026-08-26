@@ -1,7 +1,7 @@
 import Log from '#models/log'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import { redactResponseBody } from '#services/log_redaction_service'
+import { redactResponseBody, redactUrl } from '#services/log_redaction_service'
 
 export default class RequestLoggerMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
@@ -16,7 +16,7 @@ export default class RequestLoggerMiddleware {
     const status = ctx.response.getStatus()
     const level = status >= 500 ? 'error' : status >= 400 ? 'warning' : 'info'
     const method = ctx.request.method()
-    const url = ctx.request.url(true)
+    const url = redactUrl(ctx.request.url(true))
     const message = `${method} ${url} → ${status} (${Math.round(durationMs)}ms)`
     const userId = (ctx.auth?.user as { id?: number } | undefined)?.id ?? null
 
