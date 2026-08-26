@@ -21,7 +21,7 @@ router
       .delete('/event-jobs', [controllers.EventJobs, 'destroy'])
       .use(middleware.can('job:delete'))
 
-    router.get('/assignments', [controllers.Assignments, 'index'])
+    router.get('/assignments', [controllers.Assignments, 'index']).use(middleware.can('job:read'))
     router
       .post('/assignments', [controllers.Assignments, 'store'])
       .use(middleware.can('assignment:write'))

@@ -136,11 +136,21 @@ test.group('Coordination authorization', (group) => {
     response.assertStatus(401)
   })
 
-  test('leaves the read-only assignment index open to any member', async ({ client }) => {
+  /**
+   * Remplace « leaves the read-only assignment index open to any member », qui
+   * figeait le dernier trou de garde de l'API plutôt qu'une règle.
+   *
+   * Fermer l'index ne prive personne de ses propres créneaux : ceux-ci passent
+   * par `/v1/account/assignments`, et c'est cette séparation-là qu'il faut
+   * garder — pas l'ouverture de l'index.
+   */
+  test('closes the assignment index but leaves a member their own shifts', async ({ client }) => {
     const { user } = await scene([])
 
-    const response = await client.get('/v1/assignments').loginAs(user)
+    const index = await client.get('/v1/assignments').loginAs(user)
+    index.assertStatus(403)
 
-    response.assertStatus(200)
+    const mine = await client.get('/v1/account/assignments').loginAs(user)
+    mine.assertStatus(200)
   })
 })

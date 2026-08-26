@@ -1,6 +1,10 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
-import { asCoordinator } from '#tests/helpers/permissions'
+import {
+  COORDINATION_PERMISSIONS,
+  asCoordinator,
+  grantPermissions,
+} from '#tests/helpers/permissions'
 import { MemberFactory } from '#database/factories/members_factory'
 import { EventFactory } from '#database/factories/event_factory'
 import { JobFactory } from '#database/factories/job_factory'
@@ -8,6 +12,24 @@ import MemberEventAssignedJob from '#models/member_event_assigned_job'
 
 test.group('Assignments locking', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  /**
+   * Le défaut visé : `GET /v1/assignments` était la dernière route membre sans
+   * garde de permission. Qui sait affecter est un choix ; qui sait *lire* les
+   * affectations en est un autre, et la route PDF de la même donnée
+   * (`/events/:id/assignments/pdf`) demandait déjà `job:read`.
+   */
+  test('refuse la lecture des affectations sans job:read', async ({ client }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(
+      member,
+      COORDINATION_PERMISSIONS.filter((permission) => permission !== 'job:read')
+    )
+
+    const response = await client.get('/v1/assignments').loginAs(user)
+
+    response.assertStatus(403)
+  })
 
   test('stores and exposes the locked flag on a created assignment', async ({ client, assert }) => {
     const member = await MemberFactory.create()

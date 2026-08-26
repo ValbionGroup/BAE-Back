@@ -129,13 +129,65 @@ async function fulfilPreOrder(
   const eventId = Number(intent.eventId)
   const lines = intent.lines as PricedQuoteLine[]
 
+  // `payments.user_id` est nullable, `pre_orders.user_id` ne l'est pas. Sans ce
+  // garde, l'insert plus bas lèverait une erreur de base : la transaction
+  // repartirait en arrière, le paiement redeviendrait `pending` et le webhook
+  // serait rejoué sans fin.
+  const userId = payment.userId
+  if (userId === null) {
+    logger.error({ paymentId: payment.id }, 'Paiement de précommande sans compte : rien à créer.')
+    return
+  }
+
   const stale = lines.some((line) => typeof line.listPriceCents !== 'number')
   const menu = stale ? await menuPricesOf(eventId, trx) : new Map<number, number>()
+
+  // Sérialise les encaissements d'une même soirée. Deux paiements ouverts avant
+  // que l'un des deux soit confirmé ne se voient pas au devis : sans ce verrou
+  // ils créent deux précommandes, et l'index partiel les refuserait *après*
+  // débit — c'est-à-dire au pire moment.
+  await trx.from('events').where('id', eventId).forUpdate().select('id')
+
+  const existing = await trx
+    .from('pre_orders')
+    .where('user_id', userId)
+    .where('event_id', eventId)
+    .whereNot('status', 'cancelled')
+    .first()
+
+  // Le paiement reste `paid` : lever ici annulerait la transaction, le paiement
+  // repasserait `pending` et le webhook Lydia serait rejoué en boucle. Le
+  // second débit est signalé pour être remboursé à la main — il n'existe pas
+  // encore de statut de remboursement.
+  if (existing) {
+    logger.error(
+      { userId, eventId, paymentId: payment.id, preOrderId: existing.id },
+      'Second paiement encaissé pour une précommande déjà existante — remboursement à faire.'
+    )
+    return
+  }
+
+  // `capacity` est une estimation, pas un quota : un dépassement se signale,
+  // il ne refuse pas un client qui a déjà payé.
+  const [{ count: placed }] = await trx
+    .from('pre_orders')
+    .where('event_id', eventId)
+    .whereNot('status', 'cancelled')
+    .count('* as count')
+
+  const capacity = await trx.from('events').where('id', eventId).select('capacity').first()
+
+  if (capacity && Number(placed) >= Number(capacity.capacity)) {
+    logger.warn(
+      { eventId, capacity: Number(capacity.capacity), placed: Number(placed) },
+      'Précommande encaissée au-delà de la capacité annoncée.'
+    )
+  }
 
   const [row] = await trx
     .table('pre_orders')
     .insert({
-      user_id: payment.userId,
+      user_id: userId,
       event_id: eventId,
       transaction_id: transaction.id,
       status: 'pending',
