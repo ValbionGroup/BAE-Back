@@ -1,4 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import app from '@adonisjs/core/services/app'
 import Member from '#models/member'
 import Role from '#models/role'
@@ -21,10 +22,9 @@ export const DEV_ACCOUNTS: readonly {
 
 export default class extends BaseSeeder {
   // The guard that counts: deployment runs `db:seed` to install the RBAC
-  // permissions. Without this list, four accounts with known credentials — one of
-  // them an `Administrateur` — would be created IN PRODUCTION. It is Adonis' own
-  // runner that must refuse; a comment would protect nothing.
-  static environment = ['development', 'testing']
+  // permissions. Without it, four accounts with known credentials — one of them
+  // an `Administrateur` — would be created IN PRODUCTION.
+  static environment = DEMO_ONLY
 
   async run() {
     if (app.inProduction) {

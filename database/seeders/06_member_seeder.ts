@@ -1,8 +1,11 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import { MemberFactory } from '#database/factories/members_factory'
 import Role from '#models/role'
 
 export default class MemberSeeder extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     const roles = await Role.query().select('id')
 

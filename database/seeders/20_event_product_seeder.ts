@@ -1,4 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import Event from '#models/event'
 import Product from '#models/product'
 
@@ -11,6 +12,8 @@ const MENU: readonly { recipe: string; quantity: number; price: number }[] = [
 ]
 
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     const events = await Event.query().orderBy('date', 'asc')
     const allProducts = await Product.all()

@@ -1,4 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import Category from '#models/category'
 import Good from '#models/good'
 
@@ -18,6 +19,8 @@ const GOODS: readonly { name: string; unit: string; brand: string; category: str
 ]
 
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     const categories = await Category.fetchOrCreateMany(
       'name',

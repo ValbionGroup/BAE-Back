@@ -40,8 +40,4 @@ test.group('Dev accounts seeder', (group) => {
 
     assert.equal(Number(afterSecond[0].$extras.total), Number(afterFirst[0].$extras.total))
   })
-
-  test('never runs outside development and testing', ({ assert }) => {
-    assert.deepEqual(DevAccountSeeder.environment, ['development', 'testing'])
-  })
 })

@@ -1,4 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import Furniture from '#models/furniture'
 
 // Prix en **centimes**, comme toute valeur monétaire depuis le 2026-08-25.
@@ -12,6 +13,8 @@ const FURNITURES: readonly { name: string; price: number; quantity: number }[] =
 ]
 
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     await Furniture.fetchOrCreateMany(
       'name',

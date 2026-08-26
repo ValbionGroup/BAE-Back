@@ -185,6 +185,26 @@ docker-compose -f docker-compose.dev.yml exec api-dev pnpm ace migration:run
 docker-compose exec api node ace migration:run
 ```
 
+## Database Seeding
+
+Seeders come in two kinds: the reference data every environment needs (RBAC
+catalogue, job list, sale categories) and the demonstration data. The demo
+seeders declare `static environment = DEMO_ONLY`
+(`database/seeder_environment.ts`), so the Adonis runner skips them outside
+development and test — `db:seed` has no `--force` guard of its own.
+
+```bash
+# Development — everything, demonstration data included
+docker-compose -f docker-compose.dev.yml exec api-dev pnpm ace db:seed
+
+# Production — reference data only, the demo seeders report "ignored"
+docker-compose exec api node ace db:seed
+```
+
+The reference seeders are idempotent, so running them again is a no-op. To
+cherry-pick, pass `--files "database/seeders/01_role_seeder.ts"` — the extension
+is stripped before matching, so the same path works against the compiled image.
+
 ## Troubleshooting
 
 ### Container won't start

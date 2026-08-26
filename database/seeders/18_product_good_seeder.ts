@@ -1,4 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import Good from '#models/good'
 import Product from '#models/product'
 
@@ -34,6 +35,8 @@ const COMPOSITION: Record<string, readonly [string, number, string | null][]> = 
 }
 
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     const allGoods = await Good.all()
     const goods = new Map(allGoods.map((good) => [good.name, good.id]))

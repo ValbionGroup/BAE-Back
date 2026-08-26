@@ -1,9 +1,12 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import { StockBatchFactory } from '#database/factories/stock_batch_factory'
 import Good from '#models/good'
 import Restock from '#models/restock'
 
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     const goods = await Good.query().select('id')
     const restocks = await Restock.query().select('id')

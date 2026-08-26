@@ -1,4 +1,5 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { DEMO_ONLY } from '#database/seeder_environment'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 import Client from '#models/client'
@@ -103,6 +104,8 @@ const CLIENTS: SeedClient[] = [
 ]
 
 export default class extends BaseSeeder {
+  static environment = DEMO_ONLY
+
   async run() {
     // La note interne s'affiche avec son auteur : sans lui, l'écran montre
     // « Auteur inconnu » et la vérification ne prouve rien.
