@@ -177,4 +177,38 @@ test.group('Prix par enseigne', (group) => {
 
     response.assertStatus(403)
   })
+
+  /** Le panneau de tarifs lit `GET /goods/:id` : il lui faut les prix, pas
+   *  seulement les noms d'enseignes. */
+  test('la fiche d’une denrée porte les tarifs et le prix de référence', async ({
+    client,
+    assert,
+  }) => {
+    const user = await acheteur()
+    const good = await goodNamed('Farine T45')
+    const cher = await Supplier.create({ name: 'Épicerie' })
+    const moinsCher = await Supplier.create({ name: 'Metro' })
+    await client
+      .put(`/v1/goods/${good.id}/suppliers/${cher.id}`)
+      .json({ price_cents: 400 })
+      .loginAs(user)
+    await client
+      .put(`/v1/goods/${good.id}/suppliers/${moinsCher.id}`)
+      .json({ price_cents: 220 })
+      .loginAs(user)
+
+    const response = await client.get(`/v1/goods/${good.id}`).loginAs(user)
+
+    response.assertStatus(200)
+    const body = response.body().data as {
+      suppliers: { id: number; name: string; price: number }[]
+      best_price: number
+    }
+    assert.deepEqual(
+      body.suppliers.map((s) => s.price),
+      [220, 400],
+      'triés du moins cher au plus cher'
+    )
+    assert.equal(body.best_price, 220)
+  })
 })

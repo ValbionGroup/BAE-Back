@@ -53,15 +53,27 @@ export default class GoodsController {
     return serialize(good)
   }
 
+  /**
+   * ⚠️ Même forme que `index` pour les tarifs : `preload('suppliers')` seul rend
+   * les enseignes **sans leur prix**, qui vit sur le pivot dans
+   * `$extras.pivot_price` et ne se sérialise pas. Le panneau de tarifs lit cette
+   * réponse — sans `supplierPrices`, il afficherait des enseignes sans montant.
+   */
   async show({ params, serialize }: HttpContext) {
-    return serialize(
-      await Good.query()
-        .preload('products')
-        .preload('category')
-        .preload('suppliers')
-        .where('id', params.id)
-        .firstOrFail()
-    )
+    const good = await Good.query()
+      .preload('products')
+      .preload('category')
+      .preload('suppliers')
+      .where('id', params.id)
+      .firstOrFail()
+
+    const best = bestSupplierPrice(good)
+    return serialize({
+      ...good.serialize(),
+      suppliers: supplierPrices(good),
+      bestSupplier: best,
+      bestPrice: best?.price ?? null,
+    })
   }
 
   async update({ params, request, serialize }: HttpContext) {
