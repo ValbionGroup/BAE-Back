@@ -14,10 +14,11 @@ import NotifyPresenceUpcoming from '../../commands/notify_presence_upcoming.js'
  * ⚠️ La base de dev est partagée et peuplée : aucune assertion sur un compte
  * global. Chaque test ne compte que les lignes rattachées à SA soirée.
  *
- * ⚠️ **`EventFactory` tire `status` au hasard** parmi `scheduled | ongoing |
- * completed`. Tout test qui dépend du statut doit le fixer explicitement, sinon
- * il réussit deux fois sur trois — et les tests d'absence ci-dessous
- * réussiraient pour la mauvaise raison (le statut, pas la fenêtre).
+ * ⚠️ `EventFactory` **déduit** désormais `status` de la date, et sa date est
+ * toujours future : une soirée fabriquée est donc `scheduled`. Le tirage
+ * aléatoire d'avant faisait réussir deux tests sur trois pour la mauvaise
+ * raison (le statut, pas la fenêtre). Un test qui dépend du statut le fixe
+ * quand même explicitement — c'est ce qu'il affirme qui doit être lisible.
  */
 async function runCommand(commandClass: Parameters<typeof ace.create>[0]): Promise<void> {
   const command = await ace.create(commandClass, [])

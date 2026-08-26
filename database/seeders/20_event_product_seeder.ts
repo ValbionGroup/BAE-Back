@@ -30,7 +30,11 @@ export default class extends BaseSeeder {
       return pivot
     }
 
+    // Les deux plus anciennes sont, par construction du seeder de soirées, la
+    // clôturée et celle du jour — soit exactement les deux qui ont besoin d'un
+    // menu complet : l'une pour que le bilan porte des chiffres, l'autre pour
+    // que la caisse ait quelque chose à vendre.
     await first.related('products').sync(pivotOf(MENU))
-    if (second) await second.related('products').sync(pivotOf(MENU.slice(0, 2)))
+    if (second) await second.related('products').sync(pivotOf(MENU))
   }
 }
