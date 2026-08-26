@@ -8,12 +8,16 @@ import {
   categoryOf,
   create,
   remove,
-  rename,
+  update as updateCategory,
   qrTokenFor,
   rotateNonce,
   setPrices,
 } from '#services/sponsorship_service'
-import { sponsorshipCategoryValidator, sponsorshipPricesValidator } from '#validators/sponsorship'
+import {
+  sponsorshipCategoryValidator,
+  sponsorshipCategoryPatchValidator,
+  sponsorshipPricesValidator,
+} from '#validators/sponsorship'
 
 export default class SponsorshipCategoriesController {
   async index({ params, serialize }: HttpContext) {
@@ -22,12 +26,12 @@ export default class SponsorshipCategoriesController {
 
   async store({ params, request, serialize }: HttpContext) {
     const payload = await request.validateUsing(sponsorshipCategoryValidator)
-    return serialize(await create(Number(params.id), payload.label))
+    return serialize(await create(Number(params.id), payload.label, payload.mode))
   }
 
   async update({ params, request, serialize }: HttpContext) {
-    const payload = await request.validateUsing(sponsorshipCategoryValidator)
-    return serialize(await rename(Number(params.id), Number(params.categoryId), payload.label))
+    const payload = await request.validateUsing(sponsorshipCategoryPatchValidator)
+    return serialize(await updateCategory(Number(params.id), Number(params.categoryId), payload))
   }
 
   async prices({ params, request, serialize }: HttpContext) {

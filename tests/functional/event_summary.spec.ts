@@ -6,6 +6,7 @@ import { summaryForEvent } from '#services/event_summary_service'
 import { MemberFactory } from '#database/factories/members_factory'
 import { EventFactory } from '#database/factories/event_factory'
 import { ProductFactory } from '#database/factories/product_factory'
+import SponsorshipCategory from '#models/sponsorship_category'
 
 test.group('Bilan de soirée', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
@@ -157,5 +158,101 @@ test.group('Bilan de soirée', (group) => {
     assert.equal(cash!.count, 1, 'compter par commande la multiplierait')
     assert.strictEqual(cash!.amount, 1250)
     assert.isTrue(Number.isInteger(cash!.amount), 'un montant ne porte jamais de decimale')
+  })
+
+  /** Une vente sous prise en charge : `listPrice` est le prix public, `paid` ce
+   *  que la personne a réellement sorti. L'écart est ce qui se répartit. */
+  async function sponsoredOrder(
+    eventId: number,
+    productId: number,
+    quantity: number,
+    mode: 'external' | 'internal',
+    label: string,
+    listCents: number,
+    paidCents: number
+  ) {
+    const category = await SponsorshipCategory.create({
+      eventId,
+      label,
+      mode,
+      qrNonce: `nonce-${label}`,
+    })
+
+    const [order] = await db
+      .table('orders')
+      .insert({
+        event_id: eventId,
+        status: 'completed',
+        sponsorship_category_id: category.id,
+        sponsorship_category_label: label,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('id')
+
+    await db.table('order_products').insert({
+      order_id: typeof order === 'object' ? Number(order.id) : Number(order),
+      product_id: productId,
+      quantity,
+      unit_price_cents: paidCents,
+      list_price_cents: listCents,
+    })
+  }
+
+  test('range l’écart d’une catégorie externe en créance, pas en perte', async ({ assert }) => {
+    const event = await EventFactory.create()
+    const product = await ProductFactory.create()
+    await menuLine(event.id, product.id, 10, 250)
+    await sponsoredOrder(event.id, product.id, 4, 'external', 'Staff BDE', 250, 100)
+
+    const summary = await summaryForEvent(event.id)
+
+    assert.equal(summary.revenueCents, 1000)
+    assert.equal(summary.cashedCents, 400)
+    assert.equal(summary.receivableCents, 600)
+    assert.equal(summary.grantedCents, 0)
+    // Rien n'est perdu : le BDE doit les 600, donc le CA net ne bouge pas.
+    assert.equal(summary.netRevenueCents, 1000)
+    assert.deepEqual(summary.receivableByCategory, [{ label: 'Staff BDE', dueCents: 600 }])
+    assert.deepEqual(summary.grantedByCategory, [])
+  })
+
+  test('range l’écart d’une catégorie interne en perte, et ampute le CA net', async ({
+    assert,
+  }) => {
+    const event = await EventFactory.create()
+    const product = await ProductFactory.create()
+    await menuLine(event.id, product.id, 10, 250)
+    await sponsoredOrder(event.id, product.id, 4, 'internal', 'Invités du BAE', 250, 100)
+
+    const summary = await summaryForEvent(event.id)
+
+    assert.equal(summary.revenueCents, 1000, 'le brut ne bouge pas : un bilan imprimé reste juste')
+    assert.equal(summary.receivableCents, 0)
+    assert.equal(summary.grantedCents, 600)
+    assert.equal(summary.netRevenueCents, 400, 'le BAE ne touchera jamais les 600 offerts')
+    assert.deepEqual(summary.receivableByCategory, [])
+    assert.deepEqual(summary.grantedByCategory, [{ label: 'Invités du BAE', grantedCents: 600 }])
+  })
+
+  test('sépare les deux natures quand elles coexistent', async ({ assert }) => {
+    const event = await EventFactory.create()
+    const member = await MemberFactory.create()
+    const product = await ProductFactory.create()
+    await menuLine(event.id, product.id, 30, 250)
+
+    await sponsoredOrder(event.id, product.id, 4, 'external', 'Staff BDE', 250, 100)
+    await sponsoredOrder(event.id, product.id, 2, 'internal', 'Invités du BAE', 250, 0)
+    // Une vente ordinaire : sans elle, rien ne prouverait que la jointure sur
+    // les catégories n'écarte pas les commandes qui n'en ont aucune.
+    await soldOrder(event.id, member.id, product.id, 3)
+
+    const summary = await summaryForEvent(event.id)
+
+    assert.equal(summary.revenueCents, 2250, '(4 + 2 + 3) × 2,50 €')
+    assert.equal(summary.receivableCents, 600)
+    assert.equal(summary.grantedCents, 500)
+    assert.equal(summary.sponsoredCents, 1100)
+    assert.equal(summary.netRevenueCents, 1750)
   })
 })

@@ -10,7 +10,12 @@ export interface SummaryLine {
   unitPriceCents: number
   revenueCents: number
   cashedCents: number
+  /** L'écart total consenti : `receivableCents + grantedCents`. */
   sponsoredCents: number
+  /** Part réclamée à un tiers payeur (catégories externes). */
+  receivableCents: number
+  /** Part offerte par le BAE (catégories internes) — jamais recouvrée. */
+  grantedCents: number
   unsoldQty: number
 }
 
@@ -18,11 +23,18 @@ export interface EventSummary {
   eventId: number
   orderCount: number
   cancelledCount: number
+  /** Brut au prix public. Ne bouge pas : un bilan déjà imprimé reste relisible. */
   revenueCents: number
+  /** `revenueCents` moins ce que le BAE a offert — ce qu'il peut encore toucher. */
+  netRevenueCents: number
   cashedCents: number
   sponsoredCents: number
+  receivableCents: number
+  grantedCents: number
   payerName: string | null
   receivableByCategory: { label: string; dueCents: number }[]
+  /** Symétrique du précédent, côté offert. */
+  grantedByCategory: { label: string; grantedCents: number }[]
   /** `amount` en **centimes**, comme `revenueCents` et `cashedCents`. */
   cashedByMethod: { method: string; amount: number; count: number }[]
   lines: SummaryLine[]
@@ -31,9 +43,16 @@ export interface EventSummary {
 export async function summaryForEvent(eventId: number): Promise<EventSummary> {
   const lines = await sellableForEvent(eventId)
 
+  // `leftJoin` et non `join` : la vaste majorité des commandes n'a aucune
+  // catégorie, et une jointure stricte les ferait toutes disparaître du bilan.
   const soldRows = await db
     .from('order_products')
     .join('orders', 'orders.id', 'order_products.order_id')
+    .leftJoin(
+      'sponsorship_categories',
+      'sponsorship_categories.id',
+      'orders.sponsorship_category_id'
+    )
     .where('orders.event_id', eventId)
     .whereNot('orders.status', 'cancelled')
     .groupBy('order_products.product_id')
@@ -41,8 +60,11 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
     .sum({
       gross: db.raw('order_products.list_price_cents * order_products.quantity'),
       cashed: db.raw('order_products.unit_price_cents * order_products.quantity'),
-      sponsored: db.raw(
-        'CASE WHEN orders.sponsorship_category_id IS NULL THEN 0 ELSE (order_products.list_price_cents - order_products.unit_price_cents) * order_products.quantity END'
+      receivable: db.raw(
+        "CASE WHEN sponsorship_categories.mode = 'external' THEN (order_products.list_price_cents - order_products.unit_price_cents) * order_products.quantity ELSE 0 END"
+      ),
+      granted: db.raw(
+        "CASE WHEN sponsorship_categories.mode = 'internal' THEN (order_products.list_price_cents - order_products.unit_price_cents) * order_products.quantity ELSE 0 END"
       ),
     })
 
@@ -52,7 +74,8 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
       {
         gross: Number(row.gross ?? 0),
         cashed: Number(row.cashed ?? 0),
-        sponsored: Number(row.sponsored ?? 0),
+        receivable: Number(row.receivable ?? 0),
+        granted: Number(row.granted ?? 0),
       },
     ])
   )
@@ -65,7 +88,7 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
   const priceBy = new Map(priceRows.map((row) => [Number(row.product_id), Number(row.price)]))
 
   const summaryLines: SummaryLine[] = lines.map((line) => {
-    const sold = soldBy.get(line.productId) ?? { gross: 0, cashed: 0, sponsored: 0 }
+    const sold = soldBy.get(line.productId) ?? { gross: 0, cashed: 0, receivable: 0, granted: 0 }
     return {
       productId: line.productId,
       productName: line.productName,
@@ -75,7 +98,9 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
       unitPriceCents: priceBy.get(line.productId) ?? 0,
       revenueCents: sold.gross,
       cashedCents: sold.cashed,
-      sponsoredCents: sold.sponsored,
+      sponsoredCents: sold.receivable + sold.granted,
+      receivableCents: sold.receivable,
+      grantedCents: sold.granted,
       unsoldQty: Math.max(0, line.producedQty - line.soldQty),
     }
   })
@@ -116,14 +141,17 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
     byMethod.set(method, entry)
   }
 
-  const receivableRows = await db
+  // Groupé par libellé **et** par mode : le libellé est la copie figée sur la
+  // commande, le mode vient de la catégorie vivante — et le verrou de bascule
+  // garantit qu'il n'a pas pu changer depuis la vente.
+  const consentedRows = await db
     .from('order_products')
     .join('orders', 'orders.id', 'order_products.order_id')
+    .join('sponsorship_categories', 'sponsorship_categories.id', 'orders.sponsorship_category_id')
     .where('orders.event_id', eventId)
     .whereNot('orders.status', 'cancelled')
-    .whereNotNull('orders.sponsorship_category_id')
-    .groupBy('orders.sponsorship_category_label')
-    .select('orders.sponsorship_category_label')
+    .groupBy('orders.sponsorship_category_label', 'sponsorship_categories.mode')
+    .select('orders.sponsorship_category_label', 'sponsorship_categories.mode')
     .sum({
       due: db.raw(
         '(order_products.list_price_cents - order_products.unit_price_cents) * order_products.quantity'
@@ -132,18 +160,37 @@ export async function summaryForEvent(eventId: number): Promise<EventSummary> {
 
   const event = await db.from('events').where('id', eventId).select('payer_name').first()
 
+  const total = (pick: (line: SummaryLine) => number) =>
+    summaryLines.reduce((sum, line) => sum + pick(line), 0)
+
+  const revenueCents = total((line) => line.revenueCents)
+  const grantedCents = total((line) => line.grantedCents)
+
   return {
     eventId,
     orderCount,
     cancelledCount,
-    revenueCents: summaryLines.reduce((total, line) => total + line.revenueCents, 0),
-    cashedCents: summaryLines.reduce((total, line) => total + line.cashedCents, 0),
-    sponsoredCents: summaryLines.reduce((total, line) => total + line.sponsoredCents, 0),
+    revenueCents,
+    // Le brut moins ce qui a été offert : ce que le BAE peut encore toucher, une
+    // fois le tiers payeur passé à la caisse.
+    netRevenueCents: revenueCents - grantedCents,
+    cashedCents: total((line) => line.cashedCents),
+    sponsoredCents: total((line) => line.sponsoredCents),
+    receivableCents: total((line) => line.receivableCents),
+    grantedCents,
     payerName: event?.payer_name ?? null,
-    receivableByCategory: receivableRows.map((row) => ({
-      label: String(row.sponsorship_category_label),
-      dueCents: Number(row.due ?? 0),
-    })),
+    receivableByCategory: consentedRows
+      .filter((row) => row.mode === 'external')
+      .map((row) => ({
+        label: String(row.sponsorship_category_label),
+        dueCents: Number(row.due ?? 0),
+      })),
+    grantedByCategory: consentedRows
+      .filter((row) => row.mode === 'internal')
+      .map((row) => ({
+        label: String(row.sponsorship_category_label),
+        grantedCents: Number(row.due ?? 0),
+      })),
     cashedByMethod: [...byMethod.entries()].map(([method, totals]) => ({ method, ...totals })),
     lines: summaryLines,
   }
