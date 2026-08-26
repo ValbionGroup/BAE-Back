@@ -130,6 +130,14 @@ export function resetConfigurationCache(): void {
  */
 const SCOPES = 'openid profile email'
 
+/**
+ * ⚠️ Keycloak compare le `redirect_uri` de l'autorisation et celui de l'échange
+ * caractère pour caractère : les deux doivent sortir d'ici, et d'ici seulement.
+ */
+function callbackUrl(): URL {
+  return new URL(env.get('KEYCLOAK_CALLBACK_URL'))
+}
+
 export async function authorizationRequest(): Promise<AuthorizationRequest> {
   const config = await configuration()
 
@@ -138,7 +146,7 @@ export async function authorizationRequest(): Promise<AuthorizationRequest> {
   const state = client.randomState()
 
   const url = client.buildAuthorizationUrl(config, {
-    redirect_uri: env.get('KEYCLOAK_CALLBACK_URL'),
+    redirect_uri: callbackUrl().href,
     scope: SCOPES,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
@@ -173,7 +181,14 @@ export async function exchange(
 ): Promise<SsoExchange> {
   const config = await configuration()
 
-  const tokens = await client.authorizationCodeGrant(config, currentUrl, {
+  // ⚠️ `authorizationCodeGrant` déduit le `redirect_uri` de l'URL qu'on lui
+  // passe, et c'est la seule façon de le lui imposer. Celle reconstruite depuis
+  // la requête entrante dépendrait de `X-Forwarded-Proto`, donc de `trustProxy` :
+  // derrière un proxy TLS le schéma retombe à `http` et l'échange est rejeté.
+  const responseUrl = callbackUrl()
+  responseUrl.search = currentUrl.search
+
+  const tokens = await client.authorizationCodeGrant(config, responseUrl, {
     pkceCodeVerifier: expected.codeVerifier,
     expectedState: expected.state,
   })
