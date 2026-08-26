@@ -160,6 +160,12 @@ jobs:
       LYDIA_PRIVATE_TOKEN: a
       LYDIA_CALLBACK_BASE_URL: http://localhost:3333
       PDF_BROWSER_IDLE_MINUTES: 10
+      SUMUP_DRIVER: fake
+      SUMUP_URL: https://api.sumup.com
+      SUMUP_API_KEY: a
+      SUMUP_MERCHANT_CODE: AMJ
+      SUMUP_READER_ID: a
+      SUMUP_CALLBACK_BASE_URL: http://localhost:3333
     services:
       postgres:
         image: postgres:17-alpine
