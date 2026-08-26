@@ -227,6 +227,141 @@ test.group('Précommande payée en ligne', (group) => {
   })
 
   /**
+   * Le défaut visé, et la moitié « avant paiement » de la tâche 47 : rien
+   * n'empêchait un compte de repasser commande autant de fois qu'il voulait sur
+   * la même soirée. Le refus doit tomber **ici**, avant que Lydia ne débite —
+   * après, il n'y a plus de bon geste possible.
+   */
+  test('un compte ne peut pas ouvrir une seconde précommande sur la même soirée', async ({
+    client: httpClient,
+  }) => {
+    const user = await makeClient('double@test.fr')
+    const { event, product } = await makeEvent(6, 350)
+
+    const first = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({ eventId: event.id, lines: [{ productId: product.id, quantity: 1 }] })
+      .loginAs(user)
+    const orderRef = (first.body() as { data: { order_ref: string } }).data.order_ref
+    await httpClient.post(`/v1/lydia/callback/${orderRef}`).json({})
+
+    const second = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({ eventId: event.id, lines: [{ productId: product.id, quantity: 1 }] })
+      .loginAs(user)
+
+    second.assertStatus(422)
+  })
+
+  /**
+   * Le pendant du test précédent : une précommande annulée libère la place.
+   * `placedCounts` ne compte déjà pas les annulées — l'unicité doit dire la
+   * même chose qu'elles, sans quoi une annulation bannirait le client de la
+   * soirée.
+   */
+  test('une précommande annulée laisse le compte en repasser une', async ({
+    client: httpClient,
+  }) => {
+    const user = await makeClient('annulee@test.fr')
+    const { event, product } = await makeEvent(6, 350)
+
+    const first = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({ eventId: event.id, lines: [{ productId: product.id, quantity: 1 }] })
+      .loginAs(user)
+    const orderRef = (first.body() as { data: { order_ref: string } }).data.order_ref
+    await httpClient.post(`/v1/lydia/callback/${orderRef}`).json({})
+
+    await db.from('pre_orders').where('user_id', user.id).update({ status: 'cancelled' })
+
+    const second = await httpClient
+      .post('/v1/account/pre-orders')
+      .json({ eventId: event.id, lines: [{ productId: product.id, quantity: 1 }] })
+      .loginAs(user)
+
+    second.assertStatus(200)
+  })
+
+  /**
+   * Le défaut visé, et la course que le contrôle d'ouverture ne peut pas
+   * attraper : deux paiements ouverts **avant** que l'un des deux soit
+   * confirmé. Aucun des deux devis ne voit l'autre ; seul l'encaissement peut
+   * les départager.
+   *
+   * Le verrou n'est pas éprouvé en concurrence réelle ici — sous
+   * `withGlobalTransaction()` deux connexions ne sont pas exprimables (tâche
+   * 67). Ce que ce test fige, c'est le résultat : une seule précommande, et le
+   * second callback ne part pas en erreur — sinon le webhook Lydia serait
+   * rejoué en boucle.
+   */
+  test('deux paiements ouverts en parallèle ne font qu’une précommande', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const user = await makeClient('course@test.fr')
+    const { event, product } = await makeEvent(6, 350)
+
+    const open = () =>
+      httpClient
+        .post('/v1/account/pre-orders')
+        .json({ eventId: event.id, lines: [{ productId: product.id, quantity: 1 }] })
+        .loginAs(user)
+
+    const first = await open()
+    const second = await open()
+    first.assertStatus(200)
+    second.assertStatus(200)
+
+    const refs = [first, second].map(
+      (response) => (response.body() as { data: { order_ref: string } }).data.order_ref
+    )
+
+    for (const ref of refs) {
+      const callback = await httpClient.post(`/v1/lydia/callback/${ref}`).json({})
+      callback.assertStatus(204)
+    }
+
+    assert.lengthOf(await db.from('pre_orders').where('user_id', user.id), 1)
+
+    // Les deux paiements sont soldés : aucun ne reste `pending`, donc aucun
+    // rejeu de webhook en attente.
+    const payments = await db.from('payments').whereIn('order_ref', refs)
+    assert.lengthOf(payments, 2)
+    for (const payment of payments) {
+      assert.notEqual(payment.status, 'pending')
+    }
+  })
+
+  /**
+   * La tâche 46, au niveau où elle tient vraiment : l'index. Le contrôle
+   * applicatif se contourne par un autre chemin d'écriture ; la base, non.
+   */
+  test('la base refuse deux précommandes vivantes pour le même compte', async ({ assert }) => {
+    const user = await makeClient('index@test.fr')
+    const { event } = await makeEvent(6, 350)
+    const now = DateTime.now().toSQL()
+
+    const row = () => ({
+      user_id: user.id,
+      event_id: event.id,
+      status: 'pending',
+      discount_percent: 0,
+      created_at: now,
+    })
+
+    await db.table('pre_orders').insert(row())
+
+    // Une annulée cohabite : c'est l'index partiel qui le permet. Vérifié
+    // **avant** le rejet, et non après : une erreur Postgres avorte la
+    // transaction, et `withGlobalTransaction()` en enveloppe tout le test —
+    // le moindre ordre qui suivrait le rejet serait ignoré.
+    await db.table('pre_orders').insert({ ...row(), status: 'cancelled' })
+    assert.lengthOf(await db.from('pre_orders').where('user_id', user.id), 2)
+
+    await assert.rejects(() => db.table('pre_orders').insert(row()))
+  })
+
+  /**
    * Le défaut visé : `pre_order_items` a pour clé primaire
    * `(pre_order_id, product_id)`. Deux lignes du même produit faisaient donc
    * échouer l'insert **au callback**, c'est-à-dire une fois le client débité —

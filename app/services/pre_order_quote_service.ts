@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
 import ApiException from '#exceptions/api_exception'
 import Event from '#models/event'
 import { fastPassOf } from '#services/buyer_service'
@@ -50,6 +51,24 @@ export async function quotePreOrder(
     throw new ApiException(
       'E_PRE_ORDERS_CLOSED',
       'Les précommandes de cette soirée sont fermées.',
+      422
+    )
+  }
+
+  // La barrière dure est ici, **avant** le paiement : `capacity` n'est qu'une
+  // estimation et ne refuse rien, mais un compte n'a qu'une précommande par
+  // soirée. Refuser après encaissement ne laisserait aucun geste correct.
+  const placed = await db
+    .from('pre_orders')
+    .where('user_id', userId)
+    .where('event_id', eventId)
+    .whereNot('status', 'cancelled')
+    .first()
+
+  if (placed) {
+    throw new ApiException(
+      'E_PRE_ORDER_ALREADY_PLACED',
+      'Vous avez déjà une précommande pour cette soirée.',
       422
     )
   }
