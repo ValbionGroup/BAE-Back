@@ -33,6 +33,7 @@ export const controllers = {
   Permissions: () => import('#controllers/permissions_controller'),
   PreOrders: () => import('#controllers/pre_orders_controller'),
   Preferences: () => import('#controllers/preferences_controller'),
+  ProductCategories: () => import('#controllers/product_categories_controller'),
   ProductionRuns: () => import('#controllers/production_runs_controller'),
   Products: () => import('#controllers/products_controller'),
   Profile: () => import('#controllers/profile_controller'),

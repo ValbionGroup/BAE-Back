@@ -39,3 +39,17 @@ export const supplierUpdateValidator = vine.create({
 export const supplierPriceValidator = vine.create({
   priceCents: vine.number().withoutDecimals().min(0),
 })
+
+/**
+ * Le référentiel de **vente** : « Plats / Desserts / Boissons ».
+ *
+ * ⚠️ À ne pas confondre avec `categoryValidator`, qui classe les **denrées** pour
+ * le stockage. Les deux vocabulaires sont distincts et peuvent partager un mot.
+ */
+export const productCategoryValidator = vine.create({
+  name: vine.string().trim().minLength(1).maxLength(255),
+})
+
+export const productCategoryUpdateValidator = vine.create({
+  name: vine.string().trim().minLength(1).maxLength(255).optional(),
+})

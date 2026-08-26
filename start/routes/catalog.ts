@@ -20,6 +20,23 @@ router
       .delete('/categories/:id', [controllers.Categories, 'destroy'])
       .use(middleware.can('category:delete'))
 
+    // Le référentiel de **vente**, qui classe les recettes pour le menu et la
+    // caisse. `product:*` et non `category:*` : ce ne sont pas les denrées.
+    router
+      .get('/product-categories', [controllers.ProductCategories, 'index'])
+      .use(middleware.can('product:read'))
+    router
+      .post('/product-categories', [controllers.ProductCategories, 'store'])
+      .use(middleware.can('product:write'))
+    // ⚠️ `router.route(path, ['PUT','PATCH'], …)` et non deux déclarations : le
+    // nom de route auto-dérivé serait en double et le boot planterait.
+    router
+      .route('/product-categories/:id', ['PUT', 'PATCH'], [controllers.ProductCategories, 'update'])
+      .use(middleware.can('product:write'))
+    router
+      .delete('/product-categories/:id', [controllers.ProductCategories, 'destroy'])
+      .use(middleware.can('product:delete'))
+
     router
       .get('/products/summary', [controllers.Products, 'summary'])
       .use(middleware.can('product:read'))
