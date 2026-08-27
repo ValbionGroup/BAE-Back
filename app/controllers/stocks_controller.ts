@@ -22,6 +22,7 @@ export default class StocksController {
           brand: good.brand,
           categoryId: good.categoryId,
           category: good.category?.name ?? null,
+          storageMethod: good.storageMethod,
           ...computeGoodStockSummary(batches),
         }
       })

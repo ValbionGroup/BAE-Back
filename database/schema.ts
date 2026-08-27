@@ -225,7 +225,7 @@ export class GoodSupplierSchema extends BaseModel {
 }
 
 export class GoodSchema extends BaseModel {
-  static $columns = ['brand', 'categoryId', 'createdAt', 'id', 'name', 'unit', 'updatedAt'] as const
+  static $columns = ['brand', 'categoryId', 'createdAt', 'id', 'name', 'storageMethod', 'unit', 'updatedAt'] as const
   $columns = GoodSchema.$columns
   @column()
   declare brand: string
@@ -237,6 +237,8 @@ export class GoodSchema extends BaseModel {
   declare id: number
   @column()
   declare name: string
+  @column()
+  declare storageMethod: string | null
   @column()
   declare unit: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })

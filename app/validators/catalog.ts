@@ -66,3 +66,27 @@ export const productCategoryUpdateValidator = vine.create({
 export const goodBarcodeValidator = vine.create({
   code: vine.string().trim().minLength(1).maxLength(32).regex(/^\d+$/),
 })
+
+/**
+ * Le mode de conservation d'une denrée (`goods.storage_method`) — « Signaler la
+ * méthode de stockage », P1 du CDC.
+ *
+ * La liste de référence vit ici : c'est le seul point que le contrôleur, le
+ * front et les tests partagent. La migration en garde une copie figée, exprès.
+ *
+ * ⚠️ Sans cette validation, une valeur hors liste atteint le CHECK que
+ * `table.enum()` a posé et ressort en **500**, pas en 422 — le même piège que
+ * `goods.unit`, à ceci près qu'ici la valeur est aussi écrivable par PATCH.
+ *
+ * `nullable` **et** `optional` disent deux choses différentes, et le contrôleur
+ * s'appuie sur l'écart : absent = « ne touche pas à l'emplacement », `null` =
+ * « efface-le ». Vine omet les clés absentes de sa sortie, ce qui rend la
+ * distinction lisible par un simple `in`.
+ */
+export const STORAGE_METHODS = ['fridge', 'freezer', 'dry', 'cellar'] as const
+
+export type StorageMethod = (typeof STORAGE_METHODS)[number]
+
+export const goodStorageMethodValidator = vine.create({
+  storageMethod: vine.enum(STORAGE_METHODS).nullable().optional(),
+})
