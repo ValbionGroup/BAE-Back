@@ -19,8 +19,7 @@ export const STORAGE_LOCATIONS = ['Frigo', 'Congélateur', 'Sec', 'Cave'] as con
 
 export default class extends BaseSeeder {
   /**
-   * ⚠️ **Démo seulement**, contrairement à `24_product_category_seeder` qui est
-   * du référentiel de production. La décision de ce lot est que la production
+   * ⚠️ **Démo seulement.** La décision de ce lot est que la production
    * **reparte de zéro** : le BAE nomme ses propres rangements depuis l'écran,
    * et lui pré-remplir « Frigo / Congélateur / Sec / Cave » rétablirait par la
    * porte du seeder le vocabulaire figé qu'on vient de retirer de la base.

@@ -3,6 +3,12 @@ version: '3.8'
 x-app-environment: &app-environment
   NODE_ENV: ${NODE_ENV:-production}
   PORT: ${PORT:-3333}
+  # Lues par `docker-entrypoint.js` au démarrage du conteneur `api`. Le
+  # conteneur `cron` partage cette ancre mais surcharge `entrypoint` et
+  # `command` : il ne passe jamais par l'entrypoint, donc pas de course entre
+  # deux conteneurs sur `migration:run`.
+  MIGRATE: ${MIGRATE:-true}
+  SEED: ${SEED:-true}
   HOST: 0.0.0.0
   LOG_LEVEL: ${LOG_LEVEL:-info}
   LOG_RESPONSE_BODY: ${LOG_RESPONSE_BODY:-false}
