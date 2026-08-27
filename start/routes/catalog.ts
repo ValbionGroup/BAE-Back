@@ -37,6 +37,25 @@ router
       .delete('/product-categories/:id', [controllers.ProductCategories, 'destroy'])
       .use(middleware.can('product:delete'))
 
+    // Où les denrées se **rangent**, quand `/categories` dit ce qu'elles sont.
+    // Les deux vocabulaires sont distincts et peuvent partager un mot, d'où deux
+    // référentiels et deux triplets de permissions.
+    router
+      .get('/storage-locations', [controllers.StorageLocations, 'index'])
+      .use(middleware.can('storage-location:read'))
+    router
+      .post('/storage-locations', [controllers.StorageLocations, 'store'])
+      .use(middleware.can('storage-location:write'))
+    router
+      .get('/storage-locations/:id', [controllers.StorageLocations, 'show'])
+      .use(middleware.can('storage-location:read'))
+    router
+      .route('/storage-locations/:id', ['PUT', 'PATCH'], [controllers.StorageLocations, 'update'])
+      .use(middleware.can('storage-location:write'))
+    router
+      .delete('/storage-locations/:id', [controllers.StorageLocations, 'destroy'])
+      .use(middleware.can('storage-location:delete'))
+
     router
       .get('/products/summary', [controllers.Products, 'summary'])
       .use(middleware.can('product:read'))

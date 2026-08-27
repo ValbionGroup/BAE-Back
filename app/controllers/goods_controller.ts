@@ -4,10 +4,11 @@ import Good from '#models/good'
 import ApiException from '#exceptions/api_exception'
 import { bestSupplierPrice, supplierPrices } from '#services/pricing_service'
 import Supplier from '#models/supplier'
+import StorageLocation from '#models/storage_location'
 import {
   supplierPriceValidator,
   goodBarcodeValidator,
-  goodStorageMethodValidator,
+  goodStorageLocationValidator,
 } from '#validators/catalog'
 
 const UNIQUE_VIOLATION = '23505'
@@ -35,6 +36,7 @@ function goodQuery() {
   return Good.query()
     .preload('products')
     .preload('category')
+    .preload('storageLocation')
     .preload('suppliers')
     .preload('barcodes')
 }
@@ -47,6 +49,27 @@ function present(good: Good) {
     suppliers: supplierPrices(good),
     bestSupplier: best,
     bestPrice: best?.price ?? null,
+  }
+}
+
+/**
+ * ⚠️ Un `storageLocationId` inconnu doit rendre **404**, pas une violation de
+ * clé étrangère en 500. Même règle que `E_PRODUCT_CATEGORY_NOT_FOUND` — et le
+ * front en dépend : `messageOf` affiche la phrase du serveur, pas un code SQL.
+ *
+ * `null` et `undefined` passent sans vérification : ils n'ont aucune ligne à
+ * désigner.
+ */
+async function assertStorageLocationExists(id: number | null | undefined): Promise<void> {
+  if (id === null || id === undefined) return
+
+  const location = await StorageLocation.find(id)
+  if (location === null) {
+    throw new ApiException(
+      'E_STORAGE_LOCATION_NOT_FOUND',
+      "Cet emplacement de stockage n'existe pas.",
+      404
+    )
   }
 }
 
@@ -80,9 +103,10 @@ export default class GoodsController {
   async store({ request, serialize }: HttpContext) {
     const payload = request.all()
     const { name, unit, brand, categoryId } = payload
-    const { storageMethod } = await goodStorageMethodValidator.validate({
-      storageMethod: payload.storageMethod,
+    const { storageLocationId } = await goodStorageLocationValidator.validate({
+      storageLocationId: payload.storageLocationId,
     })
+    await assertStorageLocationExists(storageLocationId)
     const codes = codesFrom(payload)
 
     const good = await db
@@ -93,7 +117,7 @@ export default class GoodsController {
         created.unit = unit
         created.brand = brand ?? ''
         created.categoryId = categoryId
-        created.storageMethod = storageMethod ?? null
+        created.storageLocationId = storageLocationId ?? null
         await created.save()
 
         if (codes.length > 0) {
@@ -121,20 +145,21 @@ export default class GoodsController {
    * bon motif, seul.
    *
    * L'écart entre « clé absente » et « clé à `null` » porte le sens pour
-   * `storageMethod` : ne pas y toucher, ou l'effacer.
+   * `storageLocationId` : ne pas y toucher, ou l'effacer.
    */
   async update({ params, request, serialize }: HttpContext) {
     const good = await goodQuery().where('id', params.id).firstOrFail()
     const payload = request.all()
-    const { storageMethod } = await goodStorageMethodValidator.validate({
-      storageMethod: payload.storageMethod,
+    const { storageLocationId } = await goodStorageLocationValidator.validate({
+      storageLocationId: payload.storageLocationId,
     })
+    await assertStorageLocationExists(storageLocationId)
 
     if ('name' in payload) good.name = payload.name
     if ('unit' in payload) good.unit = payload.unit
     if ('categoryId' in payload) good.categoryId = payload.categoryId
     if ('brand' in payload) good.brand = payload.brand ?? ''
-    if ('storageMethod' in payload) good.storageMethod = storageMethod ?? null
+    if ('storageLocationId' in payload) good.storageLocationId = storageLocationId ?? null
 
     await good.save()
     return serialize(present(good))

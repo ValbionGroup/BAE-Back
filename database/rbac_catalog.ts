@@ -33,6 +33,9 @@ export const PERMISSIONS = [
   'category:read',
   'category:write',
   'category:delete',
+  'storage-location:read',
+  'storage-location:write',
+  'storage-location:delete',
   'good:read',
   'good:write',
   'good:delete',
@@ -173,6 +176,11 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'category:read',
     'category:write',
     'category:delete',
+    // Tenir les catégories de denrées et tenir leurs lieux de stockage relèvent
+    // du même métier : le pôle qui range est celui qui nomme les rangements.
+    'storage-location:read',
+    'storage-location:write',
+    'storage-location:delete',
     'good:read',
     'good:write',
     'good:delete',

@@ -68,25 +68,34 @@ export const goodBarcodeValidator = vine.create({
 })
 
 /**
- * Le mode de conservation d'une denrée (`goods.storage_method`) — « Signaler la
- * méthode de stockage », P1 du CDC.
+ * L'emplacement où se conserve une denrée (`goods.storage_location_id`).
  *
- * La liste de référence vit ici : c'est le seul point que le contrôleur, le
- * front et les tests partagent. La migration en garde une copie figée, exprès.
- *
- * ⚠️ Sans cette validation, une valeur hors liste atteint le CHECK que
- * `table.enum()` a posé et ressort en **500**, pas en 422 — le même piège que
- * `goods.unit`, à ceci près qu'ici la valeur est aussi écrivable par PATCH.
+ * ⚠️ Ce n'est plus un enum : la liste vit dans `storage_locations` et le BAE la
+ * tient lui-même depuis la page Référentiels. Il ne reste donc plus de CHECK à
+ * heurter, seulement une clé étrangère — que le contrôleur vérifie pour rendre
+ * un 404 franc plutôt qu'une violation en 500.
  *
  * `nullable` **et** `optional` disent deux choses différentes, et le contrôleur
  * s'appuie sur l'écart : absent = « ne touche pas à l'emplacement », `null` =
  * « efface-le ». Vine omet les clés absentes de sa sortie, ce qui rend la
  * distinction lisible par un simple `in`.
  */
-export const STORAGE_METHODS = ['fridge', 'freezer', 'dry', 'cellar'] as const
+export const goodStorageLocationValidator = vine.create({
+  storageLocationId: vine.number().withoutDecimals().positive().nullable().optional(),
+})
 
-export type StorageMethod = (typeof STORAGE_METHODS)[number]
+/**
+ * Le référentiel des lieux de stockage : « Frigo / Congélateur / Sec / Cave »,
+ * et tout ce que le BAE y ajoutera.
+ *
+ * ⚠️ À ne pas confondre avec `categoryValidator` : une catégorie dit **ce
+ * qu'est** une denrée, un lieu dit **où elle se range**. Une denrée porte les
+ * deux, et les deux listes peuvent partager un mot.
+ */
+export const storageLocationValidator = vine.create({
+  name: vine.string().trim().minLength(1).maxLength(255),
+})
 
-export const goodStorageMethodValidator = vine.create({
-  storageMethod: vine.enum(STORAGE_METHODS).nullable().optional(),
+export const storageLocationUpdateValidator = vine.create({
+  name: vine.string().trim().minLength(1).maxLength(255).optional(),
 })
