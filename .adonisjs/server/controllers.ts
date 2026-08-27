@@ -47,6 +47,7 @@ export const controllers = {
   StockBatches: () => import('#controllers/stock_batches_controller'),
   StockMovements: () => import('#controllers/stock_movements_controller'),
   Stocks: () => import('#controllers/stocks_controller'),
+  StorageLocations: () => import('#controllers/storage_locations_controller'),
   Subscriptions: () => import('#controllers/subscriptions_controller'),
   SumupCallbacks: () => import('#controllers/sumup_callbacks_controller'),
   Suppliers: () => import('#controllers/suppliers_controller'),

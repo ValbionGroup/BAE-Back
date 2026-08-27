@@ -11,7 +11,7 @@ import {
 
 export default class StocksController {
   async index({ serialize }: HttpContext) {
-    const goods = await Good.query().preload('category').orderBy('name')
+    const goods = await Good.query().preload('category').preload('storageLocation').orderBy('name')
     const summaries = await Promise.all(
       goods.map(async (good) => {
         const batches = await loadBatchesWithRemaining(good.id, true)
@@ -22,7 +22,12 @@ export default class StocksController {
           brand: good.brand,
           categoryId: good.categoryId,
           category: good.category?.name ?? null,
-          storageMethod: good.storageMethod,
+          storageLocationId: good.storageLocationId,
+          // ⚠️ Le **nom** en plus de l'id : un magasinier sans
+          // `storage-location:read` ne peut pas charger le référentiel, donc pas
+          // résoudre l'id. Sans ce champ il perdrait la lecture de l'emplacement
+          // en même temps que le droit de le changer.
+          storageLocation: good.storageLocation?.name ?? null,
           ...computeGoodStockSummary(batches),
         }
       })

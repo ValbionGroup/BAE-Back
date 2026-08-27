@@ -225,7 +225,7 @@ export class GoodSupplierSchema extends BaseModel {
 }
 
 export class GoodSchema extends BaseModel {
-  static $columns = ['brand', 'categoryId', 'createdAt', 'id', 'name', 'storageMethod', 'unit', 'updatedAt'] as const
+  static $columns = ['brand', 'categoryId', 'createdAt', 'id', 'name', 'storageLocationId', 'unit', 'updatedAt'] as const
   $columns = GoodSchema.$columns
   @column()
   declare brand: string
@@ -238,7 +238,7 @@ export class GoodSchema extends BaseModel {
   @column()
   declare name: string
   @column()
-  declare storageMethod: string | null
+  declare storageLocationId: number | null
   @column()
   declare unit: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -762,6 +762,19 @@ export class StockMovementSchema extends BaseModel {
   declare quantity: string
   @column()
   declare stockBatchId: number
+}
+
+export class StorageLocationSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'name', 'updatedAt'] as const
+  $columns = StorageLocationSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare name: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
 }
 
 export class SubscriptionSchema extends BaseModel {

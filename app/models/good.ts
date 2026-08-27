@@ -1,6 +1,7 @@
 import { GoodSchema } from '#database/schema'
 import { belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
 import Category from '#models/category'
+import StorageLocation from '#models/storage_location'
 import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
 import Supplier from '#models/supplier'
 import Product from '#models/product'
@@ -11,6 +12,9 @@ import GoodBarcode from '#models/good_barcode'
 export default class Good extends GoodSchema {
   @belongsTo(() => Category)
   declare category: BelongsTo<typeof Category>
+
+  @belongsTo(() => StorageLocation)
+  declare storageLocation: BelongsTo<typeof StorageLocation>
 
   @manyToMany(() => Supplier, {
     pivotTimestamps: true,
