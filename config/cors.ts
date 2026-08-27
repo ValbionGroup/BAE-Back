@@ -45,9 +45,20 @@ const corsConfig = defineConfig({
   credentials: true,
 
   /**
-   * Cache CORS preflight response for N seconds.
+   * Durée de mise en cache d'un préflight, en secondes.
+   *
+   * Toute écriture porte `Content-Type: application/json` et `X-XSRF-TOKEN` :
+   * deux en-têtes hors liste blanche CORS, donc un `OPTIONS` obligatoire avant
+   * chaque `POST`/`PUT`/`PATCH`/`DELETE`. À 90 s le cache expirait en continu et
+   * chaque enregistrement coûtait **deux** allers-retours à travers le proxy —
+   * invisible en local, où l'aller-retour est gratuit.
+   *
+   * 7200 est le plafond de Chrome ; les autres navigateurs retiennent le leur,
+   * plus bas. En contrepartie, un changement de l'allowlist (`allowedOrigins`)
+   * met jusqu'à 2 h à atteindre un navigateur déjà ouvert : acceptable, ces URL
+   * ne bougent qu'au déploiement.
    */
-  maxAge: 90,
+  maxAge: 7200,
 })
 
 export default corsConfig

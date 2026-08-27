@@ -3,13 +3,40 @@ import type { NextFn } from '@adonisjs/core/types/http'
 import { DateTime } from 'luxon'
 import { BaseModel } from '@adonisjs/lucid/orm'
 
-function toSnakeCase(str: string): string {
-  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+/**
+ * Les clés converties sont mémoïsées : ce sont les colonnes du schéma, un
+ * ensemble petit et fini, mais réutilisé des milliers de fois dans une seule
+ * réponse — une liste de produits répète les mêmes vingt clés à chaque ligne.
+ * Sans cache, chaque occurrence repayait ses deux `String.replace`.
+ *
+ * Les caches sont bornés : au-delà, ils sont vidés plutôt que de grossir sans
+ * fin. Une charge utile peut porter des clés arbitraires — un `payload` JSONB,
+ * une query string forgée — et un cache non borné en ferait une fuite mémoire
+ * qu'un tiers pourrait provoquer.
+ */
+const MAX_CACHE_ENTRIES = 4_096
+
+function memoize(convert: (str: string) => string): (str: string) => string {
+  const cache = new Map<string, string>()
+
+  return (str: string): string => {
+    const hit = cache.get(str)
+    if (hit !== undefined) return hit
+
+    const converted = convert(str)
+    if (cache.size >= MAX_CACHE_ENTRIES) cache.clear()
+    cache.set(str, converted)
+    return converted
+  }
 }
 
-function toCamelCase(str: string): string {
-  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
-}
+const toSnakeCase = memoize((str: string) =>
+  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+)
+
+const toCamelCase = memoize((str: string) =>
+  str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+)
 
 function convertKeys(obj: unknown, converter: (key: string) => string): unknown {
   if (Array.isArray(obj)) {

@@ -6,6 +6,7 @@ import {
   REDACTED,
   isSecretKey,
   isSecretUrl,
+  redactResponseBody,
   redactSecrets,
   redactUrl,
 } from '#services/log_redaction_service'
@@ -37,6 +38,22 @@ test.group('Log redaction (unit)', () => {
     const original = { token: 'secret' }
     redactSecrets(original)
     assert.equal(original.token, 'secret')
+  })
+
+  test('drops the whole body on a secret url', ({ assert }) => {
+    assert.isUndefined(redactResponseBody('/v1/auth/login', { token: 'oat_MzM.secret' }))
+  })
+
+  test('redacts, but keeps, the body of an ordinary url', ({ assert }) => {
+    const redacted = redactResponseBody('/v1/events', {
+      id: 1,
+      name: 'Soirée',
+      nested: { password: 'hunter2' },
+    }) as Record<string, any>
+
+    assert.equal(redacted.id, 1)
+    assert.equal(redacted.name, 'Soirée')
+    assert.equal(redacted.nested.password, REDACTED)
   })
 
   test('recognises secret keys and auth urls', ({ assert }) => {
@@ -135,12 +152,25 @@ test.group('Log redaction (end to end)', (group) => {
     assert.include(log!.url ?? '', encodeURIComponent(REDACTED))
   })
 
-  test('keeps ordinary response bodies for non-auth routes', async ({ client, assert }) => {
+  /**
+   * Le corps de réponse n'est plus journalisé par défaut : il faisait de `logs`
+   * la table la plus grasse de la base, une grosse ligne par requête. Il se
+   * rallume par `LOG_RESPONSE_BODY` le temps d'une investigation — et c'est
+   * alors `redactResponseBody`, couvert unitairement plus haut, qui le nettoie.
+   */
+  test('omits response bodies unless LOG_RESPONSE_BODY asks for them', async ({
+    client,
+    assert,
+  }) => {
     const user = await UserFactory.create()
     await client.get('/v1/events').loginAs(user)
 
     const log = await Log.query().where('url', 'like', '%/v1/events%').orderBy('id', 'desc').first()
     assert.isNotNull(log)
-    assert.property(log!.meta ?? {}, 'response')
+    assert.notProperty(log!.meta ?? {}, 'response')
+    // Ce qui rend le journal utile survit : on sait toujours quoi, quand, et
+    // combien de temps.
+    assert.property(log!.meta ?? {}, 'status')
+    assert.property(log!.meta ?? {}, 'durationMs')
   })
 })
