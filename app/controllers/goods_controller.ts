@@ -4,7 +4,11 @@ import Good from '#models/good'
 import ApiException from '#exceptions/api_exception'
 import { bestSupplierPrice, supplierPrices } from '#services/pricing_service'
 import Supplier from '#models/supplier'
-import { supplierPriceValidator, goodBarcodeValidator } from '#validators/catalog'
+import {
+  supplierPriceValidator,
+  goodBarcodeValidator,
+  goodStorageMethodValidator,
+} from '#validators/catalog'
 
 const UNIQUE_VIOLATION = '23505'
 
@@ -76,6 +80,9 @@ export default class GoodsController {
   async store({ request, serialize }: HttpContext) {
     const payload = request.all()
     const { name, unit, brand, categoryId } = payload
+    const { storageMethod } = await goodStorageMethodValidator.validate({
+      storageMethod: payload.storageMethod,
+    })
     const codes = codesFrom(payload)
 
     const good = await db
@@ -86,6 +93,7 @@ export default class GoodsController {
         created.unit = unit
         created.brand = brand ?? ''
         created.categoryId = categoryId
+        created.storageMethod = storageMethod ?? null
         await created.save()
 
         if (codes.length > 0) {
@@ -105,13 +113,29 @@ export default class GoodsController {
   }
 
   /** Les codes ne passent plus par ici : ils ont leurs propres routes. */
+  /**
+   * ⚠️ Chaque champ n'est affecté **que s'il est présent**. Les trois premiers
+   * ne l'étaient pas : sur un PATCH partiel, `good.name = payload.name`
+   * écrasait le nom avec `undefined`. Signaler l'emplacement d'une denrée
+   * effaçait donc son nom, son unité et sa catégorie — `brand` portait déjà le
+   * bon motif, seul.
+   *
+   * L'écart entre « clé absente » et « clé à `null` » porte le sens pour
+   * `storageMethod` : ne pas y toucher, ou l'effacer.
+   */
   async update({ params, request, serialize }: HttpContext) {
     const good = await goodQuery().where('id', params.id).firstOrFail()
     const payload = request.all()
-    good.name = payload.name
-    good.unit = payload.unit
-    good.categoryId = payload.categoryId
+    const { storageMethod } = await goodStorageMethodValidator.validate({
+      storageMethod: payload.storageMethod,
+    })
+
+    if ('name' in payload) good.name = payload.name
+    if ('unit' in payload) good.unit = payload.unit
+    if ('categoryId' in payload) good.categoryId = payload.categoryId
     if ('brand' in payload) good.brand = payload.brand ?? ''
+    if ('storageMethod' in payload) good.storageMethod = storageMethod ?? null
+
     await good.save()
     return serialize(present(good))
   }
