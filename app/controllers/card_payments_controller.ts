@@ -7,6 +7,7 @@ import {
   toCardPaymentView,
 } from '#services/sumup_payment_service'
 import { cardPaymentOpenValidator } from '#validators/card_payment'
+import { assertMayDiscount } from '#services/order_service'
 import { broadcastCardPayment, broadcastOrder } from '#services/orders_realtime'
 import Payment from '#models/payment'
 import ApiException from '#exceptions/api_exception'
@@ -17,6 +18,10 @@ export default class CardPaymentsController {
     const payload = await request.validateUsing(cardPaymentOpenValidator)
 
     const cashier = auth.user ? await Member.find(auth.user.id) : null
+    const discount = payload.discount ?? null
+
+    // Avant d'allumer le terminal : refuser après aurait déjà engagé le client.
+    await assertMayDiscount(cashier?.id ?? null, discount)
 
     const payment = await openCardPayment({
       eventId: Number(params.id),
@@ -24,6 +29,7 @@ export default class CardPaymentsController {
       memberId: cashier?.id ?? null,
       clientId: payload.clientId ?? null,
       sponsorshipCategoryId: payload.sponsorshipCategoryId ?? null,
+      discount,
     })
 
     response.status(201)

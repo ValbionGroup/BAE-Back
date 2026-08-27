@@ -7,6 +7,7 @@ import sumupConfig from '#config/sumup'
 import ApiException from '#exceptions/api_exception'
 import Payment from '#models/payment'
 import SumUpClient from '#services/sumup/sumup_client'
+import type { DiscountInput } from '#services/order_service'
 import { priceCart, writeOrder, type CheckoutLine, type OrderDraft } from '#services/order_service'
 import type { OrderPayload } from '#services/order_service'
 
@@ -18,6 +19,9 @@ export interface OpenCardPaymentInput {
   memberId: number | null
   clientId: number | null
   sponsorshipCategoryId: number | null
+  /** Voyage dans le draft, donc dans `payment.intent` : le terminal facture le
+   *  montant remisé, et la remise survit à l'aller-retour SumUp. */
+  discount?: DiscountInput | null
 }
 
 export interface CardPaymentView {
@@ -49,7 +53,7 @@ export function toCardPaymentView(payment: Payment): CardPaymentView {
 /** Tarifie le panier, puis lance le paiement sur le terminal. */
 export async function openCardPayment(input: OpenCardPaymentInput): Promise<Payment> {
   const draft = await db.transaction(async (trx) =>
-    priceCart(input.eventId, input.lines, input.sponsorshipCategoryId, trx)
+    priceCart(input.eventId, input.lines, input.sponsorshipCategoryId, input.discount ?? null, trx)
   )
 
   const intent: CardIntent = {

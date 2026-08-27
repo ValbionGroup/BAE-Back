@@ -54,6 +54,7 @@ export const PERMISSIONS = [
   'order:serve',
   'order:write',
   'order:delete',
+  'order:discount',
   'client:read',
   'client:write',
   'client:delete',

@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Member from '#models/member'
 import {
   cancel,
+  assertMayDiscount,
   checkout,
   listForEvent,
   sellableForEvent,
@@ -27,13 +28,19 @@ export default class OrdersController {
     // Qui a pris la commande, à ne pas confondre avec `clientId` (l'acheteur).
     const cashier = auth.user ? await Member.find(auth.user.id) : null
 
+    const discount = payload.discount ?? null
+    // Avant tout écrit : un refus ne doit laisser derrière lui ni commande ni
+    // transaction comptable.
+    await assertMayDiscount(cashier?.id ?? null, discount)
+
     const order = await checkout(
       Number(params.id),
       payload.lines,
       cashier?.id ?? null,
       payload.clientId ?? null,
       payload.paymentMethod ?? 'cash',
-      payload.sponsorshipCategoryId ?? null
+      payload.sponsorshipCategoryId ?? null,
+      discount
     )
 
     broadcastOrder('order.created', order)
