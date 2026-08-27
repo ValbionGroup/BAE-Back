@@ -6,21 +6,21 @@ import app from '@adonisjs/core/services/app'
 import type { BaseSeeder } from '@adonisjs/lucid/seeders'
 
 /**
- * Les seeders qui ont leur place dans une base de production : le catalogue
- * RBAC, les postes et les onglets de la caisse. Tous les autres inventent des
- * membres, des soirées ou des mouvements de stock.
+ * Les seuls seeders qui ont leur place dans une base de production : le
+ * catalogue RBAC. Il y est parce que le code l'impose — `middleware.can('…')`
+ * cite des permissions écrites en dur dans `start/routes/`, et une permission
+ * absente de la base ferme la route à tout le monde.
+ *
+ * Tout le reste est du vocabulaire que le BAE se donne lui-même depuis ses
+ * écrans (postes, catégories de vente, lieux de stockage) ou des données
+ * inventées. Pré-remplir ce vocabulaire en production imposerait nos mots à la
+ * place des leurs.
  *
  * Ajouter un seeder à cette liste, c'est décider qu'il s'exécutera chez le
- * client — `db:seed` n'ayant pas de garde `--force`, ce fichier est le seul
- * endroit où ce choix se relit.
+ * client à chaque déploiement — `db:seed` n'ayant pas de garde `--force`, ce
+ * fichier est le seul endroit où ce choix se relit.
  */
-const REFERENCE_SEEDERS = [
-  '01_role_seeder',
-  '02_permission_seeder',
-  '03_job_seeder',
-  '05_role_permission_seeder',
-  '24_product_category_seeder',
-]
+const REFERENCE_SEEDERS = ['01_role_seeder', '02_permission_seeder', '05_role_permission_seeder']
 
 async function loadSeeders(): Promise<{ name: string; environment: string[] | undefined }[]> {
   const directory = app.seedersPath()

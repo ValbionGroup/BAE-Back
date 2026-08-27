@@ -157,6 +157,8 @@ Required environment variables (see `.env.example`):
 - `DB_PASSWORD` - Database password
 - `DB_DATABASE` - Database name
 - `SESSION_DRIVER` - Session driver (cookie, memory, database)
+- `MIGRATE` - Run pending migrations on container start (default: `true`)
+- `SEED` - Seed the RBAC catalogue on container start (default: `true`)
 
 ## Health Checks
 
@@ -175,7 +177,12 @@ docker inspect --format='{{.State.Health.Status}}' bae-api
 
 ## Database Migrations
 
-Run migrations in the container:
+`docker-entrypoint.js` runs the pending migrations before the server starts,
+unless `MIGRATE` is set to anything other than `true`. Only the `api` container
+does: `cron` overrides `entrypoint` and `command`, so two containers never race
+on `migration:run`.
+
+Run them by hand:
 
 ```bash
 # Development
@@ -187,21 +194,41 @@ docker-compose exec api node ace migration:run
 
 ## Database Seeding
 
-Seeders come in two kinds: the reference data every environment needs (RBAC
-catalogue, job list, sale categories) and the demonstration data. The demo
-seeders declare `static environment = DEMO_ONLY`
-(`database/seeder_environment.ts`), so the Adonis runner skips them outside
-development and test — `db:seed` has no `--force` guard of its own.
+The entrypoint seeds right after migrating, unless `SEED` is set to anything
+other than `true`.
+
+Only the **RBAC catalogue** reaches a production database: roles, permissions,
+and the role-to-permission map. It is there because the code demands it —
+`middleware.can('…')` names permissions written into `start/routes/`, and a
+permission missing from the database closes the route to everyone, the president
+included. This is what makes automatic seeding worth its risk: a release that
+introduces a permission would otherwise ship a screen nobody can open.
+
+Every other seeder declares `static environment = DEMO_ONLY`
+(`database/seeder_environment.ts`) and the Adonis runner reports it as `ignored`
+outside development and test — `db:seed` has no `--force` guard of its own.
+That covers the invented data (members, events, stock movements) **and** the
+vocabulary a BAE gives itself from its own screens: jobs, sale categories,
+storage locations. Seeding those would put our words where theirs belong, and
+bring back every one they deleted at the next release.
+
+`tests/unit/seeder_environment.spec.ts` holds that line: it fails if a seeder
+outside the reference list ships without a guard.
 
 ```bash
 # Development — everything, demonstration data included
 docker-compose -f docker-compose.dev.yml exec api-dev pnpm ace db:seed
 
-# Production — reference data only, the demo seeders report "ignored"
+# Production — RBAC only, the demo seeders report "ignored"
 docker-compose exec api node ace db:seed
 ```
 
-The reference seeders are idempotent, so running them again is a no-op. To
+The reference seeders only ever add: `fetchOrCreateMany` for roles and
+permissions, and for the role-to-permission map an `attach` of the missing rows
+alone. Running them again is a no-op, and a right granted or revoked from the
+Équipe screen survives the next deployment — with one asymmetry worth knowing:
+a right revoked there while still listed in `database/rbac_catalog.ts` comes
+back. Revoking it for good means editing the catalogue. To
 cherry-pick, pass `--files "database/seeders/01_role_seeder.ts"` — the extension
 is stripped before matching, so the same path works against the compiled image.
 
