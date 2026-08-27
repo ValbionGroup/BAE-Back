@@ -117,6 +117,11 @@ const SPECIFIC: Record<RoleName, readonly PermissionName[]> = {
     'order:read',
     'order:write',
     'order:delete',
+    // ⚠️ Consentie au Trésorier seul parmi les rôles non pleins : une remise est
+    // une concession sur l'argent, et le Coordinateur qui tient le comptoir peut
+    // encaisser sans pouvoir l'accorder. À élargir depuis l'écran des rôles si le
+    // bureau en décide autrement — c'est un réglage, pas une règle du code.
+    'order:discount',
     'client:read',
     'client:write',
     'client:delete',
