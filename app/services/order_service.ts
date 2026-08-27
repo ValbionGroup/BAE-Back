@@ -1,9 +1,11 @@
 import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import Event from '#models/event'
 import Order from '#models/order'
 import Transaction from '#models/transaction'
 import ApiException from '#exceptions/api_exception'
+import { permissionsOfMember } from '#services/rbac_service'
 import { assertEventOpen } from '#services/event_lifecycle_service'
 import { ANONYMOUS_BUYER, resolveBuyerName, resolveBuyerNames } from '#services/buyer_service'
 import { findCategory, gridOf } from '#services/sponsorship_service'
@@ -294,17 +296,52 @@ async function assertSellable(
   }
 }
 
+/**
+ * La remise telle que le comptoir la saisit.
+ *
+ * ⚠️ C'est la **seule** valeur monétaire que le client a le droit d'envoyer.
+ * Tout le reste du panier est relu en base parce qu'un total venu de l'écran
+ * serait falsifiable — mais une remise est un geste humain, et rien en base ne
+ * permet de la relire. L'exception se paie donc par une permission dédiée
+ * (`order:discount`) et par la trace de son auteur.
+ */
+export type DiscountInput = {
+  amountCents: number
+  label: string
+}
+
 export interface OrderDraft {
   eventId: number
   lines: OrderLinePayload[]
+  /** Ce qui sera réellement encaissé : lignes **moins** remises. */
   totalCents: number
+  discounts: OrderDiscountPayload[]
   sponsorship: { categoryId: number; label: string; payerName: string | null } | null
+}
+
+/**
+ * Refuse une remise à qui n'a pas le droit de l'accorder — **sans** toucher au
+ * droit d'encaisser. La garde ne peut pas vivre sur la route : celle-ci sert
+ * aussi tous les encaissements sans remise, qui doivent rester ouverts à
+ * `order:write` seul.
+ */
+export async function assertMayDiscount(
+  memberId: number | null,
+  discount: DiscountInput | null
+): Promise<void> {
+  if (discount === null) return
+
+  const permissions = memberId === null ? new Set<string>() : await permissionsOfMember(memberId)
+  if (!permissions.has('order:discount')) {
+    throw new ApiException('E_FORBIDDEN', 'Missing permission: order:discount', 403)
+  }
 }
 
 export async function priceCart(
   eventId: number,
   lines: readonly CheckoutLine[],
   sponsorshipCategoryId: number | null,
+  discount: DiscountInput | null,
   trx: TransactionClientContract
 ): Promise<OrderDraft> {
   const quantities = mergeLines(lines)
@@ -349,10 +386,22 @@ export async function priceCart(
 
   await assertSellable(quantities, eventId, menu, trx)
 
+  const discounts: OrderDiscountPayload[] = []
+  let discountCents = 0
+
+  if (discount !== null && discount.amountCents > 0) {
+    // ⚠️ **Ramenée au dû, pas refusée.** Sans ce plafond le total passerait sous
+    // zéro et le comptoir rendrait de la monnaie sur une vente ; refuser, lui,
+    // bloquerait un « c'est cadeau » parfaitement légitime.
+    discountCents = Math.min(discount.amountCents, totalCents)
+    discounts.push({ productId: null, label: discount.label, amountCents: discountCents })
+  }
+
   return {
     eventId,
     lines: priced,
-    totalCents,
+    totalCents: totalCents - discountCents,
+    discounts,
     sponsorship: category
       ? { categoryId: category.id, label: category.label, payerName: event.payerName }
       : null,
@@ -397,10 +446,31 @@ export async function writeOrder(
     }))
   )
 
+  // `applied_by_user_id` porte le caissier : `members.id` **est** `users.id`.
+  // Une remise sans auteur ne serait pas vérifiable, ce qui est tout l'objet de
+  // la colonne.
+  if (draft.discounts.length > 0) {
+    // ⚠️ `created_at` / `updated_at` sont posés à la main : un `insert` brut ne
+    // passe pas par Lucid, donc `autoCreate` ne s'applique pas, et les deux
+    // colonnes sont NOT NULL sans défaut en base.
+    const now = DateTime.now().toSQL()
+    await trx.table('order_discounts').insert(
+      draft.discounts.map((entry) => ({
+        order_id: order.id,
+        product_id: entry.productId,
+        label: entry.label,
+        amount_cents: entry.amountCents,
+        applied_by_user_id: memberId,
+        created_at: now,
+        updated_at: now,
+      }))
+    )
+  }
+
   const names = await resolveBuyerNames(clientId === null ? [] : [clientId], trx)
   const clientName = clientId === null ? ANONYMOUS_BUYER : (names.get(clientId) ?? ANONYMOUS_BUYER)
 
-  return buildPayload(order, draft.lines, [], await numberOf(order, trx), clientName)
+  return buildPayload(order, draft.lines, draft.discounts, await numberOf(order, trx), clientName)
 }
 
 export async function checkout(
@@ -409,10 +479,11 @@ export async function checkout(
   memberId: number | null,
   clientId: number | null,
   paymentMethod: PaymentMethod = 'cash',
-  sponsorshipCategoryId: number | null = null
+  sponsorshipCategoryId: number | null = null,
+  discount: DiscountInput | null = null
 ): Promise<OrderPayload> {
   return db.transaction(async (trx) => {
-    const draft = await priceCart(eventId, lines, sponsorshipCategoryId, trx)
+    const draft = await priceCart(eventId, lines, sponsorshipCategoryId, discount, trx)
     return writeOrder(draft, memberId, clientId, paymentMethod, trx)
   })
 }

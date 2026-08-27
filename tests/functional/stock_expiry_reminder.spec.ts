@@ -87,8 +87,9 @@ test.group('notify:stock-expiring', (group) => {
     await goodWithBatch({ name, expiresIn: 3 })
 
     await run()
+    const lines = await digestLines()
 
-    assert.isTrue((await digestLines()).some((line) => line.includes(name)))
+    assert.isTrue(lines.some((line) => line.includes(name)))
   })
 
   test('ignore un lot dont la DLC est au-delà de la fenêtre', async ({ assert }) => {
@@ -113,8 +114,9 @@ test.group('notify:stock-expiring', (group) => {
     await goodWithBatch({ name, expiresIn: -5 })
 
     await run()
+    const lines = await digestLines()
 
-    const line = (await digestLines()).find((entry) => entry.includes(name))
+    const line = lines.find((entry) => entry.includes(name))
     assert.isDefined(line)
     assert.include(line!, 'périmé')
   })
@@ -142,8 +144,9 @@ test.group('notify:stock-expiring', (group) => {
     await goodWithBatch({ name, expiresIn: 20 })
 
     await run(['--days=30'])
+    const lines = await digestLines()
 
-    assert.isTrue((await digestLines()).some((line) => line.includes(name)))
+    assert.isTrue(lines.some((line) => line.includes(name)))
   })
 
   test('--dry-run n’écrit aucun fait', async ({ assert }) => {
