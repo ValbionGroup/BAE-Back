@@ -1,7 +1,19 @@
 import Log from '#models/log'
+import env from '#start/env'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import { redactResponseBody, redactUrl } from '#services/log_redaction_service'
+
+/**
+ * Le corps de réponse n'est joint au journal que si `LOG_RESPONSE_BODY` le
+ * demande. Il en faisait auparavant partie systématiquement : `logs` gagnait une
+ * ligne grasse par requête, sans index ni purge, sur la base même que
+ * l'application interroge.
+ *
+ * Lu une seule fois, au chargement du module : c'est un réglage de déploiement,
+ * et le relire à chaque requête ne rendrait service à personne.
+ */
+const LOG_RESPONSE_BODY = env.get('LOG_RESPONSE_BODY', false)
 
 export default class RequestLoggerMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
@@ -20,7 +32,10 @@ export default class RequestLoggerMiddleware {
     const message = `${method} ${url} → ${status} (${Math.round(durationMs)}ms)`
     const userId = (ctx.auth?.user as { id?: number } | undefined)?.id ?? null
 
-    const response = redactResponseBody(url, ctx.response.getBody())
+    // La rédaction est récursive sur toute la charge utile : ne l'appeler que si
+    // le résultat est destiné à être écrit, sinon c'est une traversée complète
+    // pour rien, sur le chemin de chaque réponse.
+    const response = LOG_RESPONSE_BODY ? redactResponseBody(url, ctx.response.getBody()) : undefined
 
     Log.create({
       level,

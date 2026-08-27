@@ -6,6 +6,21 @@ export default await Env.create(new URL('../', import.meta.url), {
   HOST: Env.schema.string({ format: 'host' }),
   LOG_LEVEL: Env.schema.string(),
 
+  /**
+   * Journal HTTP (`request_logger_middleware`), qui écrit une ligne `logs` par
+   * requête.
+   *
+   * `LOG_RESPONSE_BODY` y joint une copie du corps de réponse. Coûteux — c'est
+   * ce qui faisait de `logs` la table la plus grasse de la base — donc **éteint
+   * par défaut** : on l'allume le temps d'une investigation, pas en continu.
+   *
+   * `LOG_RETENTION_DAYS` est la fenêtre que garde `node ace logs:prune`. Sans
+   * purge la table ne cesse de grossir, et le `COUNT(*)` de sa pagination avec
+   * elle.
+   */
+  LOG_RESPONSE_BODY: Env.schema.boolean.optional(),
+  LOG_RETENTION_DAYS: Env.schema.number.optional(),
+
   APP_KEY: Env.schema.secret(),
   APP_URL: Env.schema.string({ format: 'url', tld: false }),
 

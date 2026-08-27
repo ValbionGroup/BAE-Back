@@ -62,6 +62,25 @@ const dbConfig = defineConfig({
         password: env.get('DB_PASSWORD'),
         database: env.get('DB_DATABASE'),
       },
+
+      /**
+       * Explicite, parce que le défaut de Knex — `{ min: 2, max: 10 }` — est
+       * étroit ici : une requête consomme déjà des connexions avant d'atteindre
+       * son contrôleur. `silent_auth_middleware` appelle `auth.check()` sur
+       * *chaque* requête (jeton puis utilisateur), et `request_logger_middleware`
+       * fait son INSERT. Dix connexions pour un comptoir de caisse en soirée,
+       * c'est peu.
+       *
+       * `acquireTimeoutMillis` fait échouer franchement une requête qui n'obtient
+       * pas de connexion, plutôt que de la laisser pendre jusqu'au timeout du
+       * navigateur — un 500 net se diagnostique, un onglet qui tourne non.
+       */
+      pool: {
+        min: 2,
+        max: 20,
+        acquireTimeoutMillis: 10_000,
+      },
+
       migrations: {
         naturalSort: true,
         paths: ['database/migrations'],

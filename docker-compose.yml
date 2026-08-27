@@ -5,6 +5,8 @@ x-app-environment: &app-environment
   PORT: ${PORT:-3333}
   HOST: 0.0.0.0
   LOG_LEVEL: ${LOG_LEVEL:-info}
+  LOG_RESPONSE_BODY: ${LOG_RESPONSE_BODY:-false}
+  LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
   APP_KEY: ${APP_KEY}
   APP_URL: ${APP_URL:-http://localhost:3333}
   DB_HOST: postgres
@@ -122,6 +124,10 @@ services:
         0 10 * * * cd /app && node ace notify:presence-pending
         0 18 * * * cd /app && node ace notify:presence-upcoming
         */15 * * * * cd /app && node ace notify:dispatch
+        # Purge du journal HTTP. Une ligne y est écrite par requête : sans cette
+        # purge la table grossit sans fin, et le COUNT(*) de sa pagination avec
+        # elle. À 4 h, hors de toute soirée.
+        0 4 * * * cd /app && node ace logs:prune
         CRONTAB
         exec crond -f -l 8 -L /dev/stdout
     networks:

@@ -205,6 +205,56 @@ The reference seeders are idempotent, so running them again is a no-op. To
 cherry-pick, pass `--files "database/seeders/01_role_seeder.ts"` — the extension
 is stripped before matching, so the same path works against the compiled image.
 
+## Reverse proxy (Apache)
+
+En production l'API n'est pas exposée directement : `INTERNET → Apache → Docker`.
+Quatre réglages du vhost pèsent lourd sur la latence perçue et **n'ont aucun
+équivalent en local**, ce qui explique qu'un site rapide sur `localhost` puisse
+traîner en production.
+
+```apache
+<VirtualHost *:443>
+    ServerName api.example.tld
+
+    # 1. Réutiliser les connexions vers le conteneur.
+    #    Apache 2.4 ne les réutilise PAS par défaut hors balancer : sans ce
+    #    drapeau, chaque requête proxifiée refait une poignée de main TCP.
+    ProxyPass        / http://127.0.0.1:3333/ enablereuse=on
+    ProxyPassReverse / http://127.0.0.1:3333/
+
+    # 2. HTTP/2. Sans lui le navigateur plafonne à 6 connexions par origine, et
+    #    une page qui lance dix appels les sérialise en vagues. Le flux SSE de
+    #    Transmit (`__transmit/events`) en occupe une en permanence.
+    Protocols h2 http/1.1
+
+    # 3. Compresser le JSON. AdonisJS ne compresse rien, et nginx ne sert que les
+    #    fichiers statiques des deux fronts — les réponses de l'API partaient
+    #    brutes.
+    AddOutputFilterByType DEFLATE application/json
+</VirtualHost>
+```
+
+Et le quatrième, dans la configuration globale : **le MPM doit être `event`**,
+pas `prefork`. `prefork` fige un processus par connexion, ce qui sature vite
+quand chaque onglet ouvert garde un flux SSE.
+
+Vérifier l'état réel du serveur :
+
+```bash
+apachectl -M | grep -E 'http2|deflate|mpm|proxy_http'
+apachectl -S
+```
+
+Et vérifier depuis l'extérieur que la compression arrive bien jusqu'au client :
+
+```bash
+curl -sI https://api.example.tld/v1/events -H 'Accept-Encoding: gzip, br' \
+  | grep -i -e content-encoding -e 'HTTP/'
+```
+
+`Content-Encoding: gzip` et `HTTP/2` attendus. Si l'un manque, le réglage
+correspondant n'est pas actif.
+
 ## Troubleshooting
 
 ### Container won't start
