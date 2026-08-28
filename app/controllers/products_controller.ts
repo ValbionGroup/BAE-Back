@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Product from '#models/product'
 import Good from '#models/good'
+import Furniture from '#models/furniture'
 import db from '@adonisjs/lucid/services/db'
 import ApiException from '#exceptions/api_exception'
 import { loadBatchesWithRemaining } from '#services/stock_service'
@@ -155,6 +156,71 @@ function pivotPayload(ingredients: IngredientInput[]) {
   )
 }
 
+interface FurnitureInput {
+  furnitureId: number
+  quantity: number
+}
+
+/**
+ * Le pendant non alimentaire de `parseIngredients`, en plus court : le pivot
+ * `product_furnitures` ne porte ni rang ni instruction — une fourniture n'a pas
+ * de place dans l'ordre d'assemblage.
+ *
+ * ⚠️ La quantité doit être un **entier** : la colonne est `integer unsigned`,
+ * là où `product_goods.quantity` est décimale. Une fraction y serait arrondie
+ * en silence par Postgres, et deux gobelets en vaudraient trois.
+ */
+function parseFurnitures(raw: unknown): FurnitureInput[] {
+  if (!Array.isArray(raw)) badRequest('La liste des fournitures doit être un tableau.')
+
+  const seen = new Set<number>()
+  return raw.map((entry) => {
+    const line = entry as Record<string, unknown> | null
+    const furnitureId = Number(line?.furnitureId)
+    if (!Number.isInteger(furnitureId) || furnitureId <= 0) {
+      badRequest('Chaque fourniture doit désigner un article du catalogue.')
+    }
+    if (seen.has(furnitureId)) {
+      badRequest('Une même fourniture ne peut pas figurer deux fois dans une recette.')
+    }
+    seen.add(furnitureId)
+
+    const quantity = Number(line?.quantity)
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      badRequest("La quantité d'une fourniture doit être un entier supérieur à zéro.")
+    }
+
+    return { furnitureId, quantity }
+  })
+}
+
+async function assertFurnituresExist(furnitures: FurnitureInput[]): Promise<void> {
+  if (furnitures.length === 0) return
+  const ids = furnitures.map((line) => line.furnitureId)
+  const found = await Furniture.query().whereIn('id', ids).select('id')
+  const missing = ids.filter((id) => !found.some((furniture) => furniture.id === id))
+  if (missing.length > 0) badRequest(`Fourniture introuvable au catalogue : ${missing.join(', ')}.`)
+}
+
+function furniturePivotPayload(furnitures: FurnitureInput[]) {
+  return Object.fromEntries(
+    furnitures.map((line) => [line.furnitureId, { quantity: line.quantity }])
+  )
+}
+
+/**
+ * ⚠️ `quantity` est celle du **pivot** — ce que la recette consomme — et non le
+ * stock de la fourniture, que le modèle porte sous le même nom. Sérialiser la
+ * relation brute rendrait le second en croyant rendre le premier.
+ */
+function presentFurnitures(product: Product) {
+  return product.furnitures.map((furniture) => ({
+    id: furniture.id,
+    name: furniture.name,
+    quantity: Number(furniture.$extras.pivot_quantity),
+  }))
+}
+
 export default class ProductsController {
   async index({ serialize }: HttpContext) {
     return serialize(await Product.query().preload('furnitures').preload('goods'))
@@ -166,7 +232,9 @@ export default class ProductsController {
     // validation de forme, cf. `#validators/product`.
     const raw = request.all()
     const ingredients = 'goods' in raw ? parseIngredients(raw.goods) : []
+    const furnitures = 'furnitures' in raw ? parseFurnitures(raw.furnitures) : []
     await assertGoodsExist(ingredients)
+    await assertFurnituresExist(furnitures)
     await assertCategoryExists(payload.productCategoryId)
 
     const product = await db.transaction(async (trx) => {
@@ -179,6 +247,9 @@ export default class ProductsController {
       created.productCategoryId = payload.productCategoryId ?? null
       await created.save()
       if (ingredients.length > 0) await created.related('goods').sync(pivotPayload(ingredients))
+      if (furnitures.length > 0) {
+        await created.related('furnitures').sync(furniturePivotPayload(furnitures))
+      }
       return created
     })
 
@@ -186,13 +257,13 @@ export default class ProductsController {
   }
 
   async show({ params, serialize }: HttpContext) {
-    return serialize(
-      await Product.query()
-        .preload('furnitures')
-        .preload('goods')
-        .where('id', params.id)
-        .firstOrFail()
-    )
+    const product = await Product.query()
+      .preload('furnitures')
+      .preload('goods')
+      .where('id', params.id)
+      .firstOrFail()
+
+    return serialize({ ...product.serialize(), furnitures: presentFurnitures(product) })
   }
 
   async update({ params, request, serialize }: HttpContext) {
@@ -201,7 +272,9 @@ export default class ProductsController {
 
     const raw = request.all()
     const ingredients = 'goods' in raw ? parseIngredients(raw.goods) : null
+    const furnitures = 'furnitures' in raw ? parseFurnitures(raw.furnitures) : null
     if (ingredients !== null) await assertGoodsExist(ingredients)
+    if (furnitures !== null) await assertFurnituresExist(furnitures)
     await assertCategoryExists(payload.productCategoryId)
 
     await db.transaction(async (trx) => {
@@ -218,6 +291,11 @@ export default class ProductsController {
       }
       await product.save()
       if (ingredients !== null) await product.related('goods').sync(pivotPayload(ingredients))
+      // `null` = clé absente : la composition non alimentaire reste telle
+      // quelle. Une liste vide, elle, la vide — c'est un geste, pas un silence.
+      if (furnitures !== null) {
+        await product.related('furnitures').sync(furniturePivotPayload(furnitures))
+      }
     })
 
     return serialize(product)
