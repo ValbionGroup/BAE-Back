@@ -20,6 +20,9 @@ router.use([
   () => import('#middleware/bearer_from_cookie_middleware'),
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('#middleware/silent_auth_middleware'),
+  // Après `silent_auth_middleware`, qui est ce qui renseigne `auth.isAuthenticated` :
+  // le renouvellement doit savoir si le jeton présenté vaut encore quelque chose.
+  () => import('#middleware/renew_session_cookie_middleware'),
   () => import('#middleware/request_logger_middleware'),
 ])
 

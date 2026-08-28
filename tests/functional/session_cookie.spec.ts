@@ -4,7 +4,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import User from '#models/user'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
-import { SESSION_COOKIE } from '#services/session_cookie'
+import { SESSION_COOKIE, SESSION_TTL_SECONDS } from '#services/session_cookie'
 
 /**
  * ⚠️ Le cœur du mode BFF : le navigateur n'envoie **aucun en-tête** — il porte un
@@ -105,5 +105,52 @@ test.group('Authentification par cookie', (group) => {
       .loginAs(user)
 
     assert.notEqual(response.status(), 401)
+  })
+
+  /**
+   * ⚠️ Le cookie porte un `maxAge`, et il est **absolu** : il court depuis la pose,
+   * pas depuis la dernière activité. Sans renouvellement, une session tombe donc en
+   * pleine saisie exactement deux heures après la connexion, quoi que fasse
+   * l'utilisateur — et rien ne peut la rattraper, puisque le secret du jeton
+   * n'existait que dans ce cookie.
+   *
+   * Reposer le cookie à chaque requête authentifiée transforme ce couperet en
+   * fenêtre glissante : le 401 ne survient plus qu'après une vraie inactivité.
+   */
+  test('une requête authentifiée par cookie repose le cookie', async ({ client, assert }) => {
+    const login = await passwordLogin(client)
+    const token = login.cookie(SESSION_COOKIE)!.value
+
+    const response = await client.get('/v1/members').withCookie(SESSION_COOKIE, token)
+
+    const renewed = response.cookie(SESSION_COOKIE)
+    assert.isDefined(renewed, 'une requête authentifiée doit repousser la fenêtre de session')
+    assert.equal(renewed!.value, token, 'le renouvellement rejoue le même jeton, il n’en crée pas')
+    assert.equal(renewed!.maxAge, SESSION_TTL_SECONDS)
+  })
+
+  /**
+   * ⚠️ Le pendant du test « un en-tête explicite garde la priorité » : curl, les
+   * scripts d'exploitation et `loginAs()` s'authentifient par en-tête et n'ont
+   * jamais demandé de session navigateur. Leur en poser une ferait fuiter un
+   * cookie dans des journaux et des bocaux qui n'ont pas à le porter.
+   */
+  test('une requête authentifiée par en-tête ne pose pas de cookie', async ({ client, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['member:read'])
+
+    const response = await client.get('/v1/members').loginAs(user)
+
+    assert.isUndefined(response.cookie(SESSION_COOKIE))
+  })
+
+  test('une requête refusée ne repose aucun cookie', async ({ client, assert }) => {
+    const response = await client.get('/v1/members').withCookie(SESSION_COOKIE, 'jeton-invalide')
+
+    response.assertStatus(401)
+    assert.isUndefined(
+      response.cookie(SESSION_COOKIE),
+      'un jeton refusé ne doit surtout pas se voir prolonger'
+    )
   })
 })
