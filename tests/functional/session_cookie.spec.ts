@@ -107,16 +107,6 @@ test.group('Authentification par cookie', (group) => {
     assert.notEqual(response.status(), 401)
   })
 
-  /**
-   * ⚠️ Le cookie porte un `maxAge`, et il est **absolu** : il court depuis la pose,
-   * pas depuis la dernière activité. Sans renouvellement, une session tombe donc en
-   * pleine saisie exactement deux heures après la connexion, quoi que fasse
-   * l'utilisateur — et rien ne peut la rattraper, puisque le secret du jeton
-   * n'existait que dans ce cookie.
-   *
-   * Reposer le cookie à chaque requête authentifiée transforme ce couperet en
-   * fenêtre glissante : le 401 ne survient plus qu'après une vraie inactivité.
-   */
   test('une requête authentifiée par cookie repose le cookie', async ({ client, assert }) => {
     const login = await passwordLogin(client)
     const token = login.cookie(SESSION_COOKIE)!.value
@@ -129,12 +119,6 @@ test.group('Authentification par cookie', (group) => {
     assert.equal(renewed!.maxAge, SESSION_TTL_SECONDS)
   })
 
-  /**
-   * ⚠️ Le pendant du test « un en-tête explicite garde la priorité » : curl, les
-   * scripts d'exploitation et `loginAs()` s'authentifient par en-tête et n'ont
-   * jamais demandé de session navigateur. Leur en poser une ferait fuiter un
-   * cookie dans des journaux et des bocaux qui n'ont pas à le porter.
-   */
   test('une requête authentifiée par en-tête ne pose pas de cookie', async ({ client, assert }) => {
     const member = await MemberFactory.create()
     const user = await grantPermissions(member, ['member:read'])

@@ -4,19 +4,7 @@ import env from '#start/env'
 export const SESSION_COOKIE = 'bae_token'
 export const TWO_FACTOR_COOKIE = 'bae_2fa'
 
-/**
- * Durée de vie du cookie de session, en secondes.
- *
- * ⚠️ Elle était jusqu'ici **implicite** : `options()` ne passait pas de `maxAge`,
- * et `Response#cookie` comble les manques avec `config/app.ts` — dont le
- * `maxAge: '2h'` s'appliquait donc au cookie de session sans que rien ici ne le
- * dise. Le jeton, lui, ne périme jamais (`DbAccessTokensProvider.forModel(User)`
- * sans `expiresIn`) : la seule échéance d'une session est celle-ci.
- *
- * Elle reste absolue côté navigateur — c'est
- * `RenewSessionCookieMiddleware` qui la rend glissante en la reposant à chaque
- * requête authentifiée.
- */
+/** Cookie lifespan. */
 export const SESSION_TTL_SECONDS = 2 * 60 * 60
 
 /**
