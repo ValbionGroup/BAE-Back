@@ -4,7 +4,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import User from '#models/user'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
-import { SESSION_COOKIE } from '#services/session_cookie'
+import { SESSION_COOKIE, SESSION_TTL_SECONDS } from '#services/session_cookie'
 
 /**
  * ⚠️ Le cœur du mode BFF : le navigateur n'envoie **aucun en-tête** — il porte un
@@ -105,5 +105,36 @@ test.group('Authentification par cookie', (group) => {
       .loginAs(user)
 
     assert.notEqual(response.status(), 401)
+  })
+
+  test('une requête authentifiée par cookie repose le cookie', async ({ client, assert }) => {
+    const login = await passwordLogin(client)
+    const token = login.cookie(SESSION_COOKIE)!.value
+
+    const response = await client.get('/v1/members').withCookie(SESSION_COOKIE, token)
+
+    const renewed = response.cookie(SESSION_COOKIE)
+    assert.isDefined(renewed, 'une requête authentifiée doit repousser la fenêtre de session')
+    assert.equal(renewed!.value, token, 'le renouvellement rejoue le même jeton, il n’en crée pas')
+    assert.equal(renewed!.maxAge, SESSION_TTL_SECONDS)
+  })
+
+  test('une requête authentifiée par en-tête ne pose pas de cookie', async ({ client, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['member:read'])
+
+    const response = await client.get('/v1/members').loginAs(user)
+
+    assert.isUndefined(response.cookie(SESSION_COOKIE))
+  })
+
+  test('une requête refusée ne repose aucun cookie', async ({ client, assert }) => {
+    const response = await client.get('/v1/members').withCookie(SESSION_COOKIE, 'jeton-invalide')
+
+    response.assertStatus(401)
+    assert.isUndefined(
+      response.cookie(SESSION_COOKIE),
+      'un jeton refusé ne doit surtout pas se voir prolonger'
+    )
   })
 })
