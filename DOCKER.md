@@ -119,7 +119,7 @@ Runs on every push and pull request:
 Builds and pushes Docker images:
 
 - Triggered on push to `main` or `develop` branches
-- Creates multi-platform images (amd64, arm64)
+- Builds `linux/amd64` images only (see the note in the workflow for arm64)
 - Pushes to GitHub Container Registry (ghcr.io)
 - Tags images based on branch, PR, or version tags
 
