@@ -4,6 +4,9 @@ import env from '#start/env'
 export const SESSION_COOKIE = 'bae_token'
 export const TWO_FACTOR_COOKIE = 'bae_2fa'
 
+/** Cookie lifespan. */
+export const SESSION_TTL_SECONDS = 2 * 60 * 60
+
 /**
  * The domain scope shared by **every** session cookie, including the
  * `XSRF-TOKEN` cookie set by `config/shield.ts`.
@@ -32,6 +35,7 @@ function options() {
     sameSite: 'lax' as const,
     secure: env.get('NODE_ENV') === 'production',
     path: '/',
+    maxAge: SESSION_TTL_SECONDS,
     ...cookieScope(),
   }
 }
