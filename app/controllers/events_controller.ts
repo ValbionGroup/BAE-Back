@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Event from '#models/event'
 import ApiException from '#exceptions/api_exception'
 import { recordEvent } from '#services/notification_service'
+import { notifyAssignments } from '#services/assignment_notification_service'
 import Job from '#models/job'
 import Member from '#models/member'
 import MemberEventAssignedJob from '#models/member_event_assigned_job'
@@ -369,6 +370,33 @@ export default class EventsController {
     }
 
     return serialize(summary)
+  }
+
+  /**
+   * « Valider l'affectation » : annonce aux membres affectés que la composition
+   * est arrêtée. Le geste ne verrouille **rien** — il n'existe pas d'état
+   * « validé » en base, et en inventer un imposerait une garde sur chaque
+   * écriture de `AssignmentsController` pour un invariant que le cahier des
+   * charges n'a jamais demandé.
+   *
+   * Rejouable sans risque : l'idempotence porte sur l'empreinte de
+   * l'affectation, pas sur la soirée (cf. `assignment_notification_service`).
+   */
+  async notifyAssignments({ params, response, serialize, auth }: HttpContext) {
+    const event = await Event.findOrFail(params.id)
+
+    // Le template désactive déjà le bouton sur une soirée clôturée ; cette garde
+    // couvre le chemin clavier et l'appel direct, comme celle de `open`.
+    if (event.status === 'completed') {
+      return response.conflict({
+        error: {
+          code: 'E_EVENT_CLOSED',
+          message: 'Cette soirée est clôturée : son affectation ne s’annonce plus.',
+        },
+      })
+    }
+
+    return serialize(await notifyAssignments(event, auth.user?.id ?? null))
   }
 
   async settle({ params, serialize, auth }: HttpContext) {

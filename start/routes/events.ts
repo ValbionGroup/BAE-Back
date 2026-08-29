@@ -145,6 +145,13 @@ router
       .post('/events/:id/matching', [controllers.Events, 'runMatching'])
       .use(middleware.can('event:matching'))
 
+    // `assignment:write` et non un droit neuf : qui compose l'affectation est
+    // qui l'annonce. Une permission de plus se sèmerait à chaque déploiement
+    // pour ne rien séparer de ce que ce droit couvre déjà.
+    router
+      .post('/events/:id/assignments/notify', [controllers.Events, 'notifyAssignments'])
+      .use(middleware.can('assignment:write'))
+
     // Ouvrir relève de la préparation (`event:write`), clôturer de la
     // consolidation des points (`event:settle`) : deux gestes, deux droits.
     router.post('/events/:id/open', [controllers.Events, 'open']).use(middleware.can('event:write'))
