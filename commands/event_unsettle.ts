@@ -2,10 +2,6 @@ import { BaseCommand, args, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 
-// The reverse gear of `POST /v1/events/:id/settle`, which the API does not offer:
-// a close is irreversible from the outside and a settled evening makes
-// `runMatching` fail with 409. Idempotent — a row with no `settled_at` was never
-// applied. Deliberately a command: un-closing is an operator action.
 export default class EventUnsettle extends BaseCommand {
   static commandName = 'event:unsettle'
   static description =

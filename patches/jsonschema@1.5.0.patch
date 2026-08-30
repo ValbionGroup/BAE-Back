@@ -1,0 +1,18 @@
+diff --git a/lib/validator.js b/lib/validator.js
+index cca5e9c2216fd72d5da7eb63a38cebdf025e366e..849b24ef20f9b12b9f2d717e3e582f598d5b1aa5 100644
+--- a/lib/validator.js
++++ b/lib/validator.js
+@@ -260,7 +260,12 @@ Validator.prototype.resolve = function resolve (schema, switchSchema, ctx) {
+     return {subschema: ctx.schemas[switchSchema], switchSchema: switchSchema};
+   }
+   // Else try walking the property pointer
+-  let parsed = new URL(switchSchema,'thismessage::/');
++  // `thismessage::/` is a cannot-be-a-base URL (opaque path). Resolving an
++  // absolute-path reference such as `/undefined#/definitions/X` against it is a
++  // parse failure per the WHATWG URL spec; Ada 4.0.0 (Node >= 24.20) enforces
++  // that and throws `Invalid URL`. Only `parsed.hash` is read below, so a
++  // non-opaque base yields the same fragment on every Node version.
++  let parsed = new URL(switchSchema,'thismessage:/');
+   let fragment = parsed.hash;
+   var document = fragment && fragment.length && switchSchema.substr(0, switchSchema.length - fragment.length);
+   if (!document || !ctx.schemas[document]) {
