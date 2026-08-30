@@ -16,6 +16,10 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
+# pnpm-workspace.yaml declares patchedDependencies, and pnpm hashes every patch
+# file before resolving. They must land here too, or install dies on ENOENT.
+COPY patches ./patches
+
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
