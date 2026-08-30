@@ -231,10 +231,7 @@ test.group('Précommandes — consigne du client', (group) => {
       registeredAt: DateTime.now(),
       preparationNote: 'Allergie arachide',
     })
-    const user = await grantPermissions(await MemberFactory.create(), [
-      'order:read',
-      'order:write',
-    ])
+    const user = await grantPermissions(await MemberFactory.create(), ['order:read', 'order:write'])
 
     const response = await client
       .patch(`/v1/pre-orders/${preOrder.id}/status`)
