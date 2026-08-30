@@ -73,7 +73,7 @@ export class CategorySchema extends BaseModel {
 }
 
 export class ClientSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'note', 'noteAuthorId', 'noteWrittenAt', 'phone', 'promotion', 'registeredAt', 'school', 'updatedAt'] as const
+  static $columns = ['createdAt', 'id', 'note', 'noteAuthorId', 'noteWrittenAt', 'phone', 'preparationNote', 'promotion', 'registeredAt', 'school', 'telegramChatId', 'telegramHandle', 'telegramLinkedAt', 'updatedAt'] as const
   $columns = ClientSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -88,11 +88,19 @@ export class ClientSchema extends BaseModel {
   @column()
   declare phone: string | null
   @column()
+  declare preparationNote: string | null
+  @column()
   declare promotion: string | null
   @column.date()
   declare registeredAt: DateTime
   @column()
   declare school: string | null
+  @column()
+  declare telegramChatId: bigint | number | null
+  @column()
+  declare telegramHandle: string | null
+  @column.dateTime()
+  declare telegramLinkedAt: DateTime | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

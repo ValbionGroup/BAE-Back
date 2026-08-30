@@ -29,6 +29,7 @@ router
   .group(() => {
     router.get('/profile', [controllers.Profile, 'show'])
     router.get('/qr', [controllers.Qrs, 'mine'])
+    router.patch('/profile', [controllers.Profile, 'update']).use(middleware.audience('client'))
   })
   .prefix('v1/account')
   .as('profile')

@@ -17,6 +17,7 @@ router
     router.get('/pre-orders/:id', [controllers.AccountPurchases, 'preOrder'])
     router.get('/pre-orders/:id/qr', [controllers.AccountPurchases, 'preOrderQr'])
     router.get('/subscriptions', [controllers.AccountPurchases, 'subscriptions'])
+    router.get('/orders', [controllers.AccountPurchases, 'orders'])
 
     router
       .post('/subscriptions', [controllers.AccountPayments, 'subscribe'])

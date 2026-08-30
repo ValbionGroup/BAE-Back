@@ -5,6 +5,7 @@ import {
   listSubscriptions,
   preOrderQr,
 } from '#services/account_purchase_service'
+import { listForClient } from '#services/order_service'
 
 export default class AccountPurchasesController {
   async preOrders({ auth, serialize }: HttpContext) {
@@ -21,5 +22,10 @@ export default class AccountPurchasesController {
 
   async subscriptions({ auth, serialize }: HttpContext) {
     return serialize(await listSubscriptions(auth.getUserOrFail().id))
+  }
+
+  /** Ses encaissements au comptoir — ceux où sa carte a été présentée. */
+  async orders({ auth, serialize }: HttpContext) {
+    return serialize(await listForClient(auth.getUserOrFail().id))
   }
 }

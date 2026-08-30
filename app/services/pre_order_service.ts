@@ -99,7 +99,23 @@ export type PreOrderTicket = {
   pickupAt: string | null
   /** L'heure approche : la cuisine doit s'y mettre. */
   due: boolean
+  /** Allergies et consignes déclarées par le client sur son profil. */
+  preparationNote: string | null
   createdAt: string | null
+}
+
+/** En lot, comme `resolveBuyerNames`. */
+async function preparationNotesOf(userIds: readonly number[]): Promise<Map<number, string>> {
+  const unique = [...new Set(userIds)]
+  if (unique.length === 0) return new Map()
+
+  const rows = await db
+    .from('clients')
+    .whereIn('id', unique)
+    .whereNotNull('preparation_note')
+    .select('id', 'preparation_note')
+
+  return new Map(rows.map((row) => [Number(row.id), String(row.preparation_note)]))
 }
 
 /**
@@ -120,7 +136,11 @@ export async function kitchenTicketsFor(
 
   if (preOrders.length === 0) return []
 
-  const names = await resolveBuyerNames(preOrders.map((preOrder) => preOrder.userId))
+  const userIds = preOrders.map((preOrder) => preOrder.userId)
+  const [names, notes] = await Promise.all([
+    resolveBuyerNames(userIds),
+    preparationNotesOf(userIds),
+  ])
 
   return preOrders.map((preOrder, index) => {
     const lines: PreOrderLine[] = preOrder.products.map((product) => ({
@@ -145,6 +165,7 @@ export async function kitchenTicketsFor(
       fullyCollected: lines.length > 0 && lines.every((l) => l.receivedQuantity >= l.quantity),
       pickupAt: pickupAt?.toISO() ?? null,
       due,
+      preparationNote: notes.get(preOrder.userId) ?? null,
       createdAt: preOrder.createdAt?.toISO() ?? null,
     }
   })

@@ -117,11 +117,15 @@ async function menuOf(
 /**
  * Dérivé plutôt que stocké : on annule une commande sans la supprimer, donc
  * aucune ligne ne disparaît et la numérotation reste stable.
+ *
+ * `event_id` étant nullable, une commande hors soirée retourne 1.
  */
 async function numberOf(order: Order, trx?: TransactionClientContract): Promise<number> {
+  if (order.eventId === null || order.eventId === undefined) return 1
+
   const row = await (trx ?? db)
     .from('orders')
-    .where('event_id', order.eventId!)
+    .where('event_id', order.eventId)
     .where('id', '<=', order.id)
     .count('* as total')
     .first()
@@ -513,6 +517,69 @@ export async function listForEvent(eventId: number): Promise<OrderPayload[]> {
       )
     )
     .reverse()
+}
+
+/**
+ * Une commande au comptoir vue par son acheteur. Plus pauvre qu'`OrderPayload` : le
+ * détail du financement est comptable, `savedCents` agrège ce qu'il n'a pas payé.
+ */
+export type MyCounterOrder = {
+  id: number
+  /** Le numéro **crié au comptoir**, donc celui de la soirée. */
+  number: number
+  eventId: number | null
+  eventName: string
+  eventDate: string | null
+  status: string
+  lines: { productName: string; quantity: number; unitPrice: number }[]
+  totalCents: number
+  savedCents: number
+  createdAt: string | null
+}
+
+/**
+ * Ses commandes au comptoir. Seules celles dont `client_id` est renseigné, donc où le
+ * caissier a scanné le QR — la majorité des encaissements restent anonymes.
+ */
+export async function listForClient(userId: number): Promise<MyCounterOrder[]> {
+  const orders = await Order.query()
+    .where('clientId', userId)
+    .preload('event')
+    .orderBy('id', 'desc')
+
+  if (orders.length === 0) return []
+
+  const orderIds = orders.map((order) => order.id)
+  const [lines, discounts] = await Promise.all([storedLinesOf(orderIds), discountsOf(orderIds)])
+
+  return Promise.all(
+    orders.map(async (order) => {
+      const payload = buildPayload(
+        order,
+        lines.get(order.id) ?? [],
+        discounts.get(order.id) ?? [],
+        await numberOf(order),
+        ''
+      )
+
+      return {
+        id: payload.id,
+        number: payload.number,
+        eventId: payload.eventId,
+        eventName: order.event?.name ?? 'Hors soirée',
+        eventDate: order.event?.date?.toISO() ?? null,
+        status: payload.status,
+        lines: payload.lines.map(({ productName, quantity, unitPrice }) => ({
+          productName,
+          quantity,
+          unitPrice,
+        })),
+        totalCents: payload.totalCents,
+        savedCents: payload.discountCents + payload.sponsoredCents,
+        createdAt: payload.createdAt,
+      }
+    })
+  )
 }
 
 export interface SellableLine {

@@ -34,6 +34,12 @@ interface ClientDetail extends ClientRow {
   note: string | null
   noteAuthor: string | null
   noteWrittenAt: string | null
+  /**
+   * Écrite par l'adhérent depuis sa page profil, et en **lecture seule** ici :
+   * `updateClientValidator` ne la connaît pas. À ne pas confondre avec `note`
+   * juste au-dessus, qui est ce que le bureau écrit sur lui.
+   */
+  preparationNote: string | null
   subscriptions: SubscriptionView[]
   preOrderCount: number
   spentCents: number
@@ -132,6 +138,7 @@ export default class ClientsController {
       note: client.note,
       noteAuthor: client.noteAuthor?.fullName ?? null,
       noteWrittenAt: client.noteWrittenAt ? client.noteWrittenAt.toISO() : null,
+      preparationNote: client.preparationNote,
       subscriptions: views,
       preOrderCount: activity.preOrderCount,
       spentCents: activity.spentCents,
