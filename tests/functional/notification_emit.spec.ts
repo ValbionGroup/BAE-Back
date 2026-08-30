@@ -1,5 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import { DateTime } from 'luxon'
+import Client from '#models/client'
 import Notification from '#models/notification'
 import { emit } from '#services/notification_service'
 import { MemberFactory } from '#database/factories/members_factory'
@@ -58,5 +60,88 @@ test.group('emit — atomique et idempotent', (group) => {
 
     assert.equal(second.created, 0, 'le second passage ne crée rien')
     assert.equal(second.skipped, 1)
+  })
+})
+
+test.group('emit — canal Telegram', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  async function linkedMember(chatId: number) {
+    const member = await MemberFactory.create()
+    await Client.create({
+      id: member.id,
+      registeredAt: DateTime.now(),
+      telegramChatId: chatId,
+      telegramLinkedAt: DateTime.now(),
+    })
+    return member
+  }
+
+  const channelsOf = async (eventId: number) => {
+    const rows = await Notification.query().where('eventId', eventId)
+    return rows.map((row) => row.channel).sort()
+  }
+
+  test('un destinataire lié reçoit Telegram en plus du mail', async ({ assert }) => {
+    const member = await linkedMember(111)
+
+    const result = await emit({
+      verb: 'ticket.updated',
+      subjectType: 'ticket',
+      subjectId: 1,
+      recipients: [member.id],
+      channels: ['in_app', 'mail'],
+    })
+
+    assert.deepEqual(await channelsOf(result.eventId), ['in_app', 'mail', 'telegram'])
+  })
+
+  test('un destinataire non lié n’en reçoit pas', async ({ assert }) => {
+    const member = await MemberFactory.create()
+
+    const result = await emit({
+      verb: 'ticket.updated',
+      subjectType: 'ticket',
+      subjectId: 1,
+      recipients: [member.id],
+      channels: ['mail'],
+    })
+
+    assert.deepEqual(await channelsOf(result.eventId), ['mail'])
+  })
+
+  /**
+   * `in_app` est un canal d'interface : le rejouer dans Telegram transformerait
+   * chaque trace du fil d'activité en notification poussée.
+   */
+  test('un envoi purement in_app ne part pas dans Telegram', async ({ assert }) => {
+    const member = await linkedMember(222)
+
+    const result = await emit({
+      verb: 'ticket.opened',
+      subjectType: 'ticket',
+      subjectId: 1,
+      recipients: [member.id],
+      channels: ['in_app'],
+    })
+
+    assert.deepEqual(await channelsOf(result.eventId), ['in_app'])
+  })
+
+  test('réémettre ne duplique pas la livraison Telegram', async ({ assert }) => {
+    const member = await linkedMember(333)
+    const fact = {
+      verb: 'ticket.updated',
+      subjectType: 'ticket',
+      subjectId: 1,
+      recipients: [member.id],
+      channels: ['mail'] as const,
+    }
+
+    const first = await emit(fact)
+    await emit(fact)
+
+    const rows = await Notification.query().where('eventId', first.eventId)
+    assert.lengthOf(rows, 2)
   })
 })

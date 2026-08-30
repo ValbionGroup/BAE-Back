@@ -59,6 +59,7 @@ export default defineConfig({
     () => import('@adonisjs/mail/mail_provider'),
     () => import('#providers/lydia_provider'),
     () => import('#providers/sumup_provider'),
+    () => import('#providers/telegram_provider'),
   ],
 
   /*

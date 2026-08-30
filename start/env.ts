@@ -130,6 +130,23 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
+  | Notifications — Telegram
+  |----------------------------------------------------------
+  */
+  // `fake` partout sauf en production. Un bot distinct est recommandé en
+  // développement : Telegram interdit `getUpdates` tant qu'un webhook est posé.
+  TELEGRAM_DRIVER: Env.schema.enum(['http', 'fake'] as const),
+  TELEGRAM_API_URL: Env.schema.string({ format: 'url', tld: false }),
+  TELEGRAM_BOT_TOKEN: Env.schema.secret(),
+  TELEGRAM_BOT_USERNAME: Env.schema.string(),
+  // Renvoyé par Telegram dans `X-Telegram-Bot-Api-Secret-Token` : c'est la seule
+  // preuve que l'appel vient bien de lui.
+  TELEGRAM_WEBHOOK_SECRET: Env.schema.secret(),
+  // Adresse publique en HTTPS joignable par Telegram. Inutilisée en `fake`.
+  TELEGRAM_WEBHOOK_BASE_URL: Env.schema.string({ format: 'url', tld: false }),
+
+  /*
+  |----------------------------------------------------------
   | Limitation de débit
   |----------------------------------------------------------
   */

@@ -1,7 +1,7 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-export type NotificationChannel = 'mail' | 'in_app'
+export type NotificationChannel = 'mail' | 'in_app' | 'telegram'
 
 /**
  * La livraison d'un `ActivityEvent` à une personne, sur un canal. `channel` fait

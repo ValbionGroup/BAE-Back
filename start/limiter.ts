@@ -16,4 +16,8 @@ export const throttle = {
   accountSecurity: limiter.define('accountSecurity', (ctx) =>
     limiter.allowRequests(10).every('5 mins').usingKey(`user:${ctx.auth.getUserOrFail().id}`)
   ),
+
+  telegramLink: limiter.define('telegramLink', (ctx) =>
+    limiter.allowRequests(10).every('10 mins').usingKey(`user:${ctx.auth.getUserOrFail().id}`)
+  ),
 }
