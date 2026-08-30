@@ -61,3 +61,56 @@ test.group('Notifications — schéma', (group) => {
     assert.deepEqual(reloaded.payload, { eventName: 'Gala', when: '2026-09-01' })
   })
 })
+
+test.group('Notifications — canal Telegram', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  async function aFact() {
+    return ActivityEvent.create({
+      actorId: null,
+      verb: 'ticket.updated',
+      subjectType: 'ticket',
+      subjectId: 1,
+      payload: {},
+      occurredAt: DateTime.now(),
+    })
+  }
+
+  test('la contrainte accepte le canal telegram', async ({ assert }) => {
+    const member = await MemberFactory.create()
+    const event = await aFact()
+
+    const row = await Notification.create({
+      eventId: event.id,
+      userId: member.id,
+      channel: 'telegram',
+    })
+
+    assert.isNumber(row.id)
+  })
+
+  test('les trois canaux cohabitent sur le même fait', async ({ assert }) => {
+    const member = await MemberFactory.create()
+    const event = await aFact()
+
+    for (const channel of ['mail', 'in_app', 'telegram'] as const) {
+      await Notification.create({ eventId: event.id, userId: member.id, channel })
+    }
+
+    const rows = await Notification.query().where('eventId', event.id)
+    assert.lengthOf(rows, 3)
+  })
+
+  test('un canal inventé reste refusé', async ({ assert }) => {
+    const member = await MemberFactory.create()
+    const event = await aFact()
+
+    await assert.rejects(() =>
+      Notification.create({
+        eventId: event.id,
+        userId: member.id,
+        channel: 'sms' as never,
+      })
+    )
+  })
+})

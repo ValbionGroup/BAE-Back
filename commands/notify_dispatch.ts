@@ -5,6 +5,7 @@ import db from '@adonisjs/lucid/services/db'
 import mail from '@adonisjs/mail/services/main'
 import Notification from '#models/notification'
 import { PresenceReminderNotification } from '#mails/presence_reminder_notification'
+import { readNotificationPayload } from '#services/notification_payload'
 
 /**
  * Vidange la file. Séparée des détecteurs à dessein : un SMTP indisponible ne
@@ -40,12 +41,7 @@ export default class NotifyDispatch extends BaseCommand {
     let sent = 0
 
     for (const row of pending) {
-      const payload = (typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload) as {
-        subject?: string
-        lines?: string[]
-      }
-      const subject = payload.subject ?? 'Notification BAE'
-      const lines = payload.lines ?? []
+      const { subject, lines } = readNotificationPayload(row.payload)
 
       if (this.dryRun) {
         this.logger.info(`[dry-run] ${row.email} — ${subject}`)

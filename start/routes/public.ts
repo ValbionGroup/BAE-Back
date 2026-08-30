@@ -46,3 +46,10 @@ router
   })
   .prefix('v1/sumup')
   .as('sumup')
+
+router
+  .group(() => {
+    router.post('/webhook', [controllers.TelegramWebhook, 'notify'])
+  })
+  .prefix('v1/telegram')
+  .as('telegram')

@@ -2,10 +2,10 @@
 
 ## Les deux tables
 
-| Table             | Ce qu'elle porte                                                 |
-| ----------------- | ---------------------------------------------------------------- |
-| `activity_events` | Le **fait** métier : acteur, verbe, sujet, `payload`, horodatage |
-| `notifications`   | Sa **livraison** à une personne, par canal (`mail` \| `in_app`)  |
+| Table             | Ce qu'elle porte                                                              |
+| ----------------- | ----------------------------------------------------------------------------- |
+| `activity_events` | Le **fait** métier : acteur, verbe, sujet, `payload`, horodatage              |
+| `notifications`   | Sa **livraison** à une personne, par canal (`mail` \| `in_app` \| `telegram`) |
 
 `activity_events` est aussi la source du fil d'activité de l'accueil : le fil est le flux global,
 la notification en est la projection vers une personne.
@@ -42,7 +42,8 @@ Adonis n'a pas d'ordonnanceur : la récurrence vient du cron système.
 | -------------------------- | ---------------------------------------------------------------- |
 | `notify:presence-pending`  | Met en file un rappel pour les membres **sans réponse**          |
 | `notify:presence-upcoming` | Met en file un rappel pour les membres ayant répondu **présent** |
-| `notify:dispatch`          | Vide la file : envoie et horodate                                |
+| `notify:dispatch`          | Vide la file du canal `mail` : envoie et horodate                |
+| `telegram:dispatch`        | Vide la file du canal `telegram`                                 |
 
 Les deux détecteurs acceptent `--days=n` (fenêtre avant la soirée, défaut 3) et `--dry-run`.
 `notify:dispatch` accepte `--dry-run`.
@@ -55,7 +56,35 @@ détection, et chaque moitié se teste sans l'autre.
 0 10 * * *   cd /srv/bae-back && node ace notify:presence-pending
 0 18 * * *   cd /srv/bae-back && node ace notify:presence-upcoming
 */15 * * * * cd /srv/bae-back && node ace notify:dispatch
+* * * * *    cd /srv/bae-back && node ace telegram:dispatch
 ```
+
+## Telegram
+
+Un client lie son compte depuis « Mon profil » : le site émet un code à usage unique (15 minutes),
+l'emmène sur `t.me/<bot>?start=<code>`, et le bot enregistre son `chat_id`. `/stop` délie depuis la
+conversation.
+
+Le canal `telegram` est un **miroir de `mail`** : `emit()` l'ajoute pour tout destinataire dont le
+compte est lié, sans qu'aucun émetteur ait à le demander. Un envoi purement `in_app` ne part pas
+dans Telegram — ce serait transformer le fil d'activité en messages poussés.
+
+`telegram:dispatch` a sa propre commande parce que `notify:dispatch` laisse volontairement une
+panne SMTP avorter le passage : ici, un destinataire qui a bloqué le bot ne doit pas priver les
+autres. Un refus définitif de Telegram (403, chat introuvable) **délie le compte** et horodate
+quand même la ligne — sinon la file la retenterait indéfiniment. Sur ce chemin, `sent_at` veut dire
+« la file en a fini », pas « reçu ».
+
+### Mise en service
+
+```
+node ace telegram:webhook            # enregistre le webhook et son secret
+node ace telegram:webhook --delete   # le retire
+```
+
+⚠️ **Telegram refuse `getUpdates` tant qu'un webhook est enregistré.** En développement, utilisez
+un second bot BotFather et `node ace telegram:poll`, qui fait passer les mises à jour par le même
+code que le webhook.
 
 ## L'envoi
 

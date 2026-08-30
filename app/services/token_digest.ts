@@ -15,6 +15,8 @@ const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 
 const RECOVERY_CODE_LENGTH = 10
 
+const LINK_CODE_LENGTH = 12
+
 /**
  * Empreinte d'un secret à usage unique : HMAC-SHA256 clé par `APP_KEY`.
  *
@@ -68,4 +70,20 @@ export function randomToken(bytes = 32): string {
 export function randomRecoveryCode(): string {
   const raw = Array.from(randomBytes(RECOVERY_CODE_LENGTH), (byte) => ALPHABET[byte & 31]).join('')
   return `${raw.slice(0, 5)}-${raw.slice(5)}`
+}
+
+/**
+ * Le code d'un deep-link Telegram : douze symboles base32, soixante bits.
+ *
+ * L'alphabet est déjà inclus dans le `[A-Za-z0-9_-]` qu'exige Telegram, et douze
+ * caractères tiennent largement sous sa limite de soixante-quatre — tout en
+ * restant retapables à la main quand le lien n'ouvre rien.
+ */
+export function randomLinkCode(): string {
+  return Array.from(randomBytes(LINK_CODE_LENGTH), (byte) => ALPHABET[byte & 31]).join('')
+}
+
+/** Le code voyage dans une URL et peut être retapé : la casse ne doit pas compter. */
+export function normaliseLinkCode(code: string): string {
+  return code.trim().toUpperCase()
 }

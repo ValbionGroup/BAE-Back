@@ -30,6 +30,14 @@ router
     router.get('/profile', [controllers.Profile, 'show'])
     router.get('/qr', [controllers.Qrs, 'mine'])
     router.patch('/profile', [controllers.Profile, 'update']).use(middleware.audience('client'))
+    router
+      .post('/telegram/link', [controllers.AccountTelegram, 'store'])
+      .use([middleware.audience('client'), throttle.telegramLink])
+      .as('telegramLink')
+    router
+      .delete('/telegram/link', [controllers.AccountTelegram, 'destroy'])
+      .use(middleware.audience('client'))
+      .as('telegramUnlink')
   })
   .prefix('v1/account')
   .as('profile')

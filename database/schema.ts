@@ -815,6 +815,23 @@ export class SupplierSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class TelegramLinkCodeSchema extends BaseModel {
+  static $columns = ['codeDigest', 'createdAt', 'expiresAt', 'id', 'usedAt', 'userId'] as const
+  $columns = TelegramLinkCodeSchema.$columns
+  @column({ serializeAs: null })
+  declare codeDigest: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare usedAt: DateTime | null
+  @column()
+  declare userId: number
+}
+
 export class TicketMessageSchema extends BaseModel {
   static $columns = ['authorId', 'body', 'createdAt', 'id', 'ticketId'] as const
   $columns = TicketMessageSchema.$columns

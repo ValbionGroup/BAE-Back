@@ -4,6 +4,7 @@ import ActivityEvent from '#models/activity_event'
 import Notification from '#models/notification'
 import type { NotificationChannel } from '#models/notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { telegramLinkedAmong } from '#services/telegram/telegram_recipients'
 
 /** Code Postgres d'une violation de contrainte d'unicité. */
 const UNIQUE_VIOLATION = '23505'
@@ -109,11 +110,22 @@ export async function emit(input: EmitInput): Promise<EmitResult> {
       { client: trx }
     )
 
+    // Telegram est un miroir de `mail` : `in_app` est un canal d'interface, et le
+    // rejouer transformerait chaque trace du fil d'activité en message poussé.
+    const telegramReady =
+      channels.includes('mail') && input.recipients.length > 0
+        ? await telegramLinkedAmong(input.recipients, trx)
+        : new Set<number>()
+
     let created = 0
     let skipped = 0
 
     for (const userId of input.recipients) {
-      for (const channel of channels) {
+      const perUser: readonly NotificationChannel[] = telegramReady.has(userId)
+        ? [...channels, 'telegram']
+        : channels
+
+      for (const channel of perUser) {
         const savepoint = await trx.transaction()
         try {
           await Notification.create(
