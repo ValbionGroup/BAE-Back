@@ -476,3 +476,44 @@ test.group('Adhérents — activité', (group) => {
     assert.equal(body.data.pre_order_count, 1)
   })
 })
+
+test.group('Adhérents — consigne du client', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('la fiche porte la consigne écrite par l’adhérent', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['client:read'])
+    const person = await makeClient({ email: 'p@test.fr', firstName: 'P', lastName: 'N' })
+    person.preparationNote = 'Allergie arachide'
+    await person.save()
+
+    const response = await httpClient.get(`/v1/clients/${person.id}`).loginAs(user)
+
+    response.assertStatus(200)
+    assert.equal(response.body().data.preparation_note, 'Allergie arachide')
+  })
+
+  /**
+   * Le garde-fou symétrique de celui d'`account_profile_update` : la consigne
+   * appartient à l'adhérent. Un PATCH du bureau qui la porterait ne doit pas
+   * pouvoir écraser en silence une déclaration d'allergie.
+   */
+  test('le bureau ne peut pas écrire la consigne', async ({ client: httpClient, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['client:write', 'client:read'])
+    const person = await makeClient({ email: 'q@test.fr', firstName: 'Q', lastName: 'N' })
+    person.preparationNote = 'Allergie arachide'
+    await person.save()
+
+    await httpClient
+      .patch(`/v1/clients/${person.id}`)
+      .json({ preparation_note: 'effacée par le bureau' })
+      .loginAs(user)
+
+    await person.refresh()
+    assert.equal(person.preparationNote, 'Allergie arachide')
+  })
+})

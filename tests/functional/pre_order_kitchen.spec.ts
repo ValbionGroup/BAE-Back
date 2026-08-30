@@ -5,6 +5,7 @@ import db from '@adonisjs/lucid/services/db'
 import Event from '#models/event'
 import PreOrder from '#models/pre_order'
 import Product from '#models/product'
+import Client from '#models/client'
 import Transaction from '#models/transaction'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
@@ -187,5 +188,60 @@ test.group('Précommandes — remise', (group) => {
 
     response.assertStatus(403)
     assert.equal(response.body().error.code, 'E_FORBIDDEN')
+  })
+})
+
+test.group('Précommandes — consigne du client', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('le ticket porte la consigne de préparation', async ({ client, assert }) => {
+    const { event, owner } = await seed({ pickupInMinutes: 10 })
+    await Client.create({
+      id: owner.id,
+      registeredAt: DateTime.now(),
+      preparationNote: 'Allergie arachide',
+    })
+    const user = await grantPermissions(await MemberFactory.create(), ['order:read'])
+
+    const response = await client.get(`/v1/events/${event.id}/pre-orders`).loginAs(user)
+
+    const [ticket] = response.body().data
+    assert.equal(ticket.preparation_note, 'Allergie arachide')
+  })
+
+  test('sans consigne, le champ est nul plutôt qu’absent', async ({ client, assert }) => {
+    const { event, owner } = await seed({ pickupInMinutes: 10 })
+    await Client.create({ id: owner.id, registeredAt: DateTime.now() })
+    const user = await grantPermissions(await MemberFactory.create(), ['order:read'])
+
+    const response = await client.get(`/v1/events/${event.id}/pre-orders`).loginAs(user)
+
+    const [ticket] = response.body().data
+    assert.isNull(ticket.preparation_note)
+  })
+
+  /**
+   * `findTicket` reconstruit le ticket par un autre chemin. Sans ce test, la
+   * consigne disparaîtrait de l'écran au premier changement de statut.
+   */
+  test('la consigne survit à un changement de statut', async ({ client, assert }) => {
+    const { owner, preOrder } = await seed({ pickupInMinutes: 10 })
+    await Client.create({
+      id: owner.id,
+      registeredAt: DateTime.now(),
+      preparationNote: 'Allergie arachide',
+    })
+    const user = await grantPermissions(await MemberFactory.create(), [
+      'order:read',
+      'order:write',
+    ])
+
+    const response = await client
+      .patch(`/v1/pre-orders/${preOrder.id}/status`)
+      .json({ status: 'in_progress' })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    assert.equal(response.body().data.preparation_note, 'Allergie arachide')
   })
 })
