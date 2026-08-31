@@ -12,8 +12,10 @@ type ProfileBody = {
       school: string | null
       registered_at: string | null
       preparation_note: string | null
-      telegram: { handle: string | null; linked: boolean; linked_at: string | null }
     } | null
+    user: {
+      telegram: { handle: string | null; linked: boolean; linked_at: string | null }
+    }
   }
 }
 
@@ -33,10 +35,10 @@ test.group('Profil client — lecture', (group) => {
     const response = await client.get('/v1/account/profile').loginAs(user)
 
     response.assertStatus(200)
-    const { client: profile } = response.body().data as ProfileBody['data']
+    const { client: profile, user: me } = response.body().data as ProfileBody['data']
     assert.equal(profile?.phone, '0612345678')
     assert.equal(profile?.preparation_note, 'Allergie arachide')
-    assert.isFalse(profile?.telegram.linked)
+    assert.isFalse(me.telegram.linked)
   })
 
   /**
@@ -54,10 +56,10 @@ test.group('Profil client — lecture', (group) => {
 
     const response = await client.get('/v1/account/profile').loginAs(user)
 
-    const { client: profile } = response.body().data as ProfileBody['data']
+    const { client: profile, user: me } = response.body().data as ProfileBody['data']
     assert.notProperty(profile, 'note')
     assert.notProperty(profile, 'note_author_id')
-    assert.notProperty(profile, 'telegram_chat_id')
+    assert.notProperty(me, 'telegram_chat_id')
   })
 
   test('un utilisateur sans ligne client obtient client: null, pas une erreur', async ({
@@ -122,8 +124,9 @@ test.group('Profil client — écriture', (group) => {
     assert.isNull(row.preparationNote)
   })
 
+  /** Le pseudo a suivi la liaison sur `users` : il n'est plus sur la ligne `clients`. */
   test('le pseudo Telegram est stocké sans son arobase', async ({ client, assert }) => {
-    const { user, row } = await aClient()
+    const { user } = await aClient()
 
     const response = await client
       .patch('/v1/account/profile')
@@ -131,15 +134,15 @@ test.group('Profil client — écriture', (group) => {
       .loginAs(user)
 
     response.assertStatus(200)
-    await row.refresh()
-    assert.equal(row.telegramHandle, 'lea_m')
-    assert.equal(response.body().data.telegram.handle, 'lea_m')
+    await user.refresh()
+    assert.equal(user.telegramHandle, 'lea_m')
+    assert.equal(response.body().data.user.telegram.handle, 'lea_m')
   })
 
   test('vider le champ Telegram retire le pseudo', async ({ client, assert }) => {
-    const { user, row } = await aClient()
-    row.telegramHandle = 'lea_m'
-    await row.save()
+    const { user } = await aClient()
+    user.telegramHandle = 'lea_m'
+    await user.save()
 
     const response = await client
       .patch('/v1/account/profile')
@@ -147,8 +150,8 @@ test.group('Profil client — écriture', (group) => {
       .loginAs(user)
 
     response.assertStatus(200)
-    await row.refresh()
-    assert.isNull(row.telegramHandle)
+    await user.refresh()
+    assert.isNull(user.telegramHandle)
   })
 
   test('un pseudo Telegram invalide est refusé', async ({ client }) => {

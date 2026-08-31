@@ -25,14 +25,14 @@ export default class TelegramDispatch extends BaseCommand {
     const pending = await db
       .from('notifications')
       .join('activity_events', 'activity_events.id', 'notifications.event_id')
-      .join('clients', 'clients.id', 'notifications.user_id')
+      .join('users', 'users.id', 'notifications.user_id')
       .whereNull('notifications.sent_at')
       .where('notifications.channel', 'telegram')
-      .whereNotNull('clients.telegram_chat_id')
+      .whereNotNull('users.telegram_chat_id')
       .select(
         'notifications.id as id',
-        'clients.id as user_id',
-        'clients.telegram_chat_id as chat_id',
+        'users.id as user_id',
+        'users.telegram_chat_id as chat_id',
         'activity_events.payload as payload'
       )
 

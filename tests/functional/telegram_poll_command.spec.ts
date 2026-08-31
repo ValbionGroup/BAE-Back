@@ -1,9 +1,7 @@
 import { test } from '@japa/runner'
-import { DateTime } from 'luxon'
 import app from '@adonisjs/core/services/app'
 import ace from '@adonisjs/core/services/ace'
 import testUtils from '@adonisjs/core/services/test_utils'
-import Client from '#models/client'
 import { UserFactory } from '#database/factories/user_factory'
 import TelegramClient from '#services/telegram/telegram_client'
 import FakeTelegramClient from '#services/telegram/fake_telegram_client'
@@ -44,7 +42,6 @@ test.group('telegram:poll', (group) => {
 
   test('lie le compte par le même chemin que le webhook', async ({ assert }) => {
     const user = await UserFactory.create()
-    const row = await Client.create({ id: user.id, registeredAt: DateTime.now() })
     const { code } = await issueLinkCode(user.id)
     telegram.pending = [{ updateId: 99, raw: startUpdate(code) }]
 
@@ -52,8 +49,8 @@ test.group('telegram:poll', (group) => {
     await command.exec()
     command.assertSucceeded()
 
-    await row.refresh()
-    assert.equal(String(row.telegramChatId), String(CHAT_ID))
+    await user.refresh()
+    assert.equal(String(user.telegramChatId), String(CHAT_ID))
     assert.include(telegram.sent[0]?.text, 'C’est fait')
   })
 

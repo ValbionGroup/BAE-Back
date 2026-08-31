@@ -32,12 +32,9 @@ router
     router.patch('/profile', [controllers.Profile, 'update']).use(middleware.audience('client'))
     router
       .post('/telegram/link', [controllers.AccountTelegram, 'store'])
-      .use([middleware.audience('client'), throttle.telegramLink])
+      .use(throttle.telegramLink)
       .as('telegramLink')
-    router
-      .delete('/telegram/link', [controllers.AccountTelegram, 'destroy'])
-      .use(middleware.audience('client'))
-      .as('telegramUnlink')
+    router.delete('/telegram/link', [controllers.AccountTelegram, 'destroy']).as('telegramUnlink')
   })
   .prefix('v1/account')
   .as('profile')
@@ -48,9 +45,10 @@ router
  * du dessus.
  *
  * ⚠️ La raison est la seule chose importante de ce fichier : `audience('member')`
- * posé sur le groupe précédent casserait la zone publique en silence. `/profile` et
- * `/qr` sont l'ossature de l'application client — un adhérent sans ligne dans
- * `members` doit continuer à lire son profil et afficher son QR.
+ * posé sur le groupe précédent casserait la zone publique en silence. `/profile`,
+ * `/qr` et la liaison Telegram valent pour les deux publics — un adhérent sans
+ * ligne dans `members` doit continuer à lire son profil et afficher son QR, et un
+ * membre sans ligne dans `clients` doit pouvoir relier son Telegram.
  *
  * Ici, à l'inverse, l'appartenance est la règle : définir une 2FA ou changer son
  * mot de passe est réservé aux membres du bureau.

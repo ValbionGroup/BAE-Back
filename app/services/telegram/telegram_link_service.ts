@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
-import Client from '#models/client'
+import User from '#models/user'
 import TelegramLinkCode from '#models/telegram_link_code'
 import telegramConfig from '#config/telegram'
 import { digest, normaliseLinkCode, randomLinkCode } from '#services/token_digest'
@@ -95,11 +95,11 @@ export async function redeemLinkCode(input: {
 
       if (Number(claimed) === 0) return await replayOf(row.userId, input.chatId)
 
-      const client = await Client.query({ client: trx }).where('id', row.userId).firstOrFail()
-      client.telegramChatId = input.chatId
-      client.telegramLinkedAt = DateTime.now()
-      if (input.username !== null) client.telegramHandle = input.username
-      await client.save()
+      const user = await User.query({ client: trx }).where('id', row.userId).firstOrFail()
+      user.telegramChatId = input.chatId
+      user.telegramLinkedAt = DateTime.now()
+      if (input.username !== null) user.telegramHandle = input.username
+      await user.save()
 
       return { kind: 'linked', userId: row.userId }
     })
@@ -115,13 +115,13 @@ export async function redeemLinkCode(input: {
  * ⚠️ `telegram_chat_id` est un `bigint` : le driver `pg` le rend en **string**.
  */
 export async function unlink(userId: number): Promise<number | null> {
-  const client = await Client.find(userId)
-  if (client === null) return null
+  const user = await User.find(userId)
+  if (user === null) return null
 
-  const previous = client.telegramChatId
-  client.telegramChatId = null
-  client.telegramLinkedAt = null
-  await client.save()
+  const previous = user.telegramChatId
+  user.telegramChatId = null
+  user.telegramLinkedAt = null
+  await user.save()
 
   await TelegramLinkCode.query()
     .where('userId', userId)
@@ -133,8 +133,8 @@ export async function unlink(userId: number): Promise<number | null> {
 
 /** Un lien recliqué depuis le même chat n'est pas une erreur : c'est un doublon. */
 async function replayOf(userId: number, chatId: number): Promise<RedeemOutcome> {
-  const client = await Client.find(userId)
-  const linked = client?.telegramChatId
+  const user = await User.find(userId)
+  const linked = user?.telegramChatId
 
   return linked !== null && linked !== undefined && String(linked) === String(chatId)
     ? { kind: 'already_linked_here' }

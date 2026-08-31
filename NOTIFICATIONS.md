@@ -61,9 +61,12 @@ détection, et chaque moitié se teste sans l'autre.
 
 ## Telegram
 
-Un client lie son compte depuis « Mon profil » : le site émet un code à usage unique (15 minutes),
-l'emmène sur `t.me/<bot>?start=<code>`, et le bot enregistre son `chat_id`. `/stop` délie depuis la
-conversation.
+N'importe quel compte lie le sien depuis « Mon profil » — la page publique comme les paramètres du
+dashboard : le site émet un code à usage unique (15 minutes), l'emmène sur `t.me/<bot>?start=<code>`,
+et le bot enregistre son `chat_id`. `/stop` délie depuis la conversation.
+
+La liaison est portée par **`users`**, et non `clients` : la plupart des notifications s'adressent
+au bureau, dont les membres n'ont pas forcément de ligne `clients`.
 
 Le canal `telegram` est un **miroir de `mail`** : `emit()` l'ajoute pour tout destinataire dont le
 compte est lié, sans qu'aucun émetteur ait à le demander. Un envoi purement `in_app` ne part pas

@@ -7,6 +7,7 @@
 import type { InferData, InferVariants } from '@adonisjs/core/types/transformers'
 import type ClientProfileTransformer from '#transformers/client_profile_transformer'
 import type MemberTransformer from '#transformers/member_transformer'
+import type TelegramLinkTransformer from '#transformers/telegram_link_transformer'
 import type UserTransformer from '#transformers/user_transformer'
 
 export namespace Data {
@@ -17,6 +18,10 @@ export namespace Data {
   export type Member = InferData<MemberTransformer>
   export namespace Member {
     export type Variants = InferVariants<MemberTransformer>
+  }
+  export type TelegramLink = InferData<TelegramLinkTransformer>
+  export namespace TelegramLink {
+    export type Variants = InferVariants<TelegramLinkTransformer>
   }
   export type User = InferData<UserTransformer>
   export namespace User {

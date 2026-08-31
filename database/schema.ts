@@ -73,7 +73,7 @@ export class CategorySchema extends BaseModel {
 }
 
 export class ClientSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'note', 'noteAuthorId', 'noteWrittenAt', 'phone', 'preparationNote', 'promotion', 'registeredAt', 'school', 'telegramChatId', 'telegramHandle', 'telegramLinkedAt', 'updatedAt'] as const
+  static $columns = ['createdAt', 'id', 'note', 'noteAuthorId', 'noteWrittenAt', 'phone', 'preparationNote', 'promotion', 'registeredAt', 'school', 'updatedAt'] as const
   $columns = ClientSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -95,12 +95,6 @@ export class ClientSchema extends BaseModel {
   declare registeredAt: DateTime
   @column()
   declare school: string | null
-  @column()
-  declare telegramChatId: bigint | number | null
-  @column()
-  declare telegramHandle: string | null
-  @column.dateTime()
-  declare telegramLinkedAt: DateTime | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -916,7 +910,7 @@ export class UserTwoFactorSchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = ['casId', 'createdAt', 'email', 'firstName', 'id', 'keycloakSub', 'lastName', 'password', 'updatedAt'] as const
+  static $columns = ['casId', 'createdAt', 'email', 'firstName', 'id', 'keycloakSub', 'lastName', 'password', 'telegramChatId', 'telegramHandle', 'telegramLinkedAt', 'updatedAt'] as const
   $columns = UserSchema.$columns
   @column()
   declare casId: string | null
@@ -934,6 +928,12 @@ export class UserSchema extends BaseModel {
   declare lastName: string | null
   @column({ serializeAs: null })
   declare password: string | null
+  @column()
+  declare telegramChatId: bigint | number | null
+  @column()
+  declare telegramHandle: string | null
+  @column.dateTime()
+  declare telegramLinkedAt: DateTime | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

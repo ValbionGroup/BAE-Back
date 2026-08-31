@@ -1,6 +1,6 @@
 import app from '@adonisjs/core/services/app'
 import logger from '@adonisjs/core/services/logger'
-import Client from '#models/client'
+import User from '#models/user'
 import TelegramClient from './telegram_client.js'
 import { parseUpdate } from './telegram_payload.js'
 import { redeemLinkCode, unlink } from './telegram_link_service.js'
@@ -43,9 +43,9 @@ async function replyFor(command: NonNullable<ReturnType<typeof parseUpdate>>): P
  * la comparaison passe par la chaîne, jamais par le nombre.
  */
 async function stop(chatId: number): Promise<string> {
-  const client = await Client.query().where('telegramChatId', String(chatId)).first()
-  if (client === null) return NOT_LINKED
+  const user = await User.query().where('telegramChatId', String(chatId)).first()
+  if (user === null) return NOT_LINKED
 
-  await unlink(client.id)
+  await unlink(user.id)
   return UNLINKED
 }

@@ -1,7 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { DateTime } from 'luxon'
-import Client from '#models/client'
 import Notification from '#models/notification'
 import { emit } from '#services/notification_service'
 import { MemberFactory } from '#database/factories/members_factory'
@@ -68,12 +67,9 @@ test.group('emit — canal Telegram', (group) => {
 
   async function linkedMember(chatId: number) {
     const member = await MemberFactory.create()
-    await Client.create({
-      id: member.id,
-      registeredAt: DateTime.now(),
-      telegramChatId: chatId,
-      telegramLinkedAt: DateTime.now(),
-    })
+    member.user.telegramChatId = chatId
+    member.user.telegramLinkedAt = DateTime.now()
+    await member.user.save()
     return member
   }
 
