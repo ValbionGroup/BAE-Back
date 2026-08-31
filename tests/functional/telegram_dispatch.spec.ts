@@ -3,7 +3,6 @@ import { DateTime } from 'luxon'
 import app from '@adonisjs/core/services/app'
 import ace from '@adonisjs/core/services/ace'
 import testUtils from '@adonisjs/core/services/test_utils'
-import Client from '#models/client'
 import Notification from '#models/notification'
 import { emit } from '#services/notification_service'
 import { MemberFactory } from '#database/factories/members_factory'
@@ -29,12 +28,9 @@ test.group('telegram:dispatch', (group) => {
 
   async function linkedMember(chatId = CHAT_ID) {
     const member = await MemberFactory.create()
-    await Client.create({
-      id: member.id,
-      registeredAt: DateTime.now(),
-      telegramChatId: chatId,
-      telegramLinkedAt: DateTime.now(),
-    })
+    member.user.telegramChatId = chatId
+    member.user.telegramLinkedAt = DateTime.now()
+    await member.user.save()
     return member
   }
 
@@ -114,8 +110,8 @@ test.group('telegram:dispatch', (group) => {
 
     await run()
 
-    const client = await Client.findOrFail(member.id)
-    assert.isNull(client.telegramChatId)
+    await member.user.refresh()
+    assert.isNull(member.user.telegramChatId)
 
     const row = await Notification.query()
       .where('eventId', result.eventId)
@@ -143,8 +139,8 @@ test.group('telegram:dispatch', (group) => {
       .firstOrFail()
     assert.isNull(row.sentAt)
 
-    const client = await Client.findOrFail(member.id)
-    assert.isNotNull(client.telegramChatId, 'une limitation ne délie personne')
+    await member.user.refresh()
+    assert.isNotNull(member.user.telegramChatId, 'une limitation ne délie personne')
   })
 
   test('--dry-run n’envoie rien et n’écrit rien', async ({ assert }) => {

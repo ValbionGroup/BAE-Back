@@ -2,7 +2,6 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 import app from '@adonisjs/core/services/app'
 import testUtils from '@adonisjs/core/services/test_utils'
-import Client from '#models/client'
 import TelegramLinkCode from '#models/telegram_link_code'
 import { UserFactory } from '#database/factories/user_factory'
 import TelegramClient from '#services/telegram/telegram_client'
@@ -25,10 +24,9 @@ function startUpdate(code: string, chatId = CHAT_ID) {
   }
 }
 
-async function aClient() {
-  const user = await UserFactory.create()
-  const client = await Client.create({ id: user.id, registeredAt: DateTime.now() })
-  return { user, client }
+/** La liaison vit sur `users` : aucune ligne `clients` n'entre en jeu. */
+async function aLinkableUser() {
+  return await UserFactory.create()
 }
 
 test.group('Webhook Telegram', (group) => {
@@ -42,14 +40,14 @@ test.group('Webhook Telegram', (group) => {
   })
 
   test('refuse un appel sans secret, et ne lie rien', async ({ client, assert }) => {
-    const { user, client: row } = await aClient()
+    const user = await aLinkableUser()
     const { code } = await issueLinkCode(user.id)
 
     const response = await client.post('/v1/telegram/webhook').json(startUpdate(code))
 
     response.assertStatus(403)
-    await row.refresh()
-    assert.isNull(row.telegramChatId)
+    await user.refresh()
+    assert.isNull(user.telegramChatId)
   })
 
   test('refuse un mauvais secret', async ({ client }) => {
@@ -67,7 +65,7 @@ test.group('Webhook Telegram', (group) => {
    * `updateId` / `messageId` et ne serait plus reconnu — sans la moindre erreur.
    */
   test('lie le compte à partir d’un corps snake_case', async ({ client, assert }) => {
-    const { user, client: row } = await aClient()
+    const user = await aLinkableUser()
     const { code } = await issueLinkCode(user.id)
 
     const response = await client
@@ -76,9 +74,9 @@ test.group('Webhook Telegram', (group) => {
       .json(startUpdate(code))
 
     response.assertStatus(204)
-    await row.refresh()
-    assert.equal(String(row.telegramChatId), String(CHAT_ID))
-    assert.equal(row.telegramHandle, 'lea_m')
+    await user.refresh()
+    assert.equal(String(user.telegramChatId), String(CHAT_ID))
+    assert.equal(user.telegramHandle, 'lea_m')
     assert.include(telegram.sent[0]?.text, 'C’est fait')
   })
 
@@ -86,7 +84,7 @@ test.group('Webhook Telegram', (group) => {
     client,
     assert,
   }) => {
-    const { user } = await aClient()
+    const user = await aLinkableUser()
     const { code } = await issueLinkCode(user.id)
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -103,20 +101,20 @@ test.group('Webhook Telegram', (group) => {
   })
 
   test('un code inconnu ne lie rien et le dit', async ({ client, assert }) => {
-    const { client: row } = await aClient()
+    const user = await aLinkableUser()
 
     await client
       .post('/v1/telegram/webhook')
       .header('x-telegram-bot-api-secret-token', telegramConfig.webhookSecret)
       .json(startUpdate('ZZZZZZZZZZZZ'))
 
-    await row.refresh()
-    assert.isNull(row.telegramChatId)
+    await user.refresh()
+    assert.isNull(user.telegramChatId)
     assert.include(telegram.sent[0]?.text, 'n’est pas valide')
   })
 
   test('un code expiré est refusé sans être consommé', async ({ client, assert }) => {
-    const { user } = await aClient()
+    const user = await aLinkableUser()
     const { code } = await issueLinkCode(user.id)
     await TelegramLinkCode.query()
       .where('userId', user.id)
@@ -137,33 +135,33 @@ test.group('Webhook Telegram', (group) => {
    * son code : il pourra recliquer le même lien après avoir délié l'autre profil.
    */
   test('un chat déjà lié à un autre profil est refusé, code intact', async ({ client, assert }) => {
-    const first = await aClient()
-    const second = await aClient()
+    const first = await aLinkableUser()
+    const second = await aLinkableUser()
 
-    const firstCode = await issueLinkCode(first.user.id)
+    const firstCode = await issueLinkCode(first.id)
     await client
       .post('/v1/telegram/webhook')
       .header('x-telegram-bot-api-secret-token', telegramConfig.webhookSecret)
       .json(startUpdate(firstCode.code))
 
-    const secondCode = await issueLinkCode(second.user.id)
+    const secondCode = await issueLinkCode(second.id)
     await client
       .post('/v1/telegram/webhook')
       .header('x-telegram-bot-api-secret-token', telegramConfig.webhookSecret)
       .json(startUpdate(secondCode.code))
 
-    await first.client.refresh()
-    await second.client.refresh()
-    assert.equal(String(first.client.telegramChatId), String(CHAT_ID))
-    assert.isNull(second.client.telegramChatId)
+    await first.refresh()
+    await second.refresh()
+    assert.equal(String(first.telegramChatId), String(CHAT_ID))
+    assert.isNull(second.telegramChatId)
 
-    const row = await TelegramLinkCode.findByOrFail('userId', second.user.id)
+    const row = await TelegramLinkCode.findByOrFail('userId', second.id)
     assert.isNull(row.usedAt)
     assert.include(telegram.sent[1]?.text, 'déjà lié à un autre profil')
   })
 
   test('/stop délie depuis Telegram', async ({ client, assert }) => {
-    const { user, client: row } = await aClient()
+    const user = await aLinkableUser()
     const { code } = await issueLinkCode(user.id)
     await client
       .post('/v1/telegram/webhook')
@@ -177,8 +175,8 @@ test.group('Webhook Telegram', (group) => {
       .header('x-telegram-bot-api-secret-token', telegramConfig.webhookSecret)
       .json(stop)
 
-    await row.refresh()
-    assert.isNull(row.telegramChatId)
+    await user.refresh()
+    assert.isNull(user.telegramChatId)
     assert.include(telegram.sent[1]?.text, 'délié')
   })
 

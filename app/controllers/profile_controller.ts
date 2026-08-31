@@ -1,5 +1,6 @@
 import UserTransformer from '#transformers/user_transformer'
 import type { HttpContext } from '@adonisjs/core/http'
+import type User from '#models/user'
 import { twoFactorStateOf } from '#services/two_factor_service'
 import MemberTransformer from '#transformers/member_transformer'
 import ClientProfileTransformer from '#transformers/client_profile_transformer'
@@ -11,25 +12,17 @@ export default class ProfileController {
   /** `client` vaut `null` pour un compte sans ligne `clients` : cas courant, pas une erreur. */
   async show({ auth, serialize }: HttpContext) {
     const user = auth.use('api').getUserOrFail()
-    await user.load('member', (query) =>
-      query.preload('role', (roleQuery) => roleQuery.preload('permissions'))
-    )
 
-    if (user.member) user.member.$setRelated('user', user)
-
-    const client = await Client.find(user.id)
-
-    return serialize({
-      user: UserTransformer.transform(user, await twoFactorStateOf(user.id)),
-      member: MemberTransformer.transform(user.member),
-      permissions: user.member?.role?.permissions.map((entry) => entry.permission) ?? [],
-      client: client === null ? null : ClientProfileTransformer.transform(client),
-    })
+    return serialize(await profilePayload(user))
   }
 
   /**
    * `'x' in payload` distingue « efface » (`null`) de « ne touche pas » (clé absente).
    * La ligne existe : `audience('client')` l'a déjà résolue.
+   *
+   * Rend le profil **entier**, comme `show` : le pseudo Telegram vit sur `users`
+   * et le reste sur `clients`, donc une réponse d'une seule moitié laisserait le
+   * front en dire une chose fausse.
    */
   async update({ auth, request, serialize }: HttpContext) {
     const payload = await request.validateUsing(updateProfileValidator)
@@ -42,14 +35,35 @@ export default class ProfileController {
 
     if ('phone' in payload) client.phone = blankToNull(payload.phone)
     if ('preparationNote' in payload) client.preparationNote = blankToNull(payload.preparationNote)
-    if ('telegramHandle' in payload) {
-      const handle = blankToNull(payload.telegramHandle)
-      client.telegramHandle = handle === null ? null : handle.replace(/^@/, '')
-    }
 
     await client.save()
 
-    return serialize(ClientProfileTransformer.transform(client))
+    // Le pseudo a suivi la liaison sur `users` : il se règle sur une autre ligne
+    // que le reste du profil.
+    if ('telegramHandle' in payload) {
+      const handle = blankToNull(payload.telegramHandle)
+      user.telegramHandle = handle === null ? null : handle.replace(/^@/, '')
+      await user.save()
+    }
+
+    return serialize(await profilePayload(user))
+  }
+}
+
+async function profilePayload(user: User) {
+  await user.load('member', (query) =>
+    query.preload('role', (roleQuery) => roleQuery.preload('permissions'))
+  )
+
+  if (user.member) user.member.$setRelated('user', user)
+
+  const client = await Client.find(user.id)
+
+  return {
+    user: UserTransformer.transform(user, await twoFactorStateOf(user.id)),
+    member: MemberTransformer.transform(user.member),
+    permissions: user.member?.role?.permissions.map((entry) => entry.permission) ?? [],
+    client: client === null ? null : ClientProfileTransformer.transform(client),
   }
 }
 
