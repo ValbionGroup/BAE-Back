@@ -5,6 +5,7 @@ import db from '@adonisjs/lucid/services/db'
 import Event from '#models/event'
 import Product from '#models/product'
 import { MemberFactory } from '#database/factories/members_factory'
+import { grantPermissions } from '#tests/helpers/permissions'
 import {
   eventRowsForSeason,
   kpisFor,
@@ -281,5 +282,67 @@ test.group('Analytics — prédiction', (group) => {
     await soiree('Saison suivante', '2026-09-20T20:00:00', 'scheduled')
 
     assert.isNull(await predictionForSeason(2025, 580))
+  })
+})
+
+test.group('Analytics — route', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+  group.each.setup(() => videLesSoirees())
+
+  test('rend la saison demandée, ses KPI et la liste des saisons', async ({ client, assert }) => {
+    const event = await soiree('Rentrée', '2025-09-20T20:00:00')
+    await commande(event.id, 2, 300)
+    const user = await grantPermissions(await MemberFactory.create(), ['transaction:read'])
+
+    const response = await client.get('/v1/analytics/season?season=2025').loginAs(user)
+
+    response.assertStatus(200)
+    const body = response.body() as {
+      data: {
+        season: { start_year: number; label: string }
+        seasons: Array<{ start_year: number; event_count: number }>
+        kpis: { cashed_cents: number; cashed_delta_pct: number | null }
+        events: Array<{ name: string; order_count: number; cashed_cents: number }>
+        prediction: unknown
+      }
+    }
+
+    assert.equal(body.data.season.start_year, 2025)
+    assert.equal(body.data.season.label, 'Saison 2025-2026')
+    assert.deepEqual(
+      body.data.seasons.map((s) => s.start_year),
+      [2025]
+    )
+    assert.equal(body.data.kpis.cashed_cents, 600)
+    assert.isNull(body.data.kpis.cashed_delta_pct)
+    assert.lengthOf(body.data.events, 1)
+    assert.equal(body.data.events[0].order_count, 1)
+    assert.isNull(body.data.prediction)
+  })
+
+  test('sans season, retient la saison la plus récente qui porte une soirée', async ({
+    client,
+    assert,
+  }) => {
+    await soiree('Ancienne', '2024-09-20T20:00:00')
+    await soiree('Récente', '2025-09-20T20:00:00')
+    const user = await grantPermissions(await MemberFactory.create(), ['transaction:read'])
+
+    const response = await client.get('/v1/analytics/season').loginAs(user)
+
+    response.assertStatus(200)
+    const body = response.body() as { data: { seasons: Array<{ start_year: number }> } }
+    assert.deepEqual(
+      body.data.seasons.map((s) => s.start_year),
+      [2025, 2024]
+    )
+  })
+
+  test('refuse un membre sans transaction:read', async ({ client }) => {
+    const user = await grantPermissions(await MemberFactory.create(), [])
+
+    const response = await client.get('/v1/analytics/season').loginAs(user)
+
+    response.assertStatus(403)
   })
 })

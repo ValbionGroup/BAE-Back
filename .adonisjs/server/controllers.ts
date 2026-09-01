@@ -10,6 +10,7 @@ export const controllers = {
   AccountPurchases: () => import('#controllers/account_purchases_controller'),
   AccountTelegram: () => import('#controllers/account_telegram_controller'),
   Activity: () => import('#controllers/activity_controller'),
+  Analytics: () => import('#controllers/analytics_controller'),
   Assignments: () => import('#controllers/assignments_controller'),
   CardPayments: () => import('#controllers/card_payments_controller'),
   Categories: () => import('#controllers/categories_controller'),

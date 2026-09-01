@@ -246,3 +246,55 @@ export async function predictionForSeason(
     basedOnEventCount: counts.length,
   }
 }
+
+export interface SeasonOption extends SeasonRef {
+  eventCount: number
+}
+
+export interface SeasonAnalytics {
+  season: SeasonRef
+  seasons: SeasonOption[]
+  kpis: SeasonKpis
+  events: SeasonEventRow[]
+  prediction: SeasonPrediction | null
+}
+
+/** Les saisons portant au moins une soirée, de la plus récente à la plus ancienne. */
+async function availableSeasons(): Promise<SeasonOption[]> {
+  const dates = await db.from('events').select('date')
+  const counts = new Map<number, number>()
+
+  for (const row of dates) {
+    const year = seasonStartYear(DateTime.fromJSDate(new Date(row.date)))
+    counts.set(year, (counts.get(year) ?? 0) + 1)
+  }
+
+  return [...counts.entries()]
+    .sort(([a], [b]) => b - a)
+    .map(([startYear, eventCount]) => ({
+      startYear,
+      label: seasonLabel(startYear),
+      eventCount,
+    }))
+}
+
+export async function analyticsForSeason(requested: number | null): Promise<SeasonAnalytics> {
+  const seasons = await availableSeasons()
+  const startYear = requested ?? seasons[0]?.startYear ?? seasonStartYear(DateTime.now())
+
+  const [events, previous] = await Promise.all([
+    eventRowsForSeason(startYear),
+    eventRowsForSeason(startYear - 1),
+  ])
+
+  const hasPrevious = seasons.some((season) => season.startYear === startYear - 1)
+  const kpis = kpisFor(events, hasPrevious ? previous : null)
+
+  return {
+    season: { startYear, label: seasonLabel(startYear) },
+    seasons,
+    kpis,
+    events,
+    prediction: await predictionForSeason(startYear, kpis.avgBasketCents),
+  }
+}
