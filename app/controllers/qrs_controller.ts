@@ -31,7 +31,14 @@ export default class QrsController {
     })
   }
 
-  /** Lecture d'un QR au comptoir. */
+  /**
+   * Lecture d'un QR au comptoir.
+   *
+   * ⚠️ Un QR refusé est un **422**, jamais un 401 : le jeton scanné est une
+   * donnée soumise, pas les identifiants de l'appelant. Le front lit tout 401
+   * hors `/auth/` comme une session morte — un QR périmé déconnectait le
+   * comptoir en plein service.
+   */
   async verify({ request, serialize }: HttpContext) {
     const { token } = await request.validateUsing(qrVerifyValidator)
     const jwt = new JwtService()
@@ -43,9 +50,9 @@ export default class QrsController {
       // Deux refus distincts : « rafraîchis ton écran » et « ce QR n'est pas des
       // nôtres » n'appellent pas le même geste au comptoir.
       if (error instanceof joseErrors.JWTExpired) {
-        throw new ApiException('E_QR_EXPIRED', 'Ce QR a expiré — demandez-en un nouveau.', 401)
+        throw new ApiException('E_QR_EXPIRED', 'Ce QR a expiré — demandez-en un nouveau.', 422)
       }
-      throw new ApiException('E_QR_INVALID', "Ce QR n'est pas valide.", 401)
+      throw new ApiException('E_QR_INVALID', "Ce QR n'est pas valide.", 422)
     }
 
     // Le type vit **dans** le jeton précisément pour que le comptoir n'ait qu'un
@@ -64,7 +71,7 @@ export default class QrsController {
         throw new ApiException(
           'E_CATEGORY_REVOKED',
           "Ce QR de catégorie n'est plus valide — réimprimez-le.",
-          401
+          422
         )
       }
       return serialize({ kind: 'sponsorship_category' as const, category })
