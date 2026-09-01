@@ -7,9 +7,11 @@ import Product from '#models/product'
 import { MemberFactory } from '#database/factories/members_factory'
 import {
   eventRowsForSeason,
+  kpisFor,
   seasonBounds,
   seasonLabel,
   seasonStartYear,
+  type SeasonEventRow,
 } from '#services/analytics_service'
 
 const BURGER_CENTS = 400
@@ -135,5 +137,63 @@ test.group('Analytics — agrégats par soirée', (group) => {
         ['Deuxième', true],
       ]
     )
+  })
+})
+
+function row(over: Partial<SeasonEventRow> = {}): SeasonEventRow {
+  return {
+    id: 1,
+    name: 'Soirée',
+    date: '2025-09-20T20:00:00.000+00:00',
+    orderCount: 100,
+    cashedCents: 50000,
+    presentCount: 10,
+    respondentCount: 10,
+    upcoming: false,
+    ...over,
+  }
+}
+
+test.group('Analytics — KPI de saison', () => {
+  test('moyenne et écart-type de population sur les soirées achevées', ({ assert }) => {
+    const kpis = kpisFor([row({ orderCount: 200 }), row({ orderCount: 300 })], null)
+
+    assert.equal(kpis.avgOrdersPerEvent, 250)
+    assert.equal(kpis.ordersStdDev, 50)
+  })
+
+  test('ignore les soirées à venir dans les moyennes', ({ assert }) => {
+    const kpis = kpisFor([row({ orderCount: 200 }), row({ orderCount: 999, upcoming: true })], null)
+
+    assert.equal(kpis.avgOrdersPerEvent, 200)
+  })
+
+  test('sans saison n-1, tous les deltas valent null', ({ assert }) => {
+    const kpis = kpisFor([row()], null)
+
+    assert.isNull(kpis.cashedDeltaPct)
+    assert.isNull(kpis.avgBasketDeltaCents)
+    assert.isNull(kpis.presenceDeltaPts)
+  })
+
+  test('compare à n-1 quand elle existe', ({ assert }) => {
+    const kpis = kpisFor([row({ cashedCents: 12000 })], [row({ cashedCents: 10000 })])
+
+    assert.equal(kpis.cashedDeltaPct, 20)
+  })
+
+  test('le taux de présence porte sur les répondants', ({ assert }) => {
+    const kpis = kpisFor([row({ presentCount: 3, respondentCount: 4 })], null)
+
+    assert.equal(kpis.presenceRate, 0.75)
+  })
+
+  test('une saison vide ne divise pas par zéro', ({ assert }) => {
+    const kpis = kpisFor([], null)
+
+    assert.equal(kpis.cashedCents, 0)
+    assert.equal(kpis.avgOrdersPerEvent, 0)
+    assert.equal(kpis.avgBasketCents, 0)
+    assert.equal(kpis.presenceRate, 0)
   })
 })

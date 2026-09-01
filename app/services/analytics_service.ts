@@ -105,3 +105,75 @@ export async function eventRowsForSeason(startYear: number): Promise<SeasonEvent
     }
   })
 }
+
+export interface SeasonKpis {
+  cashedCents: number
+  cashedDeltaPct: number | null
+  avgOrdersPerEvent: number
+  ordersStdDev: number
+  avgBasketCents: number
+  avgBasketDeltaCents: number | null
+  presenceRate: number
+  presenceDeltaPts: number | null
+}
+
+function mean(values: number[]): number {
+  if (values.length === 0) return 0
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+/** Écart-type de **population** : la série est la saison entière, pas un tirage. */
+function stdDev(values: number[]): number {
+  if (values.length === 0) return 0
+  const average = mean(values)
+  return Math.sqrt(mean(values.map((value) => (value - average) ** 2)))
+}
+
+interface Totals {
+  cashedCents: number
+  orderCount: number
+  presentCount: number
+  respondentCount: number
+  basketCents: number
+  presenceRate: number
+}
+
+function totalsOf(rows: SeasonEventRow[]): Totals {
+  const past = rows.filter((current) => !current.upcoming)
+  const cashedCents = past.reduce((sum, current) => sum + current.cashedCents, 0)
+  const orderCount = past.reduce((sum, current) => sum + current.orderCount, 0)
+  const presentCount = past.reduce((sum, current) => sum + current.presentCount, 0)
+  const respondentCount = past.reduce((sum, current) => sum + current.respondentCount, 0)
+
+  return {
+    cashedCents,
+    orderCount,
+    presentCount,
+    respondentCount,
+    basketCents: orderCount === 0 ? 0 : Math.round(cashedCents / orderCount),
+    presenceRate: respondentCount === 0 ? 0 : presentCount / respondentCount,
+  }
+}
+
+export function kpisFor(rows: SeasonEventRow[], previous: SeasonEventRow[] | null): SeasonKpis {
+  const now = totalsOf(rows)
+  const before = previous === null ? null : totalsOf(previous)
+  const orderCounts = rows
+    .filter((current) => !current.upcoming)
+    .map((current) => current.orderCount)
+
+  return {
+    cashedCents: now.cashedCents,
+    cashedDeltaPct:
+      before === null || before.cashedCents === 0
+        ? null
+        : Math.round(((now.cashedCents - before.cashedCents) / before.cashedCents) * 100),
+    avgOrdersPerEvent: Math.round(mean(orderCounts)),
+    ordersStdDev: Math.round(stdDev(orderCounts)),
+    avgBasketCents: now.basketCents,
+    avgBasketDeltaCents: before === null ? null : now.basketCents - before.basketCents,
+    presenceRate: now.presenceRate,
+    presenceDeltaPts:
+      before === null ? null : Math.round((now.presenceRate - before.presenceRate) * 100),
+  }
+}
