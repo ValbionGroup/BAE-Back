@@ -84,6 +84,24 @@ const routes = {
     tokens: [{"old":"/v1/account/qr","type":0,"val":"v1","end":""},{"old":"/v1/account/qr","type":0,"val":"account","end":""},{"old":"/v1/account/qr","type":0,"val":"qr","end":""}],
     types: placeholder as Registry['profile.qrs.mine']['types'],
   },
+  'profile.profile.update': {
+    methods: ["PATCH"],
+    pattern: '/v1/account/profile',
+    tokens: [{"old":"/v1/account/profile","type":0,"val":"v1","end":""},{"old":"/v1/account/profile","type":0,"val":"account","end":""},{"old":"/v1/account/profile","type":0,"val":"profile","end":""}],
+    types: placeholder as Registry['profile.profile.update']['types'],
+  },
+  'profile.telegramLink': {
+    methods: ["POST"],
+    pattern: '/v1/account/telegram/link',
+    tokens: [{"old":"/v1/account/telegram/link","type":0,"val":"v1","end":""},{"old":"/v1/account/telegram/link","type":0,"val":"account","end":""},{"old":"/v1/account/telegram/link","type":0,"val":"telegram","end":""},{"old":"/v1/account/telegram/link","type":0,"val":"link","end":""}],
+    types: placeholder as Registry['profile.telegramLink']['types'],
+  },
+  'profile.telegramUnlink': {
+    methods: ["DELETE"],
+    pattern: '/v1/account/telegram/link',
+    tokens: [{"old":"/v1/account/telegram/link","type":0,"val":"v1","end":""},{"old":"/v1/account/telegram/link","type":0,"val":"account","end":""},{"old":"/v1/account/telegram/link","type":0,"val":"telegram","end":""},{"old":"/v1/account/telegram/link","type":0,"val":"link","end":""}],
+    types: placeholder as Registry['profile.telegramUnlink']['types'],
+  },
   'accountSecurity.account_password.update': {
     methods: ["PUT"],
     pattern: '/v1/account/password',
@@ -222,6 +240,60 @@ const routes = {
     tokens: [{"old":"/v1/categories/:id","type":0,"val":"v1","end":""},{"old":"/v1/categories/:id","type":0,"val":"categories","end":""},{"old":"/v1/categories/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['categories.destroy']['types'],
   },
+  'product_categories.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/product-categories',
+    tokens: [{"old":"/v1/product-categories","type":0,"val":"v1","end":""},{"old":"/v1/product-categories","type":0,"val":"product-categories","end":""}],
+    types: placeholder as Registry['product_categories.index']['types'],
+  },
+  'product_categories.store': {
+    methods: ["POST"],
+    pattern: '/v1/product-categories',
+    tokens: [{"old":"/v1/product-categories","type":0,"val":"v1","end":""},{"old":"/v1/product-categories","type":0,"val":"product-categories","end":""}],
+    types: placeholder as Registry['product_categories.store']['types'],
+  },
+  'product_categories.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/v1/product-categories/:id',
+    tokens: [{"old":"/v1/product-categories/:id","type":0,"val":"v1","end":""},{"old":"/v1/product-categories/:id","type":0,"val":"product-categories","end":""},{"old":"/v1/product-categories/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['product_categories.update']['types'],
+  },
+  'product_categories.destroy': {
+    methods: ["DELETE"],
+    pattern: '/v1/product-categories/:id',
+    tokens: [{"old":"/v1/product-categories/:id","type":0,"val":"v1","end":""},{"old":"/v1/product-categories/:id","type":0,"val":"product-categories","end":""},{"old":"/v1/product-categories/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['product_categories.destroy']['types'],
+  },
+  'storage_locations.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/storage-locations',
+    tokens: [{"old":"/v1/storage-locations","type":0,"val":"v1","end":""},{"old":"/v1/storage-locations","type":0,"val":"storage-locations","end":""}],
+    types: placeholder as Registry['storage_locations.index']['types'],
+  },
+  'storage_locations.store': {
+    methods: ["POST"],
+    pattern: '/v1/storage-locations',
+    tokens: [{"old":"/v1/storage-locations","type":0,"val":"v1","end":""},{"old":"/v1/storage-locations","type":0,"val":"storage-locations","end":""}],
+    types: placeholder as Registry['storage_locations.store']['types'],
+  },
+  'storage_locations.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/storage-locations/:id',
+    tokens: [{"old":"/v1/storage-locations/:id","type":0,"val":"v1","end":""},{"old":"/v1/storage-locations/:id","type":0,"val":"storage-locations","end":""},{"old":"/v1/storage-locations/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['storage_locations.show']['types'],
+  },
+  'storage_locations.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/v1/storage-locations/:id',
+    tokens: [{"old":"/v1/storage-locations/:id","type":0,"val":"v1","end":""},{"old":"/v1/storage-locations/:id","type":0,"val":"storage-locations","end":""},{"old":"/v1/storage-locations/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['storage_locations.update']['types'],
+  },
+  'storage_locations.destroy': {
+    methods: ["DELETE"],
+    pattern: '/v1/storage-locations/:id',
+    tokens: [{"old":"/v1/storage-locations/:id","type":0,"val":"v1","end":""},{"old":"/v1/storage-locations/:id","type":0,"val":"storage-locations","end":""},{"old":"/v1/storage-locations/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['storage_locations.destroy']['types'],
+  },
   'products.summary': {
     methods: ["GET","HEAD"],
     pattern: '/v1/products/summary',
@@ -299,6 +371,30 @@ const routes = {
     pattern: '/v1/goods/:id',
     tokens: [{"old":"/v1/goods/:id","type":0,"val":"v1","end":""},{"old":"/v1/goods/:id","type":0,"val":"goods","end":""},{"old":"/v1/goods/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['goods.destroy']['types'],
+  },
+  'goods.attach_barcode': {
+    methods: ["POST"],
+    pattern: '/v1/goods/:id/barcodes',
+    tokens: [{"old":"/v1/goods/:id/barcodes","type":0,"val":"v1","end":""},{"old":"/v1/goods/:id/barcodes","type":0,"val":"goods","end":""},{"old":"/v1/goods/:id/barcodes","type":1,"val":"id","end":""},{"old":"/v1/goods/:id/barcodes","type":0,"val":"barcodes","end":""}],
+    types: placeholder as Registry['goods.attach_barcode']['types'],
+  },
+  'goods.remove_barcode': {
+    methods: ["DELETE"],
+    pattern: '/v1/goods/:id/barcodes/:code',
+    tokens: [{"old":"/v1/goods/:id/barcodes/:code","type":0,"val":"v1","end":""},{"old":"/v1/goods/:id/barcodes/:code","type":0,"val":"goods","end":""},{"old":"/v1/goods/:id/barcodes/:code","type":1,"val":"id","end":""},{"old":"/v1/goods/:id/barcodes/:code","type":0,"val":"barcodes","end":""},{"old":"/v1/goods/:id/barcodes/:code","type":1,"val":"code","end":""}],
+    types: placeholder as Registry['goods.remove_barcode']['types'],
+  },
+  'goods.set_supplier_price': {
+    methods: ["PUT"],
+    pattern: '/v1/goods/:id/suppliers/:supplierId',
+    tokens: [{"old":"/v1/goods/:id/suppliers/:supplierId","type":0,"val":"v1","end":""},{"old":"/v1/goods/:id/suppliers/:supplierId","type":0,"val":"goods","end":""},{"old":"/v1/goods/:id/suppliers/:supplierId","type":1,"val":"id","end":""},{"old":"/v1/goods/:id/suppliers/:supplierId","type":0,"val":"suppliers","end":""},{"old":"/v1/goods/:id/suppliers/:supplierId","type":1,"val":"supplierId","end":""}],
+    types: placeholder as Registry['goods.set_supplier_price']['types'],
+  },
+  'goods.remove_supplier_price': {
+    methods: ["DELETE"],
+    pattern: '/v1/goods/:id/suppliers/:supplierId',
+    tokens: [{"old":"/v1/goods/:id/suppliers/:supplierId","type":0,"val":"v1","end":""},{"old":"/v1/goods/:id/suppliers/:supplierId","type":0,"val":"goods","end":""},{"old":"/v1/goods/:id/suppliers/:supplierId","type":1,"val":"id","end":""},{"old":"/v1/goods/:id/suppliers/:supplierId","type":0,"val":"suppliers","end":""},{"old":"/v1/goods/:id/suppliers/:supplierId","type":1,"val":"supplierId","end":""}],
+    types: placeholder as Registry['goods.remove_supplier_price']['types'],
   },
   'furnitures.index': {
     methods: ["GET","HEAD"],
@@ -630,6 +726,12 @@ const routes = {
     tokens: [{"old":"/v1/events/:id/orders","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/orders","type":0,"val":"events","end":""},{"old":"/v1/events/:id/orders","type":1,"val":"id","end":""},{"old":"/v1/events/:id/orders","type":0,"val":"orders","end":""}],
     types: placeholder as Registry['orders.store']['types'],
   },
+  'card_payments.store': {
+    methods: ["POST"],
+    pattern: '/v1/events/:id/card-payments',
+    tokens: [{"old":"/v1/events/:id/card-payments","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/card-payments","type":0,"val":"events","end":""},{"old":"/v1/events/:id/card-payments","type":1,"val":"id","end":""},{"old":"/v1/events/:id/card-payments","type":0,"val":"card-payments","end":""}],
+    types: placeholder as Registry['card_payments.store']['types'],
+  },
   'orders.sellable': {
     methods: ["GET","HEAD"],
     pattern: '/v1/events/:id/sellable',
@@ -689,6 +791,18 @@ const routes = {
     pattern: '/v1/events/:id/matching',
     tokens: [{"old":"/v1/events/:id/matching","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/matching","type":0,"val":"events","end":""},{"old":"/v1/events/:id/matching","type":1,"val":"id","end":""},{"old":"/v1/events/:id/matching","type":0,"val":"matching","end":""}],
     types: placeholder as Registry['events.run_matching']['types'],
+  },
+  'events.notify_assignments': {
+    methods: ["POST"],
+    pattern: '/v1/events/:id/assignments/notify',
+    tokens: [{"old":"/v1/events/:id/assignments/notify","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/assignments/notify","type":0,"val":"events","end":""},{"old":"/v1/events/:id/assignments/notify","type":1,"val":"id","end":""},{"old":"/v1/events/:id/assignments/notify","type":0,"val":"assignments","end":""},{"old":"/v1/events/:id/assignments/notify","type":0,"val":"notify","end":""}],
+    types: placeholder as Registry['events.notify_assignments']['types'],
+  },
+  'events.open': {
+    methods: ["POST"],
+    pattern: '/v1/events/:id/open',
+    tokens: [{"old":"/v1/events/:id/open","type":0,"val":"v1","end":""},{"old":"/v1/events/:id/open","type":0,"val":"events","end":""},{"old":"/v1/events/:id/open","type":1,"val":"id","end":""},{"old":"/v1/events/:id/open","type":0,"val":"open","end":""}],
+    types: placeholder as Registry['events.open']['types'],
   },
   'events.settle': {
     methods: ["POST"],
@@ -870,11 +984,35 @@ const routes = {
     tokens: [{"old":"/v1/transactions","type":0,"val":"v1","end":""},{"old":"/v1/transactions","type":0,"val":"transactions","end":""}],
     types: placeholder as Registry['transactions.index']['types'],
   },
+  'analytics.season': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/analytics/season',
+    tokens: [{"old":"/v1/analytics/season","type":0,"val":"v1","end":""},{"old":"/v1/analytics/season","type":0,"val":"analytics","end":""},{"old":"/v1/analytics/season","type":0,"val":"season","end":""}],
+    types: placeholder as Registry['analytics.season']['types'],
+  },
   'payments.index': {
     methods: ["GET","HEAD"],
     pattern: '/v1/payments',
     tokens: [{"old":"/v1/payments","type":0,"val":"v1","end":""},{"old":"/v1/payments","type":0,"val":"payments","end":""}],
     types: placeholder as Registry['payments.index']['types'],
+  },
+  'card_payments.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/card-payments/:orderRef',
+    tokens: [{"old":"/v1/card-payments/:orderRef","type":0,"val":"v1","end":""},{"old":"/v1/card-payments/:orderRef","type":0,"val":"card-payments","end":""},{"old":"/v1/card-payments/:orderRef","type":1,"val":"orderRef","end":""}],
+    types: placeholder as Registry['card_payments.show']['types'],
+  },
+  'card_payments.refresh': {
+    methods: ["POST"],
+    pattern: '/v1/card-payments/:orderRef/refresh',
+    tokens: [{"old":"/v1/card-payments/:orderRef/refresh","type":0,"val":"v1","end":""},{"old":"/v1/card-payments/:orderRef/refresh","type":0,"val":"card-payments","end":""},{"old":"/v1/card-payments/:orderRef/refresh","type":1,"val":"orderRef","end":""},{"old":"/v1/card-payments/:orderRef/refresh","type":0,"val":"refresh","end":""}],
+    types: placeholder as Registry['card_payments.refresh']['types'],
+  },
+  'card_payments.destroy': {
+    methods: ["POST"],
+    pattern: '/v1/card-payments/:orderRef/cancel',
+    tokens: [{"old":"/v1/card-payments/:orderRef/cancel","type":0,"val":"v1","end":""},{"old":"/v1/card-payments/:orderRef/cancel","type":0,"val":"card-payments","end":""},{"old":"/v1/card-payments/:orderRef/cancel","type":1,"val":"orderRef","end":""},{"old":"/v1/card-payments/:orderRef/cancel","type":0,"val":"cancel","end":""}],
+    types: placeholder as Registry['card_payments.destroy']['types'],
   },
   'clients.summary': {
     methods: ["GET","HEAD"],
@@ -947,6 +1085,12 @@ const routes = {
     pattern: '/v1/pre-orders/:id/status',
     tokens: [{"old":"/v1/pre-orders/:id/status","type":0,"val":"v1","end":""},{"old":"/v1/pre-orders/:id/status","type":0,"val":"pre-orders","end":""},{"old":"/v1/pre-orders/:id/status","type":1,"val":"id","end":""},{"old":"/v1/pre-orders/:id/status","type":0,"val":"status","end":""}],
     types: placeholder as Registry['pre_orders.set_status']['types'],
+  },
+  'pre_orders.set_pickup': {
+    methods: ["PATCH"],
+    pattern: '/v1/pre-orders/:id/pickup',
+    tokens: [{"old":"/v1/pre-orders/:id/pickup","type":0,"val":"v1","end":""},{"old":"/v1/pre-orders/:id/pickup","type":0,"val":"pre-orders","end":""},{"old":"/v1/pre-orders/:id/pickup","type":1,"val":"id","end":""},{"old":"/v1/pre-orders/:id/pickup","type":0,"val":"pickup","end":""}],
+    types: placeholder as Registry['pre_orders.set_pickup']['types'],
   },
   'pre_orders.collect': {
     methods: ["POST"],
@@ -1116,6 +1260,12 @@ const routes = {
     tokens: [{"old":"/v1/account/subscriptions","type":0,"val":"v1","end":""},{"old":"/v1/account/subscriptions","type":0,"val":"account","end":""},{"old":"/v1/account/subscriptions","type":0,"val":"subscriptions","end":""}],
     types: placeholder as Registry['account_purchases.account_purchases.subscriptions']['types'],
   },
+  'account_purchases.account_purchases.orders': {
+    methods: ["GET","HEAD"],
+    pattern: '/v1/account/orders',
+    tokens: [{"old":"/v1/account/orders","type":0,"val":"v1","end":""},{"old":"/v1/account/orders","type":0,"val":"account","end":""},{"old":"/v1/account/orders","type":0,"val":"orders","end":""}],
+    types: placeholder as Registry['account_purchases.account_purchases.orders']['types'],
+  },
   'account_purchases.account_payments.subscribe': {
     methods: ["POST"],
     pattern: '/v1/account/subscriptions',
@@ -1139,6 +1289,18 @@ const routes = {
     pattern: '/v1/lydia/callback/:orderRef',
     tokens: [{"old":"/v1/lydia/callback/:orderRef","type":0,"val":"v1","end":""},{"old":"/v1/lydia/callback/:orderRef","type":0,"val":"lydia","end":""},{"old":"/v1/lydia/callback/:orderRef","type":0,"val":"callback","end":""},{"old":"/v1/lydia/callback/:orderRef","type":1,"val":"orderRef","end":""}],
     types: placeholder as Registry['lydia.lydia_callbacks.notify']['types'],
+  },
+  'sumup.sumup_callbacks.notify': {
+    methods: ["POST"],
+    pattern: '/v1/sumup/callback/:orderRef',
+    tokens: [{"old":"/v1/sumup/callback/:orderRef","type":0,"val":"v1","end":""},{"old":"/v1/sumup/callback/:orderRef","type":0,"val":"sumup","end":""},{"old":"/v1/sumup/callback/:orderRef","type":0,"val":"callback","end":""},{"old":"/v1/sumup/callback/:orderRef","type":1,"val":"orderRef","end":""}],
+    types: placeholder as Registry['sumup.sumup_callbacks.notify']['types'],
+  },
+  'telegram.telegram_webhook.notify': {
+    methods: ["POST"],
+    pattern: '/v1/telegram/webhook',
+    tokens: [{"old":"/v1/telegram/webhook","type":0,"val":"v1","end":""},{"old":"/v1/telegram/webhook","type":0,"val":"telegram","end":""},{"old":"/v1/telegram/webhook","type":0,"val":"webhook","end":""}],
+    types: placeholder as Registry['telegram.telegram_webhook.notify']['types'],
   },
   'event_stream': {
     methods: ["GET","HEAD"],
