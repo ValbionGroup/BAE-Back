@@ -210,6 +210,14 @@ test.group('Analytics — KPI de saison', () => {
     assert.equal(kpis.presenceRate, 0.75)
   })
 
+  test('une saison sans soirée achevée ne se compare pas à n-1', ({ assert }) => {
+    const kpis = kpisFor([row({ upcoming: true })], [row({ cashedCents: 10000 })])
+
+    assert.isNull(kpis.cashedDeltaPct)
+    assert.isNull(kpis.avgBasketDeltaCents)
+    assert.isNull(kpis.presenceDeltaPts)
+  })
+
   test('une saison vide ne divise pas par zéro', ({ assert }) => {
     const kpis = kpisFor([], null)
 
@@ -262,6 +270,24 @@ test.group('Analytics — prédiction', (group) => {
     assert.equal(prediction!.range, 1)
     assert.equal(prediction!.preOrderCount, 1)
     assert.equal(prediction!.estimatedRevenueCents, 3 * 580)
+  })
+
+  test('une soirée achevée sans commande compte pour zéro, elle ne disparaît pas', async ({
+    assert,
+  }) => {
+    const vendue = await soiree('A vendu', '2025-09-20T20:00:00')
+    await commande(vendue.id, 1, 300)
+    await commande(vendue.id, 1, 300)
+    await commande(vendue.id, 1, 300)
+    await commande(vendue.id, 1, 300)
+    await soiree('Rien vendu', '2025-10-20T20:00:00')
+    await soiree('À venir', '2026-02-14T20:00:00', 'scheduled')
+
+    const prediction = await predictionForSeason(2025, 580)
+
+    assert.isNotNull(prediction)
+    assert.equal(prediction!.basedOnEventCount, 2)
+    assert.equal(prediction!.expectedOrders, 2)
   })
 
   test('nulle quand aucune soirée ne reste à venir', async ({ assert }) => {
@@ -320,22 +346,35 @@ test.group('Analytics — route', (group) => {
     assert.isNull(body.data.prediction)
   })
 
-  test('sans season, retient la saison la plus récente qui porte une soirée', async ({
+  test('sans season, ouvre la saison en cours et non une saison future', async ({
     client,
     assert,
   }) => {
-    await soiree('Ancienne', '2024-09-20T20:00:00')
-    await soiree('Récente', '2025-09-20T20:00:00')
+    const enCours = seasonStartYear(DateTime.now())
+    await soiree('De cette saison', `${enCours}-09-20T20:00:00`)
+    await soiree('Bien plus tard', `${enCours + 3}-09-20T20:00:00`, 'scheduled')
     const user = await grantPermissions(await MemberFactory.create(), ['transaction:read'])
 
     const response = await client.get('/v1/analytics/season').loginAs(user)
 
     response.assertStatus(200)
-    const body = response.body() as { data: { seasons: Array<{ start_year: number }> } }
-    assert.deepEqual(
-      body.data.seasons.map((s) => s.start_year),
-      [2025, 2024]
-    )
+    const body = response.body() as { data: { season: { start_year: number } } }
+    assert.equal(body.data.season.start_year, enCours)
+  })
+
+  test('se rabat sur la saison la plus récente quand la courante ne porte rien', async ({
+    client,
+    assert,
+  }) => {
+    const enCours = seasonStartYear(DateTime.now())
+    await soiree('Saison passée', `${enCours - 2}-09-20T20:00:00`)
+    const user = await grantPermissions(await MemberFactory.create(), ['transaction:read'])
+
+    const response = await client.get('/v1/analytics/season').loginAs(user)
+
+    response.assertStatus(200)
+    const body = response.body() as { data: { season: { start_year: number } } }
+    assert.equal(body.data.season.start_year, enCours - 2)
   })
 
   test('refuse un membre sans transaction:read', async ({ client }) => {

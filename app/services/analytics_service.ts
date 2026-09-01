@@ -157,10 +157,17 @@ function totalsOf(rows: SeasonEventRow[]): Totals {
 
 export function kpisFor(rows: SeasonEventRow[], previous: SeasonEventRow[] | null): SeasonKpis {
   const now = totalsOf(rows)
-  const before = previous === null ? null : totalsOf(previous)
   const orderCounts = rows
     .filter((current) => !current.upcoming)
     .map((current) => current.orderCount)
+
+  /**
+   * Une saison dont aucune soirée n'est encore achevée n'a rien à comparer :
+   * la confronter à une saison n-1 complète afficherait « −100 % » sur un
+   * écran qui n'a simplement pas encore commencé.
+   */
+  const comparable = previous !== null && orderCounts.length > 0
+  const before = comparable ? totalsOf(previous) : null
 
   return {
     cashedCents: now.cashedCents,
@@ -213,11 +220,18 @@ export async function predictionForSeason(
   const nextDate = DateTime.fromJSDate(new Date(next.date))
   if (nextDate < from || nextDate >= to) return null
 
+  /**
+   * `leftJoin`, et la condition sur le statut portée par la jointure : une
+   * soirée tenue qui n'a rien vendu compte pour zéro, elle ne disparaît pas de
+   * la moyenne. Un `join` strict doublait la prédiction en ne retenant que les
+   * soirées ayant vendu.
+   */
   const recent = await db
     .from('events')
-    .join('orders', 'orders.event_id', 'events.id')
+    .leftJoin('orders', (join) => {
+      join.on('orders.event_id', '=', 'events.id').andOnNotIn('orders.status', ['cancelled'])
+    })
     .where('events.status', 'completed')
-    .whereNot('orders.status', 'cancelled')
     .groupBy('events.id', 'events.date')
     .orderBy('events.date', 'desc')
     .limit(PREDICTION_WINDOW)
@@ -278,9 +292,21 @@ async function availableSeasons(): Promise<SeasonOption[]> {
     }))
 }
 
+/**
+ * La saison en cours par défaut — pas la plus récente qui porte une soirée : une
+ * soirée planifiée loin devant ouvre une saison future, et la page s'ouvrirait
+ * sur un écran vide en ignorant la saison qu'on est en train de vivre. On ne se
+ * rabat sur la plus récente que si la saison courante ne porte rien du tout.
+ */
+function defaultSeason(seasons: SeasonOption[]): number {
+  const current = seasonStartYear(DateTime.now())
+  if (seasons.some((season) => season.startYear === current)) return current
+  return seasons[0]?.startYear ?? current
+}
+
 export async function analyticsForSeason(requested: number | null): Promise<SeasonAnalytics> {
   const seasons = await availableSeasons()
-  const startYear = requested ?? seasons[0]?.startYear ?? seasonStartYear(DateTime.now())
+  const startYear = requested ?? defaultSeason(seasons)
 
   const [events, previous] = await Promise.all([
     eventRowsForSeason(startYear),
