@@ -177,3 +177,72 @@ export function kpisFor(rows: SeasonEventRow[], previous: SeasonEventRow[] | nul
       before === null ? null : Math.round((now.presenceRate - before.presenceRate) * 100),
   }
 }
+
+/** Nombre de soirées achevées sur lesquelles la moyenne est prise. */
+const PREDICTION_WINDOW = 6
+
+export interface SeasonPrediction {
+  eventId: number
+  eventName: string
+  expectedOrders: number
+  range: number
+  estimatedRevenueCents: number
+  preOrderCount: number
+  basedOnEventCount: number
+}
+
+/**
+ * Nulle si rien n'est à venir, si rien d'achevé ne sert de base, ou si la
+ * prochaine soirée tombe hors de la saison affichée — la carte parlerait alors
+ * d'une soirée absente du graphe qu'elle surmonte.
+ */
+export async function predictionForSeason(
+  startYear: number,
+  avgBasketCents: number
+): Promise<SeasonPrediction | null> {
+  const next = await db
+    .from('events')
+    .whereNot('status', 'completed')
+    .orderBy('date', 'asc')
+    .select('id', 'name', 'date')
+    .first()
+
+  if (!next) return null
+
+  const { from, to } = seasonBounds(startYear)
+  const nextDate = DateTime.fromJSDate(new Date(next.date))
+  if (nextDate < from || nextDate >= to) return null
+
+  const recent = await db
+    .from('events')
+    .join('orders', 'orders.event_id', 'events.id')
+    .where('events.status', 'completed')
+    .whereNot('orders.status', 'cancelled')
+    .groupBy('events.id', 'events.date')
+    .orderBy('events.date', 'desc')
+    .limit(PREDICTION_WINDOW)
+    .select('events.id')
+    .countDistinct('orders.id as order_count')
+
+  const counts = recent.map((row) => Number(row.order_count ?? 0))
+  if (counts.length === 0) return null
+
+  const expectedOrders = Math.round(mean(counts))
+
+  const preOrders = await db
+    .from('pre_orders')
+    .where('event_id', Number(next.id))
+    .whereNot('status', 'cancelled')
+    .count('* as total')
+    .first()
+
+  return {
+    eventId: Number(next.id),
+    eventName: String(next.name),
+    expectedOrders,
+    range: Math.round(stdDev(counts)),
+    estimatedRevenueCents: expectedOrders * avgBasketCents,
+    preOrderCount: Number(preOrders?.total ?? 0),
+    basedOnEventCount: counts.length,
+  }
+}

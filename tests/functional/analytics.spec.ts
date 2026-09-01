@@ -8,6 +8,7 @@ import { MemberFactory } from '#database/factories/members_factory'
 import {
   eventRowsForSeason,
   kpisFor,
+  predictionForSeason,
   seasonBounds,
   seasonLabel,
   seasonStartYear,
@@ -54,6 +55,25 @@ async function commande(
   })
 }
 
+/**
+ * La suite tourne sur la base de dev, semée. `predictionForSeason` interroge
+ * **tout** l'historique — c'est le spec — donc une soirée semée fausserait la
+ * moyenne. On vide le graphe des soirées ; la transaction globale le rend.
+ */
+async function videLesSoirees() {
+  await db.from('order_products').delete()
+  await db.from('pre_order_items').delete()
+  await db.from('orders').delete()
+  await db.from('pre_orders').delete()
+  await db.from('event_products').delete()
+  await db.from('event_jobs').delete()
+  await db.from('member_responses').delete()
+  await db.from('production_runs').delete()
+  await db.from('member_event_assigned_jobs').delete()
+  await db.from('sponsorship_categories').delete()
+  await db.from('events').delete()
+}
+
 async function reponse(eventId: number, isAvailable: boolean) {
   const member = await MemberFactory.create()
   await db.table('member_responses').insert({
@@ -85,6 +105,7 @@ test.group('Analytics — bornes de saison', () => {
 
 test.group('Analytics — agrégats par soirée', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
+  group.each.setup(() => videLesSoirees())
 
   test("somme l'encaissé et compte les commandes non annulées", async ({ assert }) => {
     const event = await soiree('Rentrée', '2025-09-20T20:00:00')
@@ -195,5 +216,70 @@ test.group('Analytics — KPI de saison', () => {
     assert.equal(kpis.avgOrdersPerEvent, 0)
     assert.equal(kpis.avgBasketCents, 0)
     assert.equal(kpis.presenceRate, 0)
+  })
+})
+
+test.group('Analytics — prédiction', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+  group.each.setup(() => videLesSoirees())
+
+  test('moyenne les soirées achevées et compte les précommandes en cours', async ({ assert }) => {
+    const passee = await soiree('Passée A', '2025-09-20T20:00:00')
+    const autre = await soiree('Passée B', '2025-10-20T20:00:00')
+    await commande(passee.id, 1, 300)
+    await commande(passee.id, 1, 300)
+    await commande(autre.id, 1, 300)
+    await commande(autre.id, 1, 300)
+    await commande(autre.id, 1, 300)
+    await commande(autre.id, 1, 300)
+
+    const venir = await soiree('À venir', '2026-02-14T20:00:00', 'scheduled')
+    const user = await MemberFactory.create()
+    await db.table('pre_orders').insert([
+      {
+        event_id: venir.id,
+        user_id: user.id,
+        status: 'pending',
+        discount_percent: 0,
+        created_at: new Date(),
+      },
+      {
+        event_id: venir.id,
+        user_id: user.id,
+        status: 'cancelled',
+        discount_percent: 0,
+        created_at: new Date(),
+      },
+    ])
+
+    const prediction = await predictionForSeason(2025, 580)
+
+    assert.isNotNull(prediction)
+    assert.equal(prediction!.eventId, venir.id)
+    assert.equal(prediction!.basedOnEventCount, 2)
+    assert.equal(prediction!.expectedOrders, 3)
+    assert.equal(prediction!.range, 1)
+    assert.equal(prediction!.preOrderCount, 1)
+    assert.equal(prediction!.estimatedRevenueCents, 3 * 580)
+  })
+
+  test('nulle quand aucune soirée ne reste à venir', async ({ assert }) => {
+    await soiree('Passée', '2025-09-20T20:00:00')
+
+    assert.isNull(await predictionForSeason(2025, 580))
+  })
+
+  test('nulle quand aucune soirée achevée ne sert de base', async ({ assert }) => {
+    await soiree('À venir', '2026-02-14T20:00:00', 'scheduled')
+
+    assert.isNull(await predictionForSeason(2025, 580))
+  })
+
+  test('nulle quand la prochaine soirée tombe hors de la saison demandée', async ({ assert }) => {
+    const passee = await soiree('Passée', '2025-09-20T20:00:00')
+    await commande(passee.id, 1, 300)
+    await soiree('Saison suivante', '2026-09-20T20:00:00', 'scheduled')
+
+    assert.isNull(await predictionForSeason(2025, 580))
   })
 })
