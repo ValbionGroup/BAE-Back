@@ -95,7 +95,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
       .json({ token: expired })
       .loginAs(user)
 
-    expiredResponse.assertStatus(401)
+    expiredResponse.assertStatus(422)
     assert.equal(errorCodeOf(expiredResponse), 'E_QR_EXPIRED')
 
     const garbageResponse = await client
@@ -103,7 +103,7 @@ test.group('QR d’identité — émission et vérification', (group) => {
       .json({ token: 'pas.un.jeton' })
       .loginAs(user)
 
-    garbageResponse.assertStatus(401)
+    garbageResponse.assertStatus(422)
     assert.equal(errorCodeOf(garbageResponse), 'E_QR_INVALID')
   })
 

@@ -110,7 +110,7 @@ test.group('QR de catégorie', (group) => {
       .post('/v1/qr/verify')
       .json({ token: before.body().data.token })
       .loginAs(user)
-    stale.assertStatus(401)
+    stale.assertStatus(422)
     stale.assertBodyContains({ error: { code: 'E_CATEGORY_REVOKED' } })
 
     const after = await client
