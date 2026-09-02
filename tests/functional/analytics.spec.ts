@@ -202,7 +202,7 @@ test.group('Analytics — agrégats par soirée', (group) => {
   })
 })
 
-function row(over: Partial<SeasonEventRow> = {}): SeasonEventRow {
+function ligne(over: Partial<SeasonEventRow> = {}): SeasonEventRow {
   return {
     id: 1,
     name: 'Soirée',
@@ -218,20 +218,23 @@ function row(over: Partial<SeasonEventRow> = {}): SeasonEventRow {
 
 test.group('Analytics — KPI de saison', () => {
   test('moyenne et écart-type de population sur les soirées achevées', ({ assert }) => {
-    const kpis = kpisFor([row({ orderCount: 200 }), row({ orderCount: 300 })], null)
+    const kpis = kpisFor([ligne({ orderCount: 200 }), ligne({ orderCount: 300 })], null)
 
     assert.equal(kpis.avgOrdersPerEvent, 250)
     assert.equal(kpis.ordersStdDev, 50)
   })
 
   test('ignore les soirées à venir dans les moyennes', ({ assert }) => {
-    const kpis = kpisFor([row({ orderCount: 200 }), row({ orderCount: 999, upcoming: true })], null)
+    const kpis = kpisFor(
+      [ligne({ orderCount: 200 }), ligne({ orderCount: 999, upcoming: true })],
+      null
+    )
 
     assert.equal(kpis.avgOrdersPerEvent, 200)
   })
 
   test('sans saison n-1, tous les deltas valent null', ({ assert }) => {
-    const kpis = kpisFor([row()], null)
+    const kpis = kpisFor([ligne()], null)
 
     assert.isNull(kpis.cashedDeltaPct)
     assert.isNull(kpis.avgBasketDeltaCents)
@@ -239,19 +242,19 @@ test.group('Analytics — KPI de saison', () => {
   })
 
   test('compare à n-1 quand elle existe', ({ assert }) => {
-    const kpis = kpisFor([row({ cashedCents: 12000 })], [row({ cashedCents: 10000 })])
+    const kpis = kpisFor([ligne({ cashedCents: 12000 })], [ligne({ cashedCents: 10000 })])
 
     assert.equal(kpis.cashedDeltaPct, 20)
   })
 
   test('le taux de présence porte sur les répondants', ({ assert }) => {
-    const kpis = kpisFor([row({ presentCount: 3, respondentCount: 4 })], null)
+    const kpis = kpisFor([ligne({ presentCount: 3, respondentCount: 4 })], null)
 
     assert.equal(kpis.presenceRate, 0.75)
   })
 
   test('une saison sans soirée achevée ne se compare pas à n-1', ({ assert }) => {
-    const kpis = kpisFor([row({ upcoming: true })], [row({ cashedCents: 10000 })])
+    const kpis = kpisFor([ligne({ upcoming: true })], [ligne({ cashedCents: 10000 })])
 
     assert.isNull(kpis.cashedDeltaPct)
     assert.isNull(kpis.avgBasketDeltaCents)
