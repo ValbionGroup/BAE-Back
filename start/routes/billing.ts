@@ -24,6 +24,10 @@ router
       .get('/transactions', [controllers.Transactions, 'index'])
       .use(middleware.can('transaction:read'))
 
+    router
+      .get('/analytics/season', [controllers.Analytics, 'season'])
+      .use(middleware.can('transaction:read'))
+
     router.get('/payments', [controllers.Payments, 'index']).use(middleware.can('payment:read'))
 
     router

@@ -28,10 +28,13 @@ export interface ApiDefinition {
   profile: {
     profile: {
       show: typeof routes['profile.profile.show']
+      update: typeof routes['profile.profile.update']
     }
     qrs: {
       mine: typeof routes['profile.qrs.mine']
     }
+    telegramLink: typeof routes['profile.telegramLink']
+    telegramUnlink: typeof routes['profile.telegramUnlink']
   }
   accountSecurity: {
     accountPassword: {
@@ -70,6 +73,19 @@ export interface ApiDefinition {
     update: typeof routes['categories.update']
     destroy: typeof routes['categories.destroy']
   }
+  productCategories: {
+    index: typeof routes['product_categories.index']
+    store: typeof routes['product_categories.store']
+    update: typeof routes['product_categories.update']
+    destroy: typeof routes['product_categories.destroy']
+  }
+  storageLocations: {
+    index: typeof routes['storage_locations.index']
+    store: typeof routes['storage_locations.store']
+    show: typeof routes['storage_locations.show']
+    update: typeof routes['storage_locations.update']
+    destroy: typeof routes['storage_locations.destroy']
+  }
   products: {
     summary: typeof routes['products.summary']
     ingredients: typeof routes['products.ingredients']
@@ -86,6 +102,10 @@ export interface ApiDefinition {
     show: typeof routes['goods.show']
     update: typeof routes['goods.update']
     destroy: typeof routes['goods.destroy']
+    attachBarcode: typeof routes['goods.attach_barcode']
+    removeBarcode: typeof routes['goods.remove_barcode']
+    setSupplierPrice: typeof routes['goods.set_supplier_price']
+    removeSupplierPrice: typeof routes['goods.remove_supplier_price']
   }
   furnitures: {
     index: typeof routes['furnitures.index']
@@ -139,6 +159,8 @@ export interface ApiDefinition {
     setResponse: typeof routes['events.set_response']
     roster: typeof routes['events.roster']
     runMatching: typeof routes['events.run_matching']
+    notifyAssignments: typeof routes['events.notify_assignments']
+    open: typeof routes['events.open']
     settle: typeof routes['events.settle']
   }
   eventProducts: {
@@ -168,9 +190,16 @@ export interface ApiDefinition {
     setStatus: typeof routes['orders.set_status']
     destroy: typeof routes['orders.destroy']
   }
+  cardPayments: {
+    store: typeof routes['card_payments.store']
+    show: typeof routes['card_payments.show']
+    refresh: typeof routes['card_payments.refresh']
+    destroy: typeof routes['card_payments.destroy']
+  }
   preOrders: {
     index: typeof routes['pre_orders.index']
     setStatus: typeof routes['pre_orders.set_status']
+    setPickup: typeof routes['pre_orders.set_pickup']
     collect: typeof routes['pre_orders.collect']
   }
   productionRuns: {
@@ -233,6 +262,9 @@ export interface ApiDefinition {
   }
   transactions: {
     index: typeof routes['transactions.index']
+  }
+  analytics: {
+    season: typeof routes['analytics.season']
   }
   payments: {
     index: typeof routes['payments.index']
@@ -305,6 +337,7 @@ export interface ApiDefinition {
       preOrder: typeof routes['account_purchases.account_purchases.pre_order']
       preOrderQr: typeof routes['account_purchases.account_purchases.pre_order_qr']
       subscriptions: typeof routes['account_purchases.account_purchases.subscriptions']
+      orders: typeof routes['account_purchases.account_purchases.orders']
     }
     accountPayments: {
       subscribe: typeof routes['account_purchases.account_payments.subscribe']
@@ -315,6 +348,16 @@ export interface ApiDefinition {
   lydia: {
     lydiaCallbacks: {
       notify: typeof routes['lydia.lydia_callbacks.notify']
+    }
+  }
+  sumup: {
+    sumupCallbacks: {
+      notify: typeof routes['sumup.sumup_callbacks.notify']
+    }
+  }
+  telegram: {
+    telegramWebhook: {
+      notify: typeof routes['telegram.telegram_webhook.notify']
     }
   }
   eventStream: typeof routes['event_stream']
