@@ -188,6 +188,9 @@ export function kpisFor(rows: SeasonEventRow[], previous: SeasonEventRow[] | nul
 /** Nombre de soirées achevées sur lesquelles la moyenne est prise. */
 const PREDICTION_WINDOW = 6
 
+/** `seasonal` : calée sur la soirée équivalente de n-1. `average` : à défaut. */
+export type PredictionMethod = 'seasonal' | 'average'
+
 export interface SeasonPrediction {
   eventId: number
   eventName: string
@@ -196,6 +199,62 @@ export interface SeasonPrediction {
   estimatedRevenueCents: number
   preOrderCount: number
   basedOnEventCount: number
+  method: PredictionMethod
+  /** Renseignés en méthode `seasonal` seulement : la soirée n-1 qui sert de base. */
+  modelEventName: string | null
+  modelEventDate: string | null
+  modelOrderCount: number | null
+  /** Recadrage appliqué, en pourcentage : `+15` vaut ×1,15, `0` est neutre. */
+  trendPct: number | null
+  /** Vrai quand les précommandes ont relevé l'estimation. */
+  flooredByPreOrders: boolean
+}
+
+/** Trois semaines : au-delà, l'appariement rapprocherait Halloween de Noël. */
+const MATCH_WINDOW_DAYS = 21
+
+const TREND_MIN = 0.5
+const TREND_MAX = 2
+
+/**
+ * La soirée de n-1 dont la date, décalée d'un an, tombe le plus près de la
+ * cible. `null` si aucune ne tient dans la fenêtre.
+ */
+function matchedPreviousEvent(
+  target: DateTime,
+  previousRows: SeasonEventRow[]
+): SeasonEventRow | null {
+  let best: SeasonEventRow | null = null
+  let bestGap = Number.POSITIVE_INFINITY
+
+  for (const row of previousRows) {
+    if (row.upcoming) continue
+
+    const gap = Math.abs(DateTime.fromISO(row.date).plus({ years: 1 }).diff(target, 'days').days)
+    if (gap <= MATCH_WINDOW_DAYS && gap < bestGap) {
+      best = row
+      bestGap = gap
+    }
+  }
+
+  return best
+}
+
+/**
+ * De combien la saison en cours dépasse n-1, en commandes par soirée. Exige
+ * deux soirées achevées de chaque côté — sur une seule, la « tendance » ne
+ * serait qu'un aléa — et reste bornée pour qu'une soirée hors norme ne double
+ * pas la prédiction à elle seule.
+ */
+function seasonTrend(seasonRows: SeasonEventRow[], previousRows: SeasonEventRow[]): number {
+  const now = seasonRows.filter((row) => !row.upcoming).map((row) => row.orderCount)
+  const before = previousRows.filter((row) => !row.upcoming).map((row) => row.orderCount)
+  if (now.length < 2 || before.length < 2) return 1
+
+  const beforeMean = mean(before)
+  if (beforeMean === 0) return 1
+
+  return Math.min(TREND_MAX, Math.max(TREND_MIN, mean(now) / beforeMean))
 }
 
 /**
@@ -205,7 +264,9 @@ export interface SeasonPrediction {
  */
 export async function predictionForSeason(
   startYear: number,
-  avgBasketCents: number
+  avgBasketCents: number,
+  seasonRows: SeasonEventRow[],
+  previousRows: SeasonEventRow[]
 ): Promise<SeasonPrediction | null> {
   const next = await db
     .from('events')
@@ -241,14 +302,20 @@ export async function predictionForSeason(
   const counts = recent.map((row) => Number(row.order_count ?? 0))
   if (counts.length === 0) return null
 
-  const expectedOrders = Math.round(mean(counts))
-
   const preOrders = await db
     .from('pre_orders')
     .where('event_id', Number(next.id))
     .whereNot('status', 'cancelled')
     .count('* as total')
     .first()
+  const preOrderCount = Number(preOrders?.total ?? 0)
+
+  const model = matchedPreviousEvent(nextDate, previousRows)
+  const trend = model ? seasonTrend(seasonRows, previousRows) : 1
+  const base = model ? Math.round(model.orderCount * trend) : Math.round(mean(counts))
+
+  /** Jamais moins que ce qui est déjà réservé : le plancher est un fait, pas une estimation. */
+  const expectedOrders = Math.max(base, preOrderCount)
 
   return {
     eventId: Number(next.id),
@@ -256,8 +323,14 @@ export async function predictionForSeason(
     expectedOrders,
     range: Math.round(stdDev(counts)),
     estimatedRevenueCents: expectedOrders * avgBasketCents,
-    preOrderCount: Number(preOrders?.total ?? 0),
+    preOrderCount,
     basedOnEventCount: counts.length,
+    method: model ? 'seasonal' : 'average',
+    modelEventName: model?.name ?? null,
+    modelEventDate: model?.date ?? null,
+    modelOrderCount: model?.orderCount ?? null,
+    trendPct: model ? Math.round((trend - 1) * 100) : null,
+    flooredByPreOrders: expectedOrders > base,
   }
 }
 
@@ -321,6 +394,6 @@ export async function analyticsForSeason(requested: number | null): Promise<Seas
     seasons,
     kpis,
     events,
-    prediction: await predictionForSeason(startYear, kpis.avgBasketCents),
+    prediction: await predictionForSeason(startYear, kpis.avgBasketCents, events, previous),
   }
 }

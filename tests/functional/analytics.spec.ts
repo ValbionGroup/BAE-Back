@@ -75,6 +75,46 @@ async function videLesSoirees() {
   await db.from('events').delete()
 }
 
+/** `n` commandes sur une soirée, un seul produit — pour les séries un peu longues. */
+async function commandes(eventId: number, count: number, unitPriceCents = 300) {
+  productSeq += 1
+  const produit = await Product.create({
+    name: `Lot ${productSeq}`,
+    isVegetarian: false,
+    description: null,
+    recipe: null,
+  })
+
+  for (let i = 0; i < count; i += 1) {
+    const [row] = await db
+      .table('orders')
+      .insert({
+        event_id: eventId,
+        status: 'completed',
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('id')
+    await db.table('order_products').insert({
+      order_id: typeof row === 'object' ? Number(row.id) : Number(row),
+      product_id: produit.id,
+      quantity: 1,
+      unit_price_cents: unitPriceCents,
+      list_price_cents: BURGER_CENTS,
+    })
+  }
+}
+
+/** La prédiction reçoit désormais les lignes des deux saisons : on les monte ici. */
+async function predire(startYear: number, avgBasketCents = 580) {
+  return predictionForSeason(
+    startYear,
+    avgBasketCents,
+    await eventRowsForSeason(startYear),
+    await eventRowsForSeason(startYear - 1)
+  )
+}
+
 async function reponse(eventId: number, isAvailable: boolean) {
   const member = await MemberFactory.create()
   await db.table('member_responses').insert({
@@ -261,7 +301,7 @@ test.group('Analytics — prédiction', (group) => {
       },
     ])
 
-    const prediction = await predictionForSeason(2025, 580)
+    const prediction = await predire(2025)
 
     assert.isNotNull(prediction)
     assert.equal(prediction!.eventId, venir.id)
@@ -283,7 +323,7 @@ test.group('Analytics — prédiction', (group) => {
     await soiree('Rien vendu', '2025-10-20T20:00:00')
     await soiree('À venir', '2026-02-14T20:00:00', 'scheduled')
 
-    const prediction = await predictionForSeason(2025, 580)
+    const prediction = await predire(2025)
 
     assert.isNotNull(prediction)
     assert.equal(prediction!.basedOnEventCount, 2)
@@ -293,13 +333,13 @@ test.group('Analytics — prédiction', (group) => {
   test('nulle quand aucune soirée ne reste à venir', async ({ assert }) => {
     await soiree('Passée', '2025-09-20T20:00:00')
 
-    assert.isNull(await predictionForSeason(2025, 580))
+    assert.isNull(await predire(2025))
   })
 
   test('nulle quand aucune soirée achevée ne sert de base', async ({ assert }) => {
     await soiree('À venir', '2026-02-14T20:00:00', 'scheduled')
 
-    assert.isNull(await predictionForSeason(2025, 580))
+    assert.isNull(await predire(2025))
   })
 
   test('nulle quand la prochaine soirée tombe hors de la saison demandée', async ({ assert }) => {
@@ -307,7 +347,7 @@ test.group('Analytics — prédiction', (group) => {
     await commande(passee.id, 1, 300)
     await soiree('Saison suivante', '2026-09-20T20:00:00', 'scheduled')
 
-    assert.isNull(await predictionForSeason(2025, 580))
+    assert.isNull(await predire(2025))
   })
 })
 
@@ -383,5 +423,145 @@ test.group('Analytics — route', (group) => {
     const response = await client.get('/v1/analytics/season').loginAs(user)
 
     response.assertStatus(403)
+  })
+})
+
+test.group('Analytics — prédiction saisonnière', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+  group.each.setup(() => videLesSoirees())
+
+  /** Cible : 14 février 2026, dans la saison 2025-2026. */
+  const CIBLE = '2026-02-14T20:00:00'
+
+  test('apparie la soirée n-1 la plus proche dans la fenêtre de trois semaines', async ({
+    assert,
+  }) => {
+    const proche = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await commandes(proche.id, 3)
+    const loin = await soiree('Bienvenue 2025', '2025-01-24T20:00:00')
+    await commandes(loin.id, 30)
+    await soiree('Hivernale 2026', CIBLE, 'scheduled')
+
+    const prediction = await predire(2025)
+
+    assert.isNotNull(prediction)
+    assert.equal(prediction!.method, 'seasonal')
+    assert.equal(prediction!.modelEventName, 'Hivernale 2025')
+    assert.equal(prediction!.modelOrderCount, 3)
+    assert.equal(prediction!.expectedOrders, 3)
+  })
+
+  test('ignore une soirée n-1 hors fenêtre et retombe sur la moyenne', async ({ assert }) => {
+    const horsFenetre = await soiree('Nouvel an 2025', '2025-01-01T20:00:00')
+    await commandes(horsFenetre.id, 8)
+    await soiree('Hivernale 2026', CIBLE, 'scheduled')
+
+    const prediction = await predire(2025)
+
+    assert.equal(prediction!.method, 'average')
+    assert.isNull(prediction!.modelEventName)
+    assert.equal(prediction!.expectedOrders, 8)
+  })
+
+  test('recadre la base par la tendance de la saison en cours', async ({ assert }) => {
+    const modele = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await commandes(modele.id, 10)
+    const autreN1 = await soiree('Halloween 2024', '2024-10-31T20:00:00')
+    await commandes(autreN1.id, 10)
+
+    const a = await soiree('Rentrée 2025', '2025-09-20T20:00:00')
+    await commandes(a.id, 15)
+    const b = await soiree('Halloween 2025', '2025-10-31T20:00:00')
+    await commandes(b.id, 15)
+    await soiree('Hivernale 2026', CIBLE, 'scheduled')
+
+    const prediction = await predire(2025)
+
+    assert.equal(prediction!.method, 'seasonal')
+    assert.equal(prediction!.trendPct, 50)
+    assert.equal(prediction!.expectedOrders, 15)
+  })
+
+  test('laisse la tendance neutre tant qu’une saison n’a pas deux soirées achevées', async ({
+    assert,
+  }) => {
+    const modele = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await commandes(modele.id, 10)
+    const seule = await soiree('Rentrée 2025', '2025-09-20T20:00:00')
+    await commandes(seule.id, 40)
+    await soiree('Hivernale 2026', CIBLE, 'scheduled')
+
+    const prediction = await predire(2025)
+
+    assert.equal(prediction!.trendPct, 0)
+    assert.equal(prediction!.expectedOrders, 10)
+  })
+
+  test('borne la tendance à ×2 pour qu’une saison hors norme ne l’emballe pas', async ({
+    assert,
+  }) => {
+    const modele = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await commandes(modele.id, 10)
+    const autreN1 = await soiree('Halloween 2024', '2024-10-31T20:00:00')
+    await commandes(autreN1.id, 10)
+
+    const a = await soiree('Rentrée 2025', '2025-09-20T20:00:00')
+    await commandes(a.id, 100)
+    const b = await soiree('Halloween 2025', '2025-10-31T20:00:00')
+    await commandes(b.id, 100)
+    await soiree('Hivernale 2026', CIBLE, 'scheduled')
+
+    const prediction = await predire(2025)
+
+    assert.equal(prediction!.trendPct, 100)
+    assert.equal(prediction!.expectedOrders, 20)
+  })
+
+  test('ne descend jamais sous les précommandes déjà posées', async ({ assert }) => {
+    const modele = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await commandes(modele.id, 2)
+    const cible = await soiree('Hivernale 2026', CIBLE, 'scheduled')
+
+    // Une précommande par client et par soirée (`pre_orders_user_event_unique`) :
+    // il faut donc cinq clients distincts pour cinq précommandes.
+    for (let i = 0; i < 5; i += 1) {
+      const client = await MemberFactory.create()
+      await db.table('pre_orders').insert({
+        event_id: cible.id,
+        user_id: client.id,
+        status: 'pending',
+        discount_percent: 0,
+        created_at: new Date(),
+      })
+    }
+
+    const prediction = await predire(2025)
+
+    assert.equal(prediction!.modelOrderCount, 2)
+    assert.equal(prediction!.preOrderCount, 5)
+    assert.equal(prediction!.expectedOrders, 5)
+    assert.isTrue(prediction!.flooredByPreOrders)
+  })
+
+  test('ne signale pas de plancher quand l’estimation dépasse les précommandes', async ({
+    assert,
+  }) => {
+    const modele = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await commandes(modele.id, 9)
+    const cible = await soiree('Hivernale 2026', CIBLE, 'scheduled')
+
+    const user = await MemberFactory.create()
+    await db.table('pre_orders').insert({
+      event_id: cible.id,
+      user_id: user.id,
+      status: 'pending',
+      discount_percent: 0,
+      created_at: new Date(),
+    })
+
+    const prediction = await predire(2025)
+
+    assert.equal(prediction!.expectedOrders, 9)
+    assert.isFalse(prediction!.flooredByPreOrders)
   })
 })
