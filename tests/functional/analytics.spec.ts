@@ -4,6 +4,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import db from '@adonisjs/lucid/services/db'
 import Event from '#models/event'
 import Product from '#models/product'
+import ProductCategory from '#models/product_category'
 import { MemberFactory } from '#database/factories/members_factory'
 import { grantPermissions } from '#tests/helpers/permissions'
 import {
@@ -103,6 +104,72 @@ async function commandes(eventId: number, count: number, unitPriceCents = 300) {
       list_price_cents: BURGER_CENTS,
     })
   }
+}
+
+async function produit(name: string, categoryId: number | null = null) {
+  return Product.create({
+    name,
+    isVegetarian: false,
+    description: null,
+    recipe: null,
+    productCategoryId: categoryId,
+  })
+}
+
+/** Inscrit un produit au menu d'une soirée, avec la quantité prévue. */
+async function auMenu(eventId: number, productId: number, plannedQty: number, price = 400) {
+  await db.table('event_products').insert({
+    event_id: eventId,
+    product_id: productId,
+    quantity: plannedQty,
+    price,
+    created_at: new Date(),
+    updated_at: new Date(),
+  })
+}
+
+/** Une commande d'une ligne : `quantity` unités du produit donné. */
+async function vente(eventId: number, productId: number, quantity: number) {
+  const [row] = await db
+    .table('orders')
+    .insert({
+      event_id: eventId,
+      status: 'completed',
+      created_at: new Date(),
+      updated_at: new Date(),
+    })
+    .returning('id')
+  await db.table('order_products').insert({
+    order_id: typeof row === 'object' ? Number(row.id) : Number(row),
+    product_id: productId,
+    quantity,
+    unit_price_cents: 400,
+    list_price_cents: BURGER_CENTS,
+  })
+}
+
+/** Une précommande d'un client neuf, portant `quantity` unités du produit. */
+async function precommande(eventId: number, productId: number, quantity: number) {
+  const client = await MemberFactory.create()
+  const [row] = await db
+    .table('pre_orders')
+    .insert({
+      event_id: eventId,
+      user_id: client.id,
+      status: 'pending',
+      discount_percent: 0,
+      created_at: new Date(),
+    })
+    .returning('id')
+  await db.table('pre_order_items').insert({
+    pre_order_id: typeof row === 'object' ? Number(row.id) : Number(row),
+    product_id: productId,
+    quantity,
+    received_quantity: 0,
+    list_price_cents: BURGER_CENTS,
+    created_at: new Date(),
+    updated_at: new Date(),
+  })
 }
 
 /** La prédiction reçoit désormais les lignes des deux saisons : on les monte ici. */
@@ -566,5 +633,159 @@ test.group('Analytics — prédiction saisonnière', (group) => {
 
     assert.equal(prediction!.expectedOrders, 9)
     assert.isFalse(prediction!.flooredByPreOrders)
+  })
+})
+
+test.group('Analytics — production estimée', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+  group.each.setup(() => videLesSoirees())
+
+  const CIBLE = '2026-02-14T20:00:00'
+
+  test('estime chaque produit sur sa vente à la soirée n-1 appariée', async ({ assert }) => {
+    const plats = await ProductCategory.create({ name: 'Plats' })
+    const hotdog = await produit('Hot-dog classique', plats.id)
+    const frites = await produit('Frites portion', plats.id)
+
+    const n1 = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await auMenu(n1.id, hotdog.id, 100)
+    await auMenu(n1.id, frites.id, 50)
+    await vente(n1.id, hotdog.id, 80)
+    await vente(n1.id, frites.id, 40)
+
+    const cible = await soiree('Hivernale 2026', CIBLE, 'scheduled')
+    await auMenu(cible.id, hotdog.id, 90)
+    await auMenu(cible.id, frites.id, 60)
+
+    const production = (await predire(2025))!.production
+    const lignes = production.categories.flatMap((c) => c.lines)
+
+    assert.deepEqual(
+      lignes.map((l) => [l.productName, l.plannedQty, l.expectedQty]),
+      [
+        ['Frites portion', 60, 40],
+        ['Hot-dog classique', 90, 80],
+      ]
+    )
+  })
+
+  test('retombe sur la moyenne du produit quand il manquait au menu de n-1', async ({ assert }) => {
+    const desserts = await ProductCategory.create({ name: 'Desserts' })
+    const crepe = await produit('Crêpe Nutella', desserts.id)
+
+    await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+
+    const a = await soiree('Noël 2024', '2024-12-20T20:00:00')
+    await auMenu(a.id, crepe.id, 30)
+    await vente(a.id, crepe.id, 10)
+    const b = await soiree('Halloween 2024', '2024-10-31T20:00:00')
+    await auMenu(b.id, crepe.id, 30)
+    await vente(b.id, crepe.id, 20)
+
+    const cible = await soiree('Hivernale 2026', CIBLE, 'scheduled')
+    await auMenu(cible.id, crepe.id, 25)
+
+    const production = (await predire(2025))!.production
+
+    assert.equal(production.categories[0].lines[0].expectedQty, 15)
+  })
+
+  test('laisse l’estimation vide pour un produit sans aucun passé', async ({ assert }) => {
+    const plats = await ProductCategory.create({ name: 'Plats' })
+    const nouveau = await produit('Wrap inédit', plats.id)
+
+    const n1 = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await vente(n1.id, (await produit('Autre chose')).id, 5)
+
+    const cible = await soiree('Hivernale 2026', CIBLE, 'scheduled')
+    await auMenu(cible.id, nouveau.id, 40)
+
+    const production = (await predire(2025))!.production
+
+    assert.isNull(production.categories[0].lines[0].expectedQty)
+    assert.equal(production.linesWithoutBasis, 1)
+    assert.equal(production.totalExpectedQty, 0)
+  })
+
+  test('ne descend jamais sous les quantités déjà précommandées', async ({ assert }) => {
+    const plats = await ProductCategory.create({ name: 'Plats' })
+    const hotdog = await produit('Hot-dog classique', plats.id)
+
+    const n1 = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await auMenu(n1.id, hotdog.id, 100)
+    await vente(n1.id, hotdog.id, 80)
+
+    const cible = await soiree('Hivernale 2026', CIBLE, 'scheduled')
+    await auMenu(cible.id, hotdog.id, 90)
+    await precommande(cible.id, hotdog.id, 60)
+    await precommande(cible.id, hotdog.id, 45)
+
+    const production = (await predire(2025))!.production
+    const ligne = production.categories[0].lines[0]
+
+    assert.equal(ligne.reservedQty, 105)
+    assert.equal(ligne.expectedQty, 105)
+    assert.isTrue(ligne.flooredByPreOrders)
+  })
+
+  test('groupe par catégorie, sous-totalise, et donne le total tous produits confondus', async ({
+    assert,
+  }) => {
+    const plats = await ProductCategory.create({ name: 'Plats' })
+    const boissons = await ProductCategory.create({ name: 'Boissons' })
+    const hotdog = await produit('Hot-dog classique', plats.id)
+    const frites = await produit('Frites portion', plats.id)
+    const biere = await produit('Bière pression', boissons.id)
+
+    const n1 = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    for (const [p, q] of [
+      [hotdog.id, 80],
+      [frites.id, 40],
+      [biere.id, 120],
+    ] as const) {
+      await auMenu(n1.id, p, 100)
+      await vente(n1.id, p, q)
+    }
+
+    const cible = await soiree('Hivernale 2026', CIBLE, 'scheduled')
+    for (const p of [hotdog.id, frites.id, biere.id]) await auMenu(cible.id, p, 50)
+
+    const production = (await predire(2025))!.production
+
+    assert.deepEqual(
+      production.categories.map((c) => [c.categoryName, c.plannedQty, c.expectedQty]),
+      [
+        ['Boissons', 50, 120],
+        ['Plats', 100, 120],
+      ]
+    )
+    assert.equal(production.totalPlannedQty, 150)
+    assert.equal(production.totalExpectedQty, 240)
+    assert.equal(production.linesWithoutBasis, 0)
+  })
+
+  test('recadre les quantités par la tendance de la saison', async ({ assert }) => {
+    const plats = await ProductCategory.create({ name: 'Plats' })
+    const hotdog = await produit('Hot-dog classique', plats.id)
+
+    const n1 = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
+    await auMenu(n1.id, hotdog.id, 100)
+    await vente(n1.id, hotdog.id, 100)
+    await commandes(n1.id, 9)
+    const autreN1 = await soiree('Halloween 2024', '2024-10-31T20:00:00')
+    await commandes(autreN1.id, 10)
+
+    const a = await soiree('Rentrée 2025', '2025-09-20T20:00:00')
+    await commandes(a.id, 15)
+    const b = await soiree('Halloween 2025', '2025-10-31T20:00:00')
+    await commandes(b.id, 15)
+
+    const cible = await soiree('Hivernale 2026', CIBLE, 'scheduled')
+    await auMenu(cible.id, hotdog.id, 90)
+
+    const prediction = (await predire(2025))!
+
+    assert.equal(prediction.trendPct, 50)
+    assert.equal(prediction.production.categories[0].lines[0].expectedQty, 150)
   })
 })

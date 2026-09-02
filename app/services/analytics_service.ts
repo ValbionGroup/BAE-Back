@@ -210,6 +210,185 @@ export interface SeasonPrediction {
   trendPct: number | null
   /** Vrai quand les précommandes ont relevé l'estimation. */
   flooredByPreOrders: boolean
+  /** La même prédiction, article par article — ce qu'il faut produire. */
+  production: ProductionForecast
+}
+
+export interface ProductionForecastLine {
+  productId: number
+  productName: string
+  categoryName: string
+  /** Quantité déjà saisie au menu de la soirée (`event_products.quantity`). */
+  plannedQty: number
+  /** `null` quand le produit n'a aucun passé : on n'invente pas un chiffre. */
+  expectedQty: number | null
+  /** Déjà engagé en précommande sur cette soirée. */
+  reservedQty: number
+  flooredByPreOrders: boolean
+}
+
+export interface ProductionForecastCategory {
+  categoryName: string
+  plannedQty: number
+  expectedQty: number
+  lines: ProductionForecastLine[]
+}
+
+export interface ProductionForecast {
+  categories: ProductionForecastCategory[]
+  totalPlannedQty: number
+  /** Tous produits confondus — ce que la soirée devrait écouler. */
+  totalExpectedQty: number
+  /** Lignes sans estimation ; le total les compte pour zéro. */
+  linesWithoutBasis: number
+}
+
+const UNCATEGORISED = 'Sans catégorie'
+
+/** Quantités vendues, par soirée et par produit. Clé : `eventId:productId`. */
+async function soldByEventProduct(eventIds: number[]): Promise<Map<string, number>> {
+  if (eventIds.length === 0) return new Map()
+
+  const rows = await db
+    .from('orders')
+    .join('order_products', 'order_products.order_id', 'orders.id')
+    .whereIn('orders.event_id', eventIds)
+    .whereNot('orders.status', 'cancelled')
+    .groupBy('orders.event_id', 'order_products.product_id')
+    .select('orders.event_id', 'order_products.product_id')
+    .sum('order_products.quantity as qty')
+
+  return new Map(
+    rows.map((row) => [`${Number(row.event_id)}:${Number(row.product_id)}`, Number(row.qty ?? 0)])
+  )
+}
+
+/**
+ * Quels produits figuraient au menu de quelles soirées. Une soirée où le
+ * produit n'était pas proposé ne compte pas comme une soirée à zéro vente —
+ * elle ne compte pas du tout.
+ */
+async function menuMembership(eventIds: number[]): Promise<Map<number, Set<number>>> {
+  if (eventIds.length === 0) return new Map()
+
+  const rows = await db.from('event_products').whereIn('event_id', eventIds).select('event_id', 'product_id')
+
+  const byEvent = new Map<number, Set<number>>()
+  for (const row of rows) {
+    const eventId = Number(row.event_id)
+    const set = byEvent.get(eventId) ?? new Set<number>()
+    set.add(Number(row.product_id))
+    byEvent.set(eventId, set)
+  }
+  return byEvent
+}
+
+/** Quantités déjà précommandées sur une soirée, par produit. */
+async function reservedByProduct(eventId: number): Promise<Map<number, number>> {
+  const rows = await db
+    .from('pre_orders')
+    .join('pre_order_items', 'pre_order_items.pre_order_id', 'pre_orders.id')
+    .where('pre_orders.event_id', eventId)
+    .whereNot('pre_orders.status', 'cancelled')
+    .groupBy('pre_order_items.product_id')
+    .select('pre_order_items.product_id')
+    .sum('pre_order_items.quantity as qty')
+
+  return new Map(rows.map((row) => [Number(row.product_id), Number(row.qty ?? 0)]))
+}
+
+const EMPTY_FORECAST: ProductionForecast = {
+  categories: [],
+  totalPlannedQty: 0,
+  totalExpectedQty: 0,
+  linesWithoutBasis: 0,
+}
+
+/**
+ * Combien produire de chaque article au menu de la soirée visée : la même
+ * échelle que la prédiction de commandes, appliquée aux quantités.
+ */
+async function productionForecast(
+  targetEventId: number,
+  modelEventId: number | null,
+  trend: number,
+  recentEventIds: number[]
+): Promise<ProductionForecast> {
+  const menu = await db
+    .from('event_products')
+    .join('products', 'products.id', 'event_products.product_id')
+    .leftJoin('product_categories', 'product_categories.id', 'products.product_category_id')
+    .where('event_products.event_id', targetEventId)
+    .select(
+      'event_products.product_id',
+      'event_products.quantity as planned',
+      'products.name as product_name',
+      'product_categories.name as category_name'
+    )
+
+  if (menu.length === 0) return EMPTY_FORECAST
+
+  const historyIds = [...new Set(modelEventId === null ? recentEventIds : [modelEventId, ...recentEventIds])]
+  const sold = await soldByEventProduct(historyIds)
+  const onMenu = await menuMembership(historyIds)
+  const reserved = await reservedByProduct(targetEventId)
+
+  const soldAt = (eventId: number, productId: number) =>
+    sold.get(`${eventId}:${productId}`) ?? 0
+  const wasOnMenu = (eventId: number, productId: number) =>
+    onMenu.get(eventId)?.has(productId) ?? false
+
+  const lines: ProductionForecastLine[] = menu.map((row) => {
+    const productId = Number(row.product_id)
+
+    let base: number | null = null
+    if (modelEventId !== null && wasOnMenu(modelEventId, productId)) {
+      base = Math.round(soldAt(modelEventId, productId) * trend)
+    } else {
+      const seen = recentEventIds.filter((id) => wasOnMenu(id, productId))
+      if (seen.length > 0) base = Math.round(mean(seen.map((id) => soldAt(id, productId))))
+    }
+
+    const reservedQty = reserved.get(productId) ?? 0
+    const expectedQty =
+      base === null ? (reservedQty > 0 ? reservedQty : null) : Math.max(base, reservedQty)
+
+    return {
+      productId,
+      productName: String(row.product_name),
+      categoryName: row.category_name === null ? UNCATEGORISED : String(row.category_name),
+      plannedQty: Number(row.planned ?? 0),
+      expectedQty,
+      reservedQty,
+      flooredByPreOrders: expectedQty !== null && (base === null || expectedQty > base),
+    }
+  })
+
+  const byCategory = new Map<string, ProductionForecastLine[]>()
+  for (const line of lines) {
+    byCategory.set(line.categoryName, [...(byCategory.get(line.categoryName) ?? []), line])
+  }
+
+  const categories = [...byCategory.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'fr'))
+    .map(([categoryName, categoryLines]) => {
+      const sorted = [...categoryLines].sort((a, b) =>
+        a.productName.localeCompare(b.productName, 'fr')
+      )
+      return {
+        categoryName,
+        plannedQty: sorted.reduce((sum, line) => sum + line.plannedQty, 0),
+        expectedQty: sorted.reduce((sum, line) => sum + (line.expectedQty ?? 0), 0),
+        lines: sorted,
+      }
+    })
+
+  return {
+    categories,
+    totalPlannedQty: categories.reduce((sum, c) => sum + c.plannedQty, 0),
+    totalExpectedQty: categories.reduce((sum, c) => sum + c.expectedQty, 0),
+    linesWithoutBasis: lines.filter((line) => line.expectedQty === null).length,
+  }
 }
 
 /** Trois semaines : au-delà, l'appariement rapprocherait Halloween de Noël. */
@@ -316,6 +495,13 @@ export async function predictionForSeason(
   const trend = model ? seasonTrend(seasonRows, previousRows) : 1
   const base = model ? Math.round(model.orderCount * trend) : Math.round(mean(counts))
 
+  const production = await productionForecast(
+    Number(next.id),
+    model === null ? null : model.id,
+    trend,
+    recent.map((row) => Number(row.id))
+  )
+
   /** Jamais moins que ce qui est déjà réservé : le plancher est un fait, pas une estimation. */
   const expectedOrders = Math.max(base, preOrderCount)
 
@@ -333,6 +519,7 @@ export async function predictionForSeason(
     modelOrderCount: model?.orderCount ?? null,
     trendPct: model ? Math.round((trend - 1) * 100) : null,
     flooredByPreOrders: expectedOrders > base,
+    production,
   }
 }
 
