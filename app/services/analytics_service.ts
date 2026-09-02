@@ -271,7 +271,10 @@ async function soldByEventProduct(eventIds: number[]): Promise<Map<string, numbe
 async function menuMembership(eventIds: number[]): Promise<Map<number, Set<number>>> {
   if (eventIds.length === 0) return new Map()
 
-  const rows = await db.from('event_products').whereIn('event_id', eventIds).select('event_id', 'product_id')
+  const rows = await db
+    .from('event_products')
+    .whereIn('event_id', eventIds)
+    .select('event_id', 'product_id')
 
   const byEvent = new Map<number, Set<number>>()
   for (const row of rows) {
@@ -328,13 +331,14 @@ async function productionForecast(
 
   if (menu.length === 0) return EMPTY_FORECAST
 
-  const historyIds = [...new Set(modelEventId === null ? recentEventIds : [modelEventId, ...recentEventIds])]
+  const historyIds = [
+    ...new Set(modelEventId === null ? recentEventIds : [modelEventId, ...recentEventIds]),
+  ]
   const sold = await soldByEventProduct(historyIds)
   const onMenu = await menuMembership(historyIds)
   const reserved = await reservedByProduct(targetEventId)
 
-  const soldAt = (eventId: number, productId: number) =>
-    sold.get(`${eventId}:${productId}`) ?? 0
+  const soldAt = (eventId: number, productId: number) => sold.get(`${eventId}:${productId}`) ?? 0
   const wasOnMenu = (eventId: number, productId: number) =>
     onMenu.get(eventId)?.has(productId) ?? false
 

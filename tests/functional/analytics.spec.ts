@@ -79,7 +79,7 @@ async function videLesSoirees() {
 /** `n` commandes sur une soirée, un seul produit — pour les séries un peu longues. */
 async function commandes(eventId: number, count: number, unitPriceCents = 300) {
   productSeq += 1
-  const produit = await Product.create({
+  const lot = await Product.create({
     name: `Lot ${productSeq}`,
     isVegetarian: false,
     description: null,
@@ -98,7 +98,7 @@ async function commandes(eventId: number, count: number, unitPriceCents = 300) {
       .returning('id')
     await db.table('order_products').insert({
       order_id: typeof row === 'object' ? Number(row.id) : Number(row),
-      product_id: produit.id,
+      product_id: lot.id,
       quantity: 1,
       unit_price_cents: unitPriceCents,
       list_price_cents: BURGER_CENTS,
@@ -695,7 +695,8 @@ test.group('Analytics — production estimée', (group) => {
     const nouveau = await produit('Wrap inédit', plats.id)
 
     const n1 = await soiree('Hivernale 2025', '2025-02-28T20:00:00')
-    await vente(n1.id, (await produit('Autre chose')).id, 5)
+    const autre = await produit('Autre chose')
+    await vente(n1.id, autre.id, 5)
 
     const cible = await soiree('Hivernale 2026', CIBLE, 'scheduled')
     await auMenu(cible.id, nouveau.id, 40)
@@ -721,11 +722,11 @@ test.group('Analytics — production estimée', (group) => {
     await precommande(cible.id, hotdog.id, 45)
 
     const production = (await predire(2025))!.production
-    const ligne = production.categories[0].lines[0]
+    const ligneHotdog = production.categories[0].lines[0]
 
-    assert.equal(ligne.reservedQty, 105)
-    assert.equal(ligne.expectedQty, 105)
-    assert.isTrue(ligne.flooredByPreOrders)
+    assert.equal(ligneHotdog.reservedQty, 105)
+    assert.equal(ligneHotdog.expectedQty, 105)
+    assert.isTrue(ligneHotdog.flooredByPreOrders)
   })
 
   test('groupe par catégorie, sous-totalise, et donne le total tous produits confondus', async ({
