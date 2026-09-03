@@ -30,9 +30,13 @@ async function markRefused(payment: Payment): Promise<void> {
 }
 
 /**
- * Encaisse par QR Lydia (`POST /api/payment/payment`), synchrone en un seul
+ * Encaisse par QR Lydia (`POST /api/payment/payment.json`), synchrone en un seul
  * aller-retour — contrairement à SumUp, qui est en deux temps (`openCardPayment`
  * puis `confirmCardPayment`). Rien n'est écrit tant que Lydia n'a pas confirmé.
+ *
+ * L'identifiant de transaction est écrit **hors transaction**, dès le débit
+ * obtenu : la preuve que le client a payé ne doit dépendre d'aucun commit qui
+ * suit.
  */
 export async function payWithLydiaQrCode(input: PayWithLydiaQrCodeInput): Promise<OrderPayload> {
   const cashier = input.memberId === null ? null : await Member.find(input.memberId)
@@ -78,9 +82,6 @@ export async function payWithLydiaQrCode(input: PayWithLydiaQrCodeInput): Promis
     throw error
   }
 
-  // Écrit hors transaction, avant toute autre étape qui pourrait échouer : la
-  // preuve que Lydia a débité le client ne doit jamais dépendre d'un commit qui
-  // suit — voir C1/C3 de la revue.
   await db.from('payments').where('id', payment.id).update({
     transaction_identifier: charged.transactionIdentifier,
     updated_at: DateTime.now().toSQL(),
