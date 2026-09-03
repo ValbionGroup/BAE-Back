@@ -54,7 +54,7 @@ test.group('Mot de passe oublié', (group) => {
       firstName: 'Camille',
       lastName: 'Renard',
     })
-    await Client.create({ id: user.id, phone: null, promotion: null, registeredAt: DateTime.now() })
+    await Client.create({ id: user.id, promotion: null, registeredAt: DateTime.now() })
     return user
   }
 

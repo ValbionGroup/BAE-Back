@@ -5,7 +5,6 @@ import vine from '@vinejs/vine'
  * `promotion`/`school` (claims SSO, écrasés au prochain login).
  */
 export const updateProfileValidator = vine.create({
-  phone: vine.string().trim().maxLength(32).nullable().optional(),
   telegramHandle: vine
     .string()
     .trim()

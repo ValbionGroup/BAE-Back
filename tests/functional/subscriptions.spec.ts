@@ -16,7 +16,7 @@ async function makeClient(email: string): Promise<Client> {
     firstName: 'Camille',
     lastName: 'Renard',
   })
-  return Client.create({ id: user.id, phone: null, promotion: null, registeredAt: DateTime.now() })
+  return Client.create({ id: user.id, promotion: null, registeredAt: DateTime.now() })
 }
 
 test.group('Cotisations', (group) => {

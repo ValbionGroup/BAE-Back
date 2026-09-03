@@ -10,7 +10,7 @@ import type Member from '#models/member'
 export default class MemberTransformer extends BaseTransformer<Member> {
   toObject() {
     return {
-      ...this.pick(this.resource, ['id', 'points', 'createdAt', 'updatedAt']),
+      ...this.pick(this.resource, ['id', 'phone', 'points', 'createdAt', 'updatedAt']),
       firstName: this.resource.user?.firstName ?? null,
       lastName: this.resource.user?.lastName ?? null,
       role: this.resource.role?.name ?? null,

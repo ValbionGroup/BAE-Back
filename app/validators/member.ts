@@ -20,4 +20,5 @@ export const updateMemberValidator = vine.create({
   firstName: vine.string().trim().minLength(1).maxLength(255).optional(),
   lastName: vine.string().trim().minLength(1).maxLength(255).optional(),
   roleId: vine.number().positive().nullable().optional(),
+  phone: vine.string().trim().maxLength(32).nullable().optional(),
 })

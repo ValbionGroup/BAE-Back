@@ -57,7 +57,6 @@ export async function provision(app: SsoApp, claims: SsoClaims): Promise<Resolut
     if (existing === null) {
       await Client.create({
         id: user.id,
-        phone: null,
         promotion: formatCursus(claims.degree),
         school: claims.school,
         registeredAt: DateTime.now(),

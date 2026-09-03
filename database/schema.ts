@@ -73,7 +73,7 @@ export class CategorySchema extends BaseModel {
 }
 
 export class ClientSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'note', 'noteAuthorId', 'noteWrittenAt', 'phone', 'preparationNote', 'promotion', 'registeredAt', 'school', 'updatedAt'] as const
+  static $columns = ['createdAt', 'id', 'note', 'noteAuthorId', 'noteWrittenAt', 'preparationNote', 'promotion', 'registeredAt', 'school', 'updatedAt'] as const
   $columns = ClientSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
@@ -85,8 +85,6 @@ export class ClientSchema extends BaseModel {
   declare noteAuthorId: number | null
   @column.dateTime()
   declare noteWrittenAt: DateTime | null
-  @column()
-  declare phone: string | null
   @column()
   declare preparationNote: string | null
   @column()
@@ -352,12 +350,14 @@ export class MemberResponseSchema extends BaseModel {
 }
 
 export class MemberSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'points', 'roleId', 'updatedAt'] as const
+  static $columns = ['createdAt', 'id', 'phone', 'points', 'roleId', 'updatedAt'] as const
   $columns = MemberSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
   @column({ isPrimary: true })
   declare id: number
+  @column()
+  declare phone: string | null
   @column()
   declare points: number
   @column()

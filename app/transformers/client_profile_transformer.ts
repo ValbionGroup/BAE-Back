@@ -9,7 +9,7 @@ import type Client from '#models/client'
 export default class ClientProfileTransformer extends BaseTransformer<Client> {
   toObject() {
     return {
-      ...this.pick(this.resource, ['phone', 'promotion', 'school', 'preparationNote']),
+      ...this.pick(this.resource, ['promotion', 'school', 'preparationNote']),
       registeredAt: this.resource.registeredAt?.toISODate() ?? null,
     }
   }
