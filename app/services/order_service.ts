@@ -8,7 +8,7 @@ import ApiException from '#exceptions/api_exception'
 import { permissionsOfMember } from '#services/rbac_service'
 import { assertEventOpen } from '#services/event_lifecycle_service'
 import { ANONYMOUS_BUYER, resolveBuyerName, resolveBuyerNames } from '#services/buyer_service'
-import { findCategory, gridOf } from '#services/sponsorship_service'
+import { assertHasCredit, findCategory, gridOf } from '#services/sponsorship_service'
 
 export const ORDER_STATUSES = ['pending', 'in_progress', 'ready', 'completed', 'cancelled'] as const
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
@@ -361,6 +361,7 @@ export async function priceCart(
   const menu = await menuOf(eventId, trx)
 
   const category = sponsorshipCategoryId ? await findCategory(eventId, sponsorshipCategoryId) : null
+  if (category) await assertHasCredit(category, trx)
   const grid = category ? await gridOf(category.id, trx) : new Map<number, number>()
 
   const priced: OrderLinePayload[] = []

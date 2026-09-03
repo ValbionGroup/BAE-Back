@@ -9,6 +9,8 @@ export const SPONSORSHIP_MODES = ['external', 'internal'] as const
 export const sponsorshipCategoryValidator = vine.create({
   label: vine.string().trim().minLength(1),
   mode: vine.enum(SPONSORSHIP_MODES),
+  /** `null` ou absent : le QR ne se périme pas au compteur. */
+  maxOrders: vine.number().withoutDecimals().positive().nullable().optional(),
 })
 
 /**
@@ -18,6 +20,7 @@ export const sponsorshipCategoryValidator = vine.create({
 export const sponsorshipCategoryPatchValidator = vine.create({
   label: vine.string().trim().minLength(1).optional(),
   mode: vine.enum(SPONSORSHIP_MODES).optional(),
+  maxOrders: vine.number().withoutDecimals().positive().nullable().optional(),
 })
 
 export const sponsorshipPricesValidator = vine.create({

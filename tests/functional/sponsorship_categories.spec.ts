@@ -295,4 +295,83 @@ test.group('Sponsorship categories', (group) => {
     response.assertStatus(422)
     response.assertBodyContains({ error: { code: 'E_SPONSORSHIP_NO_PAYER' } })
   })
+  test('porte une limite de commandes et son compteur', async ({ client, assert }) => {
+    const user = await manager()
+    const event = await sponsoredEvent()
+
+    const created = await client
+      .post(`/v1/events/${event.id}/sponsorship-categories`)
+      .json({ label: 'Staff BDE', mode: 'external', max_orders: 10 })
+      .loginAs(user)
+
+    created.assertStatus(200)
+    assert.equal(created.body().data.max_orders, 10)
+    assert.equal(created.body().data.used_orders, 0)
+
+    await db.table('orders').insert({
+      event_id: event.id,
+      status: 'pending',
+      sponsorship_category_id: created.body().data.id,
+      created_at: new Date(),
+      updated_at: new Date(),
+    })
+
+    const listed = await client.get(`/v1/events/${event.id}/sponsorship-categories`).loginAs(user)
+
+    assert.equal(listed.body().data[0].used_orders, 1)
+  })
+
+  test('laisse la limite vide par défaut', async ({ client, assert }) => {
+    const user = await manager()
+    const event = await sponsoredEvent()
+
+    const created = await client
+      .post(`/v1/events/${event.id}/sponsorship-categories`)
+      .json({ label: 'Invités du BAE', mode: 'internal' })
+      .loginAs(user)
+
+    created.assertStatus(200)
+    assert.isNull(created.body().data.max_orders)
+  })
+
+  // Une commande annulée n'a rien consommé : le crédit revient.
+  test('ne compte pas les commandes annulées', async ({ client, assert }) => {
+    const user = await manager()
+    const event = await sponsoredEvent()
+
+    const created = await client
+      .post(`/v1/events/${event.id}/sponsorship-categories`)
+      .json({ label: 'Staff BDE', mode: 'external', max_orders: 2 })
+      .loginAs(user)
+
+    await db.table('orders').insert({
+      event_id: event.id,
+      status: 'cancelled',
+      sponsorship_category_id: created.body().data.id,
+      created_at: new Date(),
+      updated_at: new Date(),
+    })
+
+    const listed = await client.get(`/v1/events/${event.id}/sponsorship-categories`).loginAs(user)
+
+    assert.equal(listed.body().data[0].used_orders, 0)
+  })
+
+  test('laisse modifier la limite après coup', async ({ client, assert }) => {
+    const user = await manager()
+    const event = await sponsoredEvent()
+
+    const created = await client
+      .post(`/v1/events/${event.id}/sponsorship-categories`)
+      .json({ label: 'Staff BDE', mode: 'external', max_orders: 10 })
+      .loginAs(user)
+
+    const patched = await client
+      .patch(`/v1/events/${event.id}/sponsorship-categories/${created.body().data.id}`)
+      .json({ max_orders: null })
+      .loginAs(user)
+
+    patched.assertStatus(200)
+    assert.isNull(patched.body().data.max_orders)
+  })
 })

@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import db from '@adonisjs/lucid/services/db'
 import { decodeJwt } from 'jose'
 import Product from '#models/product'
 import SponsorshipCategory from '#models/sponsorship_category'
@@ -30,6 +31,18 @@ async function seed() {
   })
 
   return { event, product, category }
+}
+
+async function placeOrders(eventId: number, categoryId: number, count: number, status = 'pending') {
+  for (let index = 0; index < count; index += 1) {
+    await db.table('orders').insert({
+      event_id: eventId,
+      status,
+      sponsorship_category_id: categoryId,
+      created_at: new Date(),
+      updated_at: new Date(),
+    })
+  }
 }
 
 test.group('QR de catégorie', (group) => {
@@ -123,5 +136,85 @@ test.group('QR de catégorie', (group) => {
 
     fresh.assertStatus(200)
     assert.equal(fresh.body().data.category.id, category.id)
+  })
+  test('annonce au comptoir ce qu’il reste au QR', async ({ client, assert }) => {
+    const { event, category } = await seed()
+    const user = await manager()
+    category.maxOrders = 10
+    await category.save()
+    await placeOrders(event.id, category.id, 3)
+
+    const emitted = await client
+      .get(`/v1/events/${event.id}/sponsorship-categories/${category.id}/qr`)
+      .loginAs(user)
+
+    const scanned = await client
+      .post('/v1/qr/verify')
+      .json({ token: emitted.body().data.token })
+      .loginAs(user)
+
+    scanned.assertStatus(200)
+    assert.equal(scanned.body().data.category.max_orders, 10)
+    assert.equal(scanned.body().data.category.used_orders, 3)
+  })
+
+  test('refuse le scan quand le QR a épuisé son quota', async ({ client }) => {
+    const { event, category } = await seed()
+    const user = await manager()
+    category.maxOrders = 2
+    await category.save()
+    await placeOrders(event.id, category.id, 2)
+
+    const emitted = await client
+      .get(`/v1/events/${event.id}/sponsorship-categories/${category.id}/qr`)
+      .loginAs(user)
+
+    const scanned = await client
+      .post('/v1/qr/verify')
+      .json({ token: emitted.body().data.token })
+      .loginAs(user)
+
+    // 422 et non 401 : un QR mort ne doit pas déconnecter le comptoir.
+    scanned.assertStatus(422)
+    scanned.assertBodyContains({ error: { code: 'E_CATEGORY_EXHAUSTED' } })
+  })
+
+  test('accepte encore le scan sur la dernière commande du quota', async ({ client, assert }) => {
+    const { event, category } = await seed()
+    const user = await manager()
+    category.maxOrders = 3
+    await category.save()
+    await placeOrders(event.id, category.id, 2)
+
+    const emitted = await client
+      .get(`/v1/events/${event.id}/sponsorship-categories/${category.id}/qr`)
+      .loginAs(user)
+
+    const scanned = await client
+      .post('/v1/qr/verify')
+      .json({ token: emitted.body().data.token })
+      .loginAs(user)
+
+    scanned.assertStatus(200)
+    assert.equal(scanned.body().data.category.used_orders, 2)
+  })
+
+  test('rend son quota au QR quand une commande est annulée', async ({ client }) => {
+    const { event, category } = await seed()
+    const user = await manager()
+    category.maxOrders = 1
+    await category.save()
+    await placeOrders(event.id, category.id, 1, 'cancelled')
+
+    const emitted = await client
+      .get(`/v1/events/${event.id}/sponsorship-categories/${category.id}/qr`)
+      .loginAs(user)
+
+    const scanned = await client
+      .post('/v1/qr/verify')
+      .json({ token: emitted.body().data.token })
+      .loginAs(user)
+
+    scanned.assertStatus(200)
   })
 })

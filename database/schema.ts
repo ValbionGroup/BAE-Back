@@ -693,7 +693,7 @@ export class RolesPermissionSchema extends BaseModel {
 }
 
 export class SponsorshipCategorySchema extends BaseModel {
-  static $columns = ['createdAt', 'eventId', 'id', 'label', 'mode', 'qrNonce', 'updatedAt'] as const
+  static $columns = ['createdAt', 'eventId', 'id', 'label', 'maxOrders', 'mode', 'qrNonce', 'updatedAt'] as const
   $columns = SponsorshipCategorySchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -703,6 +703,8 @@ export class SponsorshipCategorySchema extends BaseModel {
   declare id: number
   @column()
   declare label: string
+  @column()
+  declare maxOrders: number | null
   @column()
   declare mode: string
   @column()

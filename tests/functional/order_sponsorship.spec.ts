@@ -44,10 +44,16 @@ async function seed(payerName: string | null = 'BDE') {
   return { event, burger, frites }
 }
 
-async function category(event: Event, label: string, prices: Record<number, number>) {
+async function category(
+  event: Event,
+  label: string,
+  prices: Record<number, number>,
+  maxOrders: number | null = null
+) {
   const created = await SponsorshipCategory.create({
     eventId: event.id,
     label,
+    maxOrders,
     qrNonce: 'nonce-test',
   })
 
@@ -232,5 +238,85 @@ test.group('Orders — prise en charge', (group) => {
     assert.equal(data.sponsored_cents, 0)
     assert.equal(data.discount_cents, 0)
     assert.isNull(data.sponsorship)
+  })
+  test('refuse la commande qui dépasse le quota du QR', async ({ client }) => {
+    const { event, burger } = await seed()
+    const tier = await category(event, 'Staff BDE', { [burger.id]: 0 }, 1)
+    const user = await seller()
+
+    const first = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: burger.id, quantity: 1 }], sponsorship_category_id: tier.id })
+      .loginAs(user)
+    first.assertStatus(201)
+
+    const second = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: burger.id, quantity: 1 }], sponsorship_category_id: tier.id })
+      .loginAs(user)
+
+    second.assertStatus(422)
+    second.assertBodyContains({ error: { code: 'E_CATEGORY_EXHAUSTED' } })
+  })
+
+  // Le refus tombe avant tout écrit : ni commande ni transaction comptable.
+  test('n’écrit rien quand le quota est dépassé', async ({ client, assert }) => {
+    const { event, burger } = await seed()
+    const tier = await category(event, 'Staff BDE', { [burger.id]: 0 }, 1)
+    const user = await seller()
+
+    await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: burger.id, quantity: 1 }], sponsorship_category_id: tier.id })
+      .loginAs(user)
+
+    const before = await Transaction.all()
+
+    const refused = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: burger.id, quantity: 1 }], sponsorship_category_id: tier.id })
+      .loginAs(user)
+    refused.assertStatus(422)
+
+    const orders = await Order.query().where('eventId', event.id)
+    const after = await Transaction.all()
+    assert.equal(orders.length, 1)
+    assert.equal(after.length, before.length)
+  })
+
+  test('laisse repasser une commande après l’annulation de la précédente', async ({ client }) => {
+    const { event, burger } = await seed()
+    const tier = await category(event, 'Staff BDE', { [burger.id]: 0 }, 1)
+    const user = await MemberFactory.create().then((member) =>
+      grantPermissions(member, ['order:write', 'order:read', 'order:delete'])
+    )
+
+    const first = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: burger.id, quantity: 1 }], sponsorship_category_id: tier.id })
+      .loginAs(user)
+
+    await client.delete(`/v1/orders/${first.body().data.id}`).loginAs(user)
+
+    const second = await client
+      .post(`/v1/events/${event.id}/orders`)
+      .json({ lines: [{ product_id: burger.id, quantity: 1 }], sponsorship_category_id: tier.id })
+      .loginAs(user)
+
+    second.assertStatus(201)
+  })
+
+  test('ne plafonne rien quand la limite est vide', async ({ client }) => {
+    const { event, burger } = await seed()
+    const tier = await category(event, 'Staff BDE', { [burger.id]: 0 })
+    const user = await seller()
+
+    for (let index = 0; index < 3; index += 1) {
+      const response = await client
+        .post(`/v1/events/${event.id}/orders`)
+        .json({ lines: [{ product_id: burger.id, quantity: 1 }], sponsorship_category_id: tier.id })
+        .loginAs(user)
+      response.assertStatus(201)
+    }
   })
 })
