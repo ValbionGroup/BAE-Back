@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { DateTime } from 'luxon'
 import app from '@adonisjs/core/services/app'
 import db from '@adonisjs/lucid/services/db'
+import logger from '@adonisjs/core/services/logger'
 import ApiException from '#exceptions/api_exception'
 import Member from '#models/member'
 import Payment from '#models/payment'
@@ -69,11 +70,27 @@ export async function payWithLydiaQrCode(input: PayWithLydiaQrCodeInput): Promis
       orderId: payment.orderRef,
     })
   } catch (error) {
+    logger.error(
+      { orderRef: payment.orderRef, err: error },
+      'paiement Lydia refusé ou injoignable : paiement marqué refusé'
+    )
     await markRefused(payment)
     throw error
   }
 
+  // Écrit hors transaction, avant toute autre étape qui pourrait échouer : la
+  // preuve que Lydia a débité le client ne doit jamais dépendre d'un commit qui
+  // suit — voir C1/C3 de la revue.
+  await db.from('payments').where('id', payment.id).update({
+    transaction_identifier: charged.transactionIdentifier,
+    updated_at: DateTime.now().toSQL(),
+  })
+
   if (charged.amountCents !== draft.totalCents) {
+    logger.error(
+      { orderRef: payment.orderRef, expected: draft.totalCents, received: charged.amountCents },
+      'montant confirmé par Lydia divergent : paiement marqué refusé'
+    )
     await markRefused(payment)
     throw new ApiException(
       'E_LYDIA_AMOUNT_MISMATCH',

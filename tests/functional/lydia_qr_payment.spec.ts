@@ -159,6 +159,7 @@ test.group('Encaissement par QR Lydia', (group) => {
 
     response.assertStatus(502)
     assert.equal(response.body().error.code, 'E_LYDIA_PAYMENT_REFUSED')
+    assert.include(response.body().error.message, 'Le client a refusé le paiement.')
     assert.equal(await countOrdersOf(event.id), before)
     assert.equal(await countLydiaPayments(), beforePayments + 1)
 
@@ -167,6 +168,30 @@ test.group('Encaissement par QR Lydia', (group) => {
       .orderBy('id', 'desc')
       .firstOrFail()
     assert.equal(payment.status, 'refused')
+  })
+
+  test('Lydia injoignable n’écrit aucune commande et marque le paiement refusé', async ({
+    client: httpClient,
+    assert,
+  }) => {
+    const { event, hotdog } = await seedMenu()
+    lydia.nextCharge = 'unreachable'
+    const before = await countOrdersOf(event.id)
+    const beforePayments = await countLydiaPayments()
+
+    const { response } = await pay(httpClient, event.id, hotdog.id, '0612345678')
+
+    response.assertStatus(502)
+    assert.equal(response.body().error.code, 'E_LYDIA_UNREACHABLE')
+    assert.equal(await countOrdersOf(event.id), before)
+    assert.equal(await countLydiaPayments(), beforePayments + 1)
+
+    const payment = await Payment.query()
+      .where('provider', 'lydia')
+      .orderBy('id', 'desc')
+      .firstOrFail()
+    assert.equal(payment.status, 'refused')
+    assert.isNull(payment.transactionIdentifier)
   })
 
   test('un montant confirmé différent du montant attendu est refusé', async ({

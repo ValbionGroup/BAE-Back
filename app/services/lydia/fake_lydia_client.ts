@@ -18,9 +18,10 @@ export default class FakeLydiaClient extends LydiaClient {
   nextState: RequestStateResult = { state: 1, amountCents: null, transactionIdentifier: 'tx-fake' }
   failNextCreate = false
 
-  /** `'decline'` simule un refus Lydia. `null` (défaut) fait réussir en renvoyant
+  /** `'decline'` simule un refus Lydia, `'unreachable'` une panne de transport
+   *  (cf. `HttpLydiaClient.post`). `null` (défaut) fait réussir en renvoyant
    *  l'`amountCents` reçu — la plupart des tests n'ont donc rien à régler. */
-  nextCharge: ChargeQrCodeResult | 'decline' | null = null
+  nextCharge: ChargeQrCodeResult | 'decline' | 'unreachable' | null = null
 
   async createRequest(input: CreateRequestInput): Promise<CreateRequestResult> {
     if (this.failNextCreate) {
@@ -46,6 +47,10 @@ export default class FakeLydiaClient extends LydiaClient {
 
     if (this.nextCharge === 'decline') {
       throw new ApiException('E_LYDIA_PAYMENT_REFUSED', 'Le client a refusé le paiement.', 502)
+    }
+
+    if (this.nextCharge === 'unreachable') {
+      throw new ApiException('E_LYDIA_UNREACHABLE', 'Lydia est injoignable.', 502)
     }
 
     return this.nextCharge ?? { transactionIdentifier: 'tx-fake', amountCents: input.amountCents }
