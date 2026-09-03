@@ -8,7 +8,8 @@ import StorageLocation from '#models/storage_location'
 import {
   supplierPriceValidator,
   goodBarcodeValidator,
-  goodStorageLocationValidator,
+  goodUpdateValidator,
+  goodValidator,
 } from '#validators/catalog'
 
 const UNIQUE_VIOLATION = '23505'
@@ -101,11 +102,8 @@ export default class GoodsController {
    * en créerait une seconde — le doublon que les codes multiples suppriment.
    */
   async store({ request, serialize }: HttpContext) {
-    const payload = request.all()
-    const { name, unit, brand, categoryId } = payload
-    const { storageLocationId } = await goodStorageLocationValidator.validate({
-      storageLocationId: payload.storageLocationId,
-    })
+    const payload = await request.validateUsing(goodValidator)
+    const { name, unit, brand, categoryId, storageLocationId } = payload
     await assertStorageLocationExists(storageLocationId)
     const codes = codesFrom(payload)
 
@@ -116,7 +114,7 @@ export default class GoodsController {
         created.name = name
         created.unit = unit
         created.brand = brand ?? ''
-        created.categoryId = categoryId
+        created.categoryId = categoryId ?? null
         created.storageLocationId = storageLocationId ?? null
         await created.save()
 
@@ -145,20 +143,20 @@ export default class GoodsController {
    * bon motif, seul.
    *
    * L'écart entre « clé absente » et « clé à `null` » porte le sens pour
-   * `storageLocationId` : ne pas y toucher, ou l'effacer.
+   * `storageLocationId` : ne pas y toucher, ou l'effacer. Le test est
+   * `!== undefined` et non `in` : Vine omet les clés absentes, donc les deux
+   * disent la même chose — mais seul le premier restreint le type.
    */
   async update({ params, request, serialize }: HttpContext) {
     const good = await goodQuery().where('id', params.id).firstOrFail()
-    const payload = request.all()
-    const { storageLocationId } = await goodStorageLocationValidator.validate({
-      storageLocationId: payload.storageLocationId,
-    })
+    const payload = await request.validateUsing(goodUpdateValidator)
+    const { storageLocationId } = payload
     await assertStorageLocationExists(storageLocationId)
 
-    if ('name' in payload) good.name = payload.name
-    if ('unit' in payload) good.unit = payload.unit
-    if ('categoryId' in payload) good.categoryId = payload.categoryId
-    if ('brand' in payload) good.brand = payload.brand ?? ''
+    if (payload.name !== undefined) good.name = payload.name
+    if (payload.unit !== undefined) good.unit = payload.unit
+    if (payload.categoryId !== undefined) good.categoryId = payload.categoryId
+    if (payload.brand !== undefined) good.brand = payload.brand ?? ''
     if ('storageLocationId' in payload) good.storageLocationId = storageLocationId ?? null
 
     await good.save()

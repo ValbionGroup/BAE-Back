@@ -4,14 +4,12 @@ import { middleware } from '#start/kernel'
 
 router
   .group(() => {
-    router.get('/logs', [controllers.Logs, 'index'])
-    router.post('/logs', [controllers.Logs, 'store'])
-    router.get('/logs/:id', [controllers.Logs, 'show'])
-    router.route('/logs/:id', ['PUT', 'PATCH'], [controllers.Logs, 'update'])
-    router.delete('/logs/:id', [controllers.Logs, 'destroy'])
+    router.get('/logs', [controllers.Logs, 'index']).use(middleware.can('log:read'))
+    router.get('/logs/:id', [controllers.Logs, 'show']).use(middleware.can('log:read'))
+    router.delete('/logs/:id', [controllers.Logs, 'destroy']).use(middleware.can('log:delete'))
   })
   .prefix('/v1')
-  .use([middleware.auth(), middleware.audience('member'), middleware.can('log:read')])
+  .use([middleware.auth(), middleware.audience('member')])
 
 router
   .group(() => {

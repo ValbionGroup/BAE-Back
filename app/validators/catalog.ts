@@ -63,8 +63,10 @@ export const productCategoryUpdateValidator = vine.create({
  * front normalise déjà (`rawCode.replace(/\s/g, '')`), mais la saisie n'est pas
  * la seule porte d'entrée.
  */
+const barcodeRule = () => vine.string().trim().minLength(1).maxLength(32).regex(/^\d+$/)
+
 export const goodBarcodeValidator = vine.create({
-  code: vine.string().trim().minLength(1).maxLength(32).regex(/^\d+$/),
+  code: barcodeRule(),
 })
 
 /**
@@ -80,8 +82,48 @@ export const goodBarcodeValidator = vine.create({
  * « efface-le ». Vine omet les clés absentes de sa sortie, ce qui rend la
  * distinction lisible par un simple `in`.
  */
-export const goodStorageLocationValidator = vine.create({
-  storageLocationId: vine.number().withoutDecimals().positive().nullable().optional(),
+const storageLocationIdRule = () => vine.number().withoutDecimals().positive().nullable().optional()
+
+/**
+ * Une denrée (`goods`).
+ *
+ * ⚠️ `unit` est un **enum en base** (`create_goods_table`) : sans cette règle une
+ * valeur inconnue partait jusqu'à Postgres et revenait en 500.
+ */
+export const goodValidator = vine.create({
+  name: vine.string().trim().minLength(1).maxLength(255),
+  unit: vine.enum(['pcs', 'kg', 'liter'] as const),
+  brand: vine.string().trim().maxLength(255).optional(),
+  categoryId: vine.number().withoutDecimals().positive().nullable().optional(),
+  storageLocationId: storageLocationIdRule(),
+  /** `barcodes` en principal, `barcode` seul toléré — cf. `codesFrom`. */
+  barcodes: vine.array(barcodeRule()).optional(),
+  barcode: barcodeRule().optional(),
+})
+
+/**
+ * Tout optionnel : Vine omet les clés absentes, donc le contrôleur distingue
+ * « efface » de « ne touche pas » par un simple test sur `undefined`.
+ */
+export const goodUpdateValidator = vine.create({
+  name: vine.string().trim().minLength(1).maxLength(255).optional(),
+  unit: vine.enum(['pcs', 'kg', 'liter'] as const).optional(),
+  brand: vine.string().trim().maxLength(255).nullable().optional(),
+  categoryId: vine.number().withoutDecimals().positive().nullable().optional(),
+  storageLocationId: storageLocationIdRule(),
+})
+
+/** ⚠️ `price` est en **centimes entiers** ; `quantity` compte des pièces. */
+export const furnitureValidator = vine.create({
+  name: vine.string().trim().minLength(1).maxLength(255),
+  quantity: vine.number().withoutDecimals().min(0),
+  price: vine.number().withoutDecimals().min(0),
+})
+
+export const furnitureUpdateValidator = vine.create({
+  name: vine.string().trim().minLength(1).maxLength(255).optional(),
+  quantity: vine.number().withoutDecimals().min(0).optional(),
+  price: vine.number().withoutDecimals().min(0).optional(),
 })
 
 /**

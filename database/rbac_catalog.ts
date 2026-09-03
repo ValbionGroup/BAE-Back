@@ -14,6 +14,7 @@ export const PERMISSIONS = [
   'restock:write',
   'restock:delete',
   'log:read',
+  'log:delete',
   'event:matching',
   'event:settle',
   'assignment:write',

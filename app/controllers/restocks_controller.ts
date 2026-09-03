@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Restock from '#models/restock'
+import { restockUpdateValidator, restockValidator } from '#validators/stock'
 
 /** ⚠️ `totalPrice` est reçu et stocké en **centimes entiers**. */
 export default class RestocksController {
@@ -12,11 +13,11 @@ export default class RestocksController {
   }
 
   async store({ request, serialize }: HttpContext) {
-    const { memberId, supplierId, totalPrice } = request.all()
+    const payload = await request.validateUsing(restockValidator)
     const restock = new Restock()
-    restock.memberId = memberId
-    restock.supplierId = supplierId
-    restock.totalPrice = totalPrice
+    restock.memberId = payload.memberId ?? null
+    restock.supplierId = payload.supplierId ?? null
+    restock.totalPrice = payload.totalPrice
     await restock.save()
     return serialize(restock)
   }
@@ -31,6 +32,8 @@ export default class RestocksController {
     return serialize(restock)
   }
 
+  /** `merge` et non des affectations : Vine omet les clés absentes, donc un PATCH
+   *  partiel ne réécrit plus les champs qu'il ne mentionne pas. */
   async update({ params, request, serialize }: HttpContext) {
     const restock = await Restock.query()
       .preload('member')
@@ -38,10 +41,8 @@ export default class RestocksController {
       .preload('stockBatches')
       .where('id', params.id)
       .firstOrFail()
-    const { memberId, supplierId, totalPrice } = request.all()
-    restock.memberId = memberId
-    restock.supplierId = supplierId
-    restock.totalPrice = totalPrice
+    const payload = await request.validateUsing(restockUpdateValidator)
+    restock.merge(payload)
     await restock.save()
     return serialize(restock)
   }

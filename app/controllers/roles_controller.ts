@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Role from '#models/role'
 import ApiException from '#exceptions/api_exception'
-import { rolePermissionsValidator } from '#validators/role'
+import { rolePermissionsValidator, roleValidator } from '#validators/role'
 import { acquireRbacLock, assertNoLockout, snapshotAtRiskPermissions } from '#services/rbac_service'
 
 export default class RolesController {
@@ -12,7 +12,7 @@ export default class RolesController {
   }
 
   async store({ request, serialize }: HttpContext) {
-    const { name } = request.all()
+    const { name } = await request.validateUsing(roleValidator)
     const role = await Role.create({ name })
     return serialize(role)
   }
@@ -23,7 +23,7 @@ export default class RolesController {
   }
 
   async update({ params, request, serialize }: HttpContext) {
-    const { name } = request.body()
+    const { name } = await request.validateUsing(roleValidator)
     const role = await Role.find(params.id)
     if (!role) {
       throw new ApiException('E_ROLE_NOT_FOUND', 'Rôle introuvable.', 404)

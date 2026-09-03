@@ -7,18 +7,6 @@ import type { InferInput, SimpleError } from '@vinejs/vine/types'
 export type ParamValue = string | number | bigint | boolean
 
 export interface Registry {
-  'auth.new_account.store': {
-    methods: ["POST"]
-    pattern: '/v1/auth/signup'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/user').signupValidator)>>
-      paramsTuple: []
-      params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/user').signupValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/new_account_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/new_account_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
-    }
-  }
   'auth.access_token.store': {
     methods: ["POST"]
     pattern: '/v1/auth/login'
@@ -335,12 +323,12 @@ export interface Registry {
     methods: ["POST"]
     pattern: '/v1/roles'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/role').roleValidator)>>
       paramsTuple: []
       params: {}
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/role').roleValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'roles.show': {
@@ -359,12 +347,12 @@ export interface Registry {
     methods: ["PUT","PATCH"]
     pattern: '/v1/roles/:id'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/role').roleValidator)>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/role').roleValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/roles_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'roles.destroy': {
@@ -695,10 +683,10 @@ export interface Registry {
     methods: ["POST"]
     pattern: '/v1/goods'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/catalog').goodStorageLocationValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/catalog').goodValidator)>>
       paramsTuple: []
       params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/catalog').goodStorageLocationValidator)>>
+      query: ExtractQuery<InferInput<(typeof import('#validators/catalog').goodValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/goods_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/goods_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
@@ -719,10 +707,10 @@ export interface Registry {
     methods: ["PUT","PATCH"]
     pattern: '/v1/goods/:id'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/catalog').goodStorageLocationValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/catalog').goodUpdateValidator)>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#validators/catalog').goodStorageLocationValidator)>>
+      query: ExtractQuery<InferInput<(typeof import('#validators/catalog').goodUpdateValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/goods_controller').default['update']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/goods_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
@@ -803,12 +791,12 @@ export interface Registry {
     methods: ["POST"]
     pattern: '/v1/furnitures'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/catalog').furnitureValidator)>>
       paramsTuple: []
       params: {}
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/catalog').furnitureValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'furnitures.show': {
@@ -827,12 +815,12 @@ export interface Registry {
     methods: ["PUT","PATCH"]
     pattern: '/v1/furnitures/:id'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/catalog').furnitureUpdateValidator)>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/catalog').furnitureUpdateValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/furnitures_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'furnitures.destroy': {
@@ -959,12 +947,12 @@ export interface Registry {
     methods: ["POST"]
     pattern: '/v1/stock-batches'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/stock').stockBatchValidator)>>
       paramsTuple: []
       params: {}
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/stock').stockBatchValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'stock_batches.inventory_pdf': {
@@ -1007,12 +995,12 @@ export interface Registry {
     methods: ["PUT","PATCH"]
     pattern: '/v1/stock-batches/:id'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/stock').stockBatchUpdateValidator)>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/stock').stockBatchUpdateValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stock_batches_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'stock_batches.destroy': {
@@ -1103,12 +1091,12 @@ export interface Registry {
     methods: ["POST"]
     pattern: '/v1/restocks'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/stock').restockValidator)>>
       paramsTuple: []
       params: {}
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/stock').restockValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'restocks.show': {
@@ -1127,12 +1115,12 @@ export interface Registry {
     methods: ["PUT","PATCH"]
     pattern: '/v1/restocks/:id'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/stock').restockUpdateValidator)>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/stock').restockUpdateValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/restocks_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'restocks.destroy': {
@@ -1907,12 +1895,12 @@ export interface Registry {
     methods: ["POST"]
     pattern: '/v1/fast-passes'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/subscription').fastPassValidator)>>
       paramsTuple: []
       params: {}
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/subscription').fastPassValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'fast_passes.show': {
@@ -1931,12 +1919,12 @@ export interface Registry {
     methods: ["PUT"]
     pattern: '/v1/fast-passes/:id'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#validators/subscription').fastPassValidator)>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/subscription').fastPassValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/fast_passes_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'fast_passes.destroy': {
@@ -2251,18 +2239,6 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['index']>>>
     }
   }
-  'logs.store': {
-    methods: ["POST"]
-    pattern: '/v1/logs'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['store']>>>
-    }
-  }
   'logs.show': {
     methods: ["GET","HEAD"]
     pattern: '/v1/logs/:id'
@@ -2273,18 +2249,6 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['show']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['show']>>>
-    }
-  }
-  'logs.update': {
-    methods: ["PUT","PATCH"]
-    pattern: '/v1/logs/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/logs_controller').default['update']>>>
     }
   }
   'logs.destroy': {

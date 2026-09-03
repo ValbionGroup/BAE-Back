@@ -30,6 +30,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_PASSWORD: Env.schema.string(),
   DB_DATABASE: Env.schema.string(),
 
+  /**
+   * TLS vers Postgres. Optionnelle, et fausse par défaut : inutile tant que la
+   * base partage le réseau du conteneur, indispensable dès qu'elle est ailleurs.
+   */
+  DB_SSL: Env.schema.boolean.optional(),
+
   SESSION_DRIVER: Env.schema.enum(['cookie', 'memory', 'database'] as const),
 
   JWT_PRIVATE_KEY: Env.schema.secret(),

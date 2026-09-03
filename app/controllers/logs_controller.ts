@@ -27,39 +27,16 @@ export default class LogsController {
     }
   }
 
-  async store({ request, serialize }: HttpContext) {
-    const { level, message, method, url, ip, meta, userId } = request.all()
-    const log = await Log.create({
-      level,
-      message,
-      method,
-      url,
-      ip,
-      meta,
-      userId,
-    })
-    return serialize(log)
-  }
-
   async show({ params, serialize }: HttpContext) {
     const log = await Log.query().where('id', params.id).preload('user').firstOrFail()
     return serialize(log)
   }
 
-  async update({ params, request, serialize }: HttpContext) {
-    const log = await Log.query().where('id', params.id).firstOrFail()
-    const { level, message, method, url, ip, meta, userId } = request.all()
-    log.level = level
-    log.message = message
-    log.method = method
-    log.url = url
-    log.ip = ip
-    log.meta = meta
-    log.userId = userId
-    await log.save()
-    return serialize(log)
-  }
-
+  /**
+   * ⚠️ Aucun `store` ni `update` ici, délibérément : le journal est écrit par
+   * `request_logger_middleware`, jamais par un client. Les rouvrir rendrait la
+   * trace d'audit forgeable par son propre lecteur.
+   */
   async destroy({ params }: HttpContext) {
     const log = await Log.query().where('id', params.id).preload('user').firstOrFail()
     await log.delete()

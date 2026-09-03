@@ -1,4 +1,3 @@
-import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/cors'
 import env from '#start/env'
 import { allowedOrigins } from '#services/cors_origins'
@@ -16,12 +15,15 @@ const corsConfig = defineConfig({
   enabled: true,
 
   /**
-   * En développement, toute origine est acceptée pour simplifier le duo
-   * front/back local. En production, l'allowlist est **dérivée des URL des deux
-   * fronts** — voir `allowedOrigins`, qui explique pourquoi elle n'est pas écrite
-   * à la main.
+   * L'allowlist est **dérivée des URL des deux fronts** — voir `allowedOrigins`,
+   * qui explique pourquoi elle n'est pas écrite à la main. Elle vaut aussi en
+   * développement, où les deux URL pointent sur `localhost`.
+   *
+   * ⚠️ Un `origin: true` en dev vivait ici. Avec `credentials: true` il laissait
+   * n'importe quelle page lire les réponses authentifiées de l'API locale, et
+   * acceptait le préflight sur lequel repose l'exemption CSRF de `shield`.
    */
-  origin: app.inDev ? true : allowedOrigins([env.get('DASHBOARD_URL'), env.get('PUBLIC_APP_URL')]),
+  origin: allowedOrigins([env.get('DASHBOARD_URL'), env.get('PUBLIC_APP_URL')]),
 
   /**
    * HTTP methods accepted for cross-origin requests.

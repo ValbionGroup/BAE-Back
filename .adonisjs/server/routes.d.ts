@@ -4,7 +4,6 @@ type ParamValue = string | number | bigint | boolean
 
 export type ScannedRoutes = {
   ALL: {
-    'auth.new_account.store': { paramsTuple?: []; params?: {} }
     'auth.access_token.store': { paramsTuple?: []; params?: {} }
     'auth.access_token.destroy': { paramsTuple?: []; params?: {} }
     'auth.access_token.destroy_all': { paramsTuple?: []; params?: {} }
@@ -191,9 +190,7 @@ export type ScannedRoutes = {
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.index': { paramsTuple?: []; params?: {} }
-    'logs.store': { paramsTuple?: []; params?: {} }
     'logs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'logs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'logs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'sessions.sessions.index': { paramsTuple?: []; params?: {} }
     'sessions.sessions.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -225,7 +222,6 @@ export type ScannedRoutes = {
     'unsubscribe': { paramsTuple?: []; params?: {} }
   }
   POST: {
-    'auth.new_account.store': { paramsTuple?: []; params?: {} }
     'auth.access_token.store': { paramsTuple?: []; params?: {} }
     'auth.access_token.destroy': { paramsTuple?: []; params?: {} }
     'auth.password_reset.request': { paramsTuple?: []; params?: {} }
@@ -274,7 +270,6 @@ export type ScannedRoutes = {
     'qrs.verify': { paramsTuple?: []; params?: {} }
     'pre_orders.collect': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.store': { paramsTuple?: []; params?: {} }
-    'logs.store': { paramsTuple?: []; params?: {} }
     'notifications.notifications.mark_all_read': { paramsTuple?: []; params?: {} }
     'tickets.tickets.store': { paramsTuple?: []; params?: {} }
     'tickets.tickets.reply': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -540,7 +535,6 @@ export type ScannedRoutes = {
     'pre_orders.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'pre_orders.set_pickup': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'logs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.notifications.mark_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tickets.tickets.set_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
@@ -569,7 +563,6 @@ export type ScannedRoutes = {
     'fast_passes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'clients.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'vouchers.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'logs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

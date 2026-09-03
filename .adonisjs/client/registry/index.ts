@@ -6,12 +6,6 @@ import type { ApiDefinition } from './tree.d.ts'
 const placeholder: any = {}
 
 const routes = {
-  'auth.new_account.store': {
-    methods: ["POST"],
-    pattern: '/v1/auth/signup',
-    tokens: [{"old":"/v1/auth/signup","type":0,"val":"v1","end":""},{"old":"/v1/auth/signup","type":0,"val":"auth","end":""},{"old":"/v1/auth/signup","type":0,"val":"signup","end":""}],
-    types: placeholder as Registry['auth.new_account.store']['types'],
-  },
   'auth.access_token.store': {
     methods: ["POST"],
     pattern: '/v1/auth/login',
@@ -1128,23 +1122,11 @@ const routes = {
     tokens: [{"old":"/v1/logs","type":0,"val":"v1","end":""},{"old":"/v1/logs","type":0,"val":"logs","end":""}],
     types: placeholder as Registry['logs.index']['types'],
   },
-  'logs.store': {
-    methods: ["POST"],
-    pattern: '/v1/logs',
-    tokens: [{"old":"/v1/logs","type":0,"val":"v1","end":""},{"old":"/v1/logs","type":0,"val":"logs","end":""}],
-    types: placeholder as Registry['logs.store']['types'],
-  },
   'logs.show': {
     methods: ["GET","HEAD"],
     pattern: '/v1/logs/:id',
     tokens: [{"old":"/v1/logs/:id","type":0,"val":"v1","end":""},{"old":"/v1/logs/:id","type":0,"val":"logs","end":""},{"old":"/v1/logs/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['logs.show']['types'],
-  },
-  'logs.update': {
-    methods: ["PUT","PATCH"],
-    pattern: '/v1/logs/:id',
-    tokens: [{"old":"/v1/logs/:id","type":0,"val":"v1","end":""},{"old":"/v1/logs/:id","type":0,"val":"logs","end":""},{"old":"/v1/logs/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['logs.update']['types'],
   },
   'logs.destroy': {
     methods: ["DELETE"],

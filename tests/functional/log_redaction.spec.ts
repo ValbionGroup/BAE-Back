@@ -98,20 +98,20 @@ test.group('Log redaction (unit)', () => {
 test.group('Log redaction (end to end)', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  test('never stores the access token returned by signup', async ({ client, assert }) => {
+  test('never stores the access token returned by login', async ({ client, assert }) => {
     const previous = await Log.query().orderBy('id', 'desc').first()
     const sinceId = previous?.id ?? 0
 
-    const password = 'aStrongEnoughPassword'
-    const response = await client.post('/v1/auth/signup').json({
-      email: 'redaction@example.test',
-      password,
-      passwordConfirmation: password,
-    })
-    response.assertStatus(200)
-    const { token } = response.body().data as { token: string }
+    const password = 'AStrongEnoughPassword1'
+    await UserFactory.merge({ email: 'redaction@example.test', password }).create()
 
-    const logs = await Log.query().where('id', '>', sinceId).where('url', 'like', '%/auth/signup%')
+    const response = await client
+      .post('/v1/auth/login')
+      .json({ email: 'redaction@example.test', password })
+    response.assertStatus(200)
+    const token = response.body().data as string
+
+    const logs = await Log.query().where('id', '>', sinceId).where('url', 'like', '%/auth/login%')
     assert.isNotEmpty(logs)
 
     for (const log of logs) {
