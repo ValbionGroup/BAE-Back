@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import ApiException from '#exceptions/api_exception'
 import Member from '#models/member'
 import {
   cancel,
@@ -8,6 +9,7 @@ import {
   sellableForEvent,
   setStatus,
 } from '#services/order_service'
+import { payWithLydiaQrCode } from '#services/lydia_p2p_payment_service'
 import { summaryForEvent } from '#services/event_summary_service'
 import { orderCheckoutValidator, orderStatusValidator } from '#validators/order'
 import { broadcastOrder } from '#services/orders_realtime'
@@ -33,15 +35,36 @@ export default class OrdersController {
     // transaction comptable.
     await assertMayDiscount(cashier?.id ?? null, discount)
 
-    const order = await checkout(
-      Number(params.id),
-      payload.lines,
-      cashier?.id ?? null,
-      payload.clientId ?? null,
-      payload.paymentMethod ?? 'cash',
-      payload.sponsorshipCategoryId ?? null,
-      discount
-    )
+    let order
+    if (payload.paymentMethod === 'lydia') {
+      if (!payload.paymentData) {
+        throw new ApiException(
+          'E_LYDIA_PAYMENT_DATA_MISSING',
+          'Le contenu du QR est requis pour un paiement Lydia.',
+          422
+        )
+      }
+
+      order = await payWithLydiaQrCode({
+        eventId: Number(params.id),
+        lines: payload.lines,
+        memberId: cashier?.id ?? null,
+        clientId: payload.clientId ?? null,
+        sponsorshipCategoryId: payload.sponsorshipCategoryId ?? null,
+        discount,
+        paymentData: payload.paymentData,
+      })
+    } else {
+      order = await checkout(
+        Number(params.id),
+        payload.lines,
+        cashier?.id ?? null,
+        payload.clientId ?? null,
+        payload.paymentMethod ?? 'cash',
+        payload.sponsorshipCategoryId ?? null,
+        discount
+      )
+    }
 
     broadcastOrder('order.created', order)
 
