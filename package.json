@@ -73,6 +73,7 @@
     "@vinejs/vine": "^4.4.0",
     "better-sqlite3": "^12.11.1",
     "jose": "^6.2.10",
+    "libphonenumber-js": "^1.13.12",
     "luxon": "^3.7.2",
     "mysql2": "^3.24.2",
     "openid-client": "^6.8.7",

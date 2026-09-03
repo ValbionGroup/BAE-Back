@@ -55,6 +55,7 @@ router
 router
   .group(() => {
     router.put('/password', [controllers.AccountPassword, 'update'])
+    router.put('/phone', [controllers.AccountPhone, 'update'])
     router.post('/2fa', [controllers.TwoFactor, 'store'])
     router.post('/2fa/confirm', [controllers.TwoFactor, 'confirm'])
     router.post('/2fa/recovery-codes', [controllers.TwoFactor, 'recoveryCodes'])
