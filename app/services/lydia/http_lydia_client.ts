@@ -2,10 +2,14 @@ import logger from '@adonisjs/core/services/logger'
 import ApiException from '#exceptions/api_exception'
 import LydiaClient from './lydia_client.js'
 import {
+  buildChargeQrCodeBody,
   buildDoBody,
   buildStateBody,
+  parseChargeQrCodeResponse,
   parseDoResponse,
   parseStateResponse,
+  type ChargeQrCodeInput,
+  type ChargeQrCodeResult,
   type CreateRequestInput,
   type CreateRequestResult,
   type RequestStateResult,
@@ -38,6 +42,12 @@ export default class HttpLydiaClient extends LydiaClient {
   async requestState(requestUuid: string): Promise<RequestStateResult> {
     return parseStateResponse(
       await this.post('/api/request/state.json', buildStateBody(requestUuid, this.vendorToken))
+    )
+  }
+
+  async chargeQrCode(input: ChargeQrCodeInput): Promise<ChargeQrCodeResult> {
+    return parseChargeQrCodeResponse(
+      await this.post('/api/payment/payment', buildChargeQrCodeBody(input, this.vendorToken))
     )
   }
 
