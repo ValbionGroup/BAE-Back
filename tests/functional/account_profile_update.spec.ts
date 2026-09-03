@@ -7,7 +7,6 @@ import Client from '#models/client'
 type ProfileBody = {
   data: {
     client: {
-      phone: string | null
       promotion: string | null
       school: string | null
       registered_at: string | null
@@ -27,7 +26,6 @@ test.group('Profil client — lecture', (group) => {
     await Client.create({
       id: user.id,
       registeredAt: DateTime.now(),
-      phone: '0612345678',
       promotion: 'I2',
       preparationNote: 'Allergie arachide',
     })
@@ -36,8 +34,8 @@ test.group('Profil client — lecture', (group) => {
 
     response.assertStatus(200)
     const { client: profile, user: me } = response.body().data as ProfileBody['data']
-    assert.equal(profile?.phone, '0612345678')
     assert.equal(profile?.preparation_note, 'Allergie arachide')
+    assert.notProperty(profile, 'phone')
     assert.isFalse(me.telegram.linked)
   })
 
@@ -84,7 +82,6 @@ test.group('Profil client — écriture', (group) => {
     const row = await Client.create({
       id: user.id,
       registeredAt: DateTime.now(),
-      phone: '0600000000',
       preparationNote: 'Sans gluten',
     })
     return { user, row }
@@ -95,12 +92,11 @@ test.group('Profil client — écriture', (group) => {
 
     const response = await client
       .patch('/v1/account/profile')
-      .json({ phone: '0611223344' })
+      .json({ telegram_handle: 'nouveau_pseudo' })
       .loginAs(user)
 
     response.assertStatus(200)
     await row.refresh()
-    assert.equal(row.phone, '0611223344')
     assert.equal(row.preparationNote, 'Sans gluten')
   })
 
@@ -111,7 +107,6 @@ test.group('Profil client — écriture', (group) => {
 
     await row.refresh()
     assert.isNull(row.preparationNote)
-    assert.equal(row.phone, '0600000000')
   })
 
   /** Une chaîne vide vient d'un champ qu'on vide : c'est un effacement, pas un texte. */
@@ -197,13 +192,18 @@ test.group('Profil client — écriture', (group) => {
   test('un compte sans ligne client ne peut pas écrire', async ({ client }) => {
     const user = await UserFactory.create()
 
-    const response = await client.patch('/v1/account/profile').json({ phone: '0600' }).loginAs(user)
+    const response = await client
+      .patch('/v1/account/profile')
+      .json({ preparation_note: 'Sans gluten' })
+      .loginAs(user)
 
     response.assertStatus(403)
   })
 
   test('sans session, la route refuse', async ({ client }) => {
-    const response = await client.patch('/v1/account/profile').json({ phone: '0600' })
+    const response = await client
+      .patch('/v1/account/profile')
+      .json({ preparation_note: 'Sans gluten' })
 
     response.assertStatus(401)
   })

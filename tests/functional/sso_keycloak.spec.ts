@@ -139,12 +139,16 @@ test.group('SSO — les deux zones ont des politiques opposées', (group) => {
     // et `school` sont réécrits à chaque connexion, ils ne prouveraient rien.
     await Client.query()
       .where('id', first.user.id)
-      .update({ phone: '06 11 22 33 44', registered_at: DateTime.now().toSQLDate() })
+      .update({ preparation_note: 'Sans gluten', registered_at: DateTime.now().toSQLDate() })
 
     await provision('public', claimsFor({ casId: 'uid-repeat', subject: 'sub-repeat' }))
 
     const client = await Client.findOrFail(first.user.id)
-    assert.equal(client.phone, '06 11 22 33 44', 'les données saisies ne doivent pas être écrasées')
+    assert.equal(
+      client.preparationNote,
+      'Sans gluten',
+      'les données saisies ne doivent pas être écrasées'
+    )
   })
 
   test('public : la première connexion renseigne école et promotion', async ({ assert }) => {

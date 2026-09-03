@@ -75,6 +75,8 @@ export default class MembersController {
         member.roleId = payload.roleId
       }
 
+      if ('phone' in payload) member.phone = payload.phone ?? null
+
       member.useTransaction(trx)
       await member.save()
 

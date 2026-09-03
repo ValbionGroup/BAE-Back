@@ -30,7 +30,6 @@ async function makeClient(attrs: {
   })
   return Client.create({
     id: user.id,
-    phone: null,
     promotion: attrs.promotion ?? null,
     registeredAt: attrs.registeredAt ?? DateTime.now(),
   })
@@ -199,6 +198,20 @@ test.group('Adhérents — lecture', (group) => {
     assert.match(body.membership_number, /^EXT-2025-\d{4,}$/)
     assert.include(body.membership_number, String(person.id))
   })
+
+  /**
+   * Le téléphone a déménagé vers `members` (§Lydia) : un client n'en a plus
+   * besoin, et la fiche adhérent ne doit plus en porter la trace.
+   */
+  test('la fiche adhérent ne porte plus de téléphone', async ({ client: httpClient, assert }) => {
+    const member = await MemberFactory.create()
+    const user = await grantPermissions(member, ['client:read'])
+    const person = await makeClient({ email: 'phone-gone@test.fr', firstName: 'N', lastName: 'N' })
+
+    const response = await httpClient.get(`/v1/clients/${person.id}`).loginAs(user)
+    response.assertStatus(200)
+    assert.notProperty(response.body().data, 'phone')
+  })
 })
 
 test.group('Adhérents — écriture', (group) => {
@@ -211,7 +224,7 @@ test.group('Adhérents — écriture', (group) => {
 
     const response = await httpClient
       .patch(`/v1/clients/${person.id}`)
-      .json({ phone: '06 00 00 00 00' })
+      .json({ note: 'Allergie noix' })
       .loginAs(user)
     response.assertStatus(403)
   })
@@ -246,12 +259,12 @@ test.group('Adhérents — écriture', (group) => {
 
     const response = await httpClient
       .patch(`/v1/clients/${person.id}`)
-      .json({ phone: '06 24 31 88 02' })
+      .json({ note: 'Allergie noix' })
       .loginAs(user)
 
     response.assertStatus(200)
     await person.refresh()
-    assert.equal(person.phone, '06 24 31 88 02')
+    assert.equal(person.note, 'Allergie noix')
     assert.equal(person.promotion, '2A · Alt.', 'un corps partiel ne doit rien effacer')
   })
 
@@ -276,12 +289,11 @@ test.group('Adhérents — écriture', (group) => {
 
     const response = await httpClient
       .patch(`/v1/clients/${person.id}`)
-      .json({ promotion: 'saisie manuelle', phone: '06 24 31 88 02' })
+      .json({ promotion: 'saisie manuelle' })
       .loginAs(user)
 
     response.assertStatus(200)
     await person.refresh()
-    assert.equal(person.phone, '06 24 31 88 02', 'le téléphone, lui, reste éditable')
     assert.equal(person.promotion, '2A · Alt.')
   })
 

@@ -29,7 +29,6 @@ interface ClientRow {
 interface ClientDetail extends ClientRow {
   /** Dérivé du claim `ecole`, en lecture seule comme `promotion`. */
   school: string | null
-  phone: string | null
   registeredAt: string
   note: string | null
   noteAuthor: string | null
@@ -133,7 +132,6 @@ export default class ClientsController {
     const detail: ClientDetail = {
       ...toRow(client, views),
       school: client.school,
-      phone: client.phone,
       registeredAt: client.registeredAt.toISODate()!,
       note: client.note,
       noteAuthor: client.noteAuthor?.fullName ?? null,
@@ -153,8 +151,6 @@ export default class ClientsController {
     if (!client) {
       throw new ApiException('E_CLIENT_NOT_FOUND', 'Adhérent introuvable.', 404)
     }
-
-    if ('phone' in payload) client.phone = payload.phone ?? null
 
     if ('note' in payload) {
       client.note = payload.note ?? null

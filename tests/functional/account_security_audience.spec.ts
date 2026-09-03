@@ -31,7 +31,6 @@ test.group('Sécurité du compte — réservée aux membres', (group) => {
     })
     await Client.create({
       id: user.id,
-      phone: null,
       promotion: null,
       registeredAt: DateTime.now(),
     })

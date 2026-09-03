@@ -33,7 +33,6 @@ export default class ProfileController {
       throw new ApiException('E_CLIENT_NOT_FOUND', "Ce compte n'a pas de profil client.", 404)
     }
 
-    if ('phone' in payload) client.phone = blankToNull(payload.phone)
     if ('preparationNote' in payload) client.preparationNote = blankToNull(payload.preparationNote)
 
     await client.save()

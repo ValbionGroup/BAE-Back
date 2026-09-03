@@ -150,7 +150,6 @@ export default class extends BaseSeeder {
         { id: user.id },
         {
           id: user.id,
-          phone: seed.phone,
           promotion: seed.promotion,
           registeredAt,
           note: seed.note ?? null,

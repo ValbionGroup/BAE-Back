@@ -53,6 +53,25 @@ test.group('Member administration', (group) => {
     assert.equal(target.user.lastName, 'Lovelace')
   })
 
+  /**
+   * Le téléphone vit désormais sur `members`, pas `clients` : c'est celui du
+   * caissier qu'exige l'encaissement Lydia par QR, pas celui du client.
+   */
+  test('édite le téléphone du membre', async ({ client, assert }) => {
+    const actor = await MemberFactory.create()
+    const user = await grantPermissions(actor, ['member:write'])
+    const target = await MemberFactory.create()
+
+    const response = await client
+      .patch(`/v1/members/${target.id}`)
+      .json({ phone: '0612345678' })
+      .loginAs(user)
+
+    response.assertStatus(200)
+    await target.refresh()
+    assert.equal(target.phone, '0612345678')
+  })
+
   test('the response carries the NEW role, not the preloaded stale one', async ({
     client,
     assert,
