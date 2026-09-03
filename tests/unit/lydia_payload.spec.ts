@@ -141,7 +141,7 @@ test.group('Charge Lydia par QR', () => {
     assert.deepEqual(result, { transactionIdentifier: 'lydia-tx-9', amountCents: 500 })
   })
 
-  test('une réponse sans identifiant ni montant levé', ({ assert }) => {
+  test('une réponse sans identifiant ni montant lève', ({ assert }) => {
     assert.throws(() => parseChargeQrCodeResponse({ error: '0' }))
   })
 })
