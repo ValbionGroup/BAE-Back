@@ -2,10 +2,14 @@ import logger from '@adonisjs/core/services/logger'
 import ApiException from '#exceptions/api_exception'
 import LydiaClient from './lydia_client.js'
 import {
+  buildChargeQrCodeBody,
   buildDoBody,
   buildStateBody,
+  parseChargeQrCodeResponse,
   parseDoResponse,
   parseStateResponse,
+  type ChargeQrCodeInput,
+  type ChargeQrCodeResult,
   type CreateRequestInput,
   type CreateRequestResult,
   type RequestStateResult,
@@ -41,6 +45,17 @@ export default class HttpLydiaClient extends LydiaClient {
     )
   }
 
+  async chargeQrCode(input: ChargeQrCodeInput): Promise<ChargeQrCodeResult> {
+    return parseChargeQrCodeResponse(
+      await this.post('/api/payment/payment.json', buildChargeQrCodeBody(input, this.vendorToken))
+    )
+  }
+
+  /**
+   * Un corps non-JSON — page d'erreur, ou XML d'un endpoint appelé sans son
+   * suffixe `.json` — remontait en 500 « Unexpected token '<' ». Il est
+   * désormais journalisé : c'est la seule trace de ce que Lydia a répondu.
+   */
   private async post(path: string, body: URLSearchParams): Promise<unknown> {
     let response: Response
 
@@ -62,6 +77,15 @@ export default class HttpLydiaClient extends LydiaClient {
       throw new ApiException('E_LYDIA_UNREACHABLE', `Lydia a répondu ${response.status}.`, 502)
     }
 
-    return response.json()
+    const raw = await response.text()
+    try {
+      return JSON.parse(raw)
+    } catch {
+      logger.error(
+        { url: `${this.baseUrl}${path}`, body: raw.slice(0, 500) },
+        'réponse Lydia illisible : du JSON était attendu'
+      )
+      throw new ApiException('E_LYDIA_UNREACHABLE', 'Lydia a répondu hors format.', 502)
+    }
   }
 }

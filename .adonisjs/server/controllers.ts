@@ -7,6 +7,7 @@ export const controllers = {
   AccessToken: () => import('#controllers/access_token_controller'),
   AccountPassword: () => import('#controllers/account_password_controller'),
   AccountPayments: () => import('#controllers/account_payments_controller'),
+  AccountPhone: () => import('#controllers/account_phone_controller'),
   AccountPurchases: () => import('#controllers/account_purchases_controller'),
   AccountTelegram: () => import('#controllers/account_telegram_controller'),
   Activity: () => import('#controllers/activity_controller'),

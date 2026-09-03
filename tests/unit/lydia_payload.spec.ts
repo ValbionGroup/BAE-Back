@@ -1,5 +1,12 @@
 import { test } from '@japa/runner'
-import { buildDoBody, parseDoResponse, parseStateResponse } from '#services/lydia/lydia_payload'
+import {
+  buildDoBody,
+  parseDoResponse,
+  parseStateResponse,
+  buildChargeQrCodeBody,
+  parseChargeQrCodeResponse,
+} from '#services/lydia/lydia_payload'
+import type { ChargeQrCodeInput } from '#services/lydia/lydia_payload'
 
 const INPUT = {
   recipient: 'camille@test.fr',
@@ -86,5 +93,82 @@ test.group('Charge utile Lydia', () => {
   test('un montant absent de la réponse d’état vaut inconnu, pas zéro', ({ assert }) => {
     assert.isNull(parseStateResponse({ state: 1 }).amountCents)
     assert.equal(parseStateResponse({ state: 1, amount: '3.50' }).amountCents, 350)
+  })
+})
+
+const CHARGE_INPUT: ChargeQrCodeInput = {
+  phone: '0612345678',
+  paymentData: 'QR-BRUT-XYZ',
+  amountCents: 500,
+  orderId: 'order-1',
+}
+
+/**
+ * `POST /api/payment/payment` est le seul endpoint Lydia à mêler `paymentData`
+ * (camelCase, tel que la doc l'exige) au reste des champs en snake_case.
+ */
+test.group('Charge Lydia par QR', () => {
+  test('le montant part en euros à deux décimales', ({ assert }) => {
+    assert.equal(buildChargeQrCodeBody(CHARGE_INPUT, 'vendor-abc').get('amount'), '5.00')
+    assert.equal(
+      buildChargeQrCodeBody({ ...CHARGE_INPUT, amountCents: 1500 }, 'v').get('amount'),
+      '15.00'
+    )
+  })
+
+  test('paymentData voyage en camelCase, le reste en snake_case', ({ assert }) => {
+    const body = buildChargeQrCodeBody(CHARGE_INPUT, 'vendor-abc')
+
+    assert.equal(body.get('paymentData'), 'QR-BRUT-XYZ')
+    assert.equal(body.get('vendor_token'), 'vendor-abc')
+    assert.equal(body.get('phone'), '0612345678')
+    assert.equal(body.get('order_id'), 'order-1')
+    assert.equal(body.get('transmission'), 'qrcode')
+    assert.equal(body.get('currency'), 'EUR')
+  })
+
+  test('une réponse en erreur lève plutôt que de rendre un résultat vide', ({ assert }) => {
+    assert.throws(() => parseChargeQrCodeResponse({ error: '3', message: 'QR expiré' }))
+  })
+
+  test("une réponse valide rend l'identifiant et le montant confirmé", ({ assert }) => {
+    const result = parseChargeQrCodeResponse({
+      error: '0',
+      transaction_identifier: 'lydia-tx-9',
+      amount: '5.00',
+    })
+
+    assert.deepEqual(result, { transactionIdentifier: 'lydia-tx-9', amountCents: 500 })
+  })
+
+  test('une réponse sans identifiant ni montant lève', ({ assert }) => {
+    assert.throws(() => parseChargeQrCodeResponse({ error: '0' }))
+  })
+
+  /**
+   * Forme réellement observée sur l'homologation : `status`/`code`/`message`,
+   * sans champ `error`, servie en HTTP 200. La doc annonçait `error`.
+   */
+  test('un refus au format observé (status/code) lève avec le message de Lydia', ({ assert }) => {
+    assert.throws(
+      () =>
+        parseChargeQrCodeResponse({ status: 'error', code: '1', message: 'Paramètre manquant' }),
+      /Paramètre manquant/
+    )
+  })
+
+  /**
+   * Le défaut visé : refuser un paiement que Lydia a accepté. Si le succès ne
+   * porte pas de champ `error`, le lire comme un refus débiterait le client
+   * puis marquerait la vente refusée.
+   */
+  test('un succès sans champ error est accepté s’il porte un identifiant', ({ assert }) => {
+    const result = parseChargeQrCodeResponse({
+      status: 'success',
+      transaction_identifier: 'lydia-tx-7',
+      amount: '5.00',
+    })
+
+    assert.deepEqual(result, { transactionIdentifier: 'lydia-tx-7', amountCents: 500 })
   })
 })

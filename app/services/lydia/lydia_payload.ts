@@ -100,3 +100,74 @@ export function parseStateResponse(payload: unknown): RequestStateResult {
     transactionIdentifier: typeof identifier === 'string' ? identifier : null,
   }
 }
+
+export interface ChargeQrCodeInput {
+  phone: string
+  paymentData: string
+  amountCents: number
+  orderId: string
+}
+
+export interface ChargeQrCodeResult {
+  transactionIdentifier: string
+  amountCents: number
+}
+
+/**
+ * `paymentData` est le seul champ de cet endpoint Lydia en camelCase — le
+ * reste de l'API est en snake_case. Ne pas « corriger » : c'est le nom exact
+ * de la doc officielle.
+ */
+export function buildChargeQrCodeBody(
+  input: ChargeQrCodeInput,
+  vendorToken: string
+): URLSearchParams {
+  return new URLSearchParams({
+    vendor_token: vendorToken,
+    phone: input.phone,
+    paymentData: input.paymentData,
+    amount: euros(input.amountCents),
+    currency: 'EUR',
+    order_id: input.orderId,
+    transmission: 'qrcode',
+  })
+}
+
+/**
+ * ⚠️ Deux formes coexistent : la doc annonce `error: "0"`, l'homologation
+ * répond `status: "error"` + `code` + `message` — et toujours en HTTP 200.
+ * Le refus est donc reconnu sur l'une **ou** l'autre, et le succès n'est admis
+ * que porteur d'un `transaction_identifier` : lire un succès comme un refus
+ * débiterait le client tout en marquant la vente refusée.
+ */
+export function parseChargeQrCodeResponse(payload: unknown): ChargeQrCodeResult {
+  const body = asRecord(payload)
+
+  const declined =
+    String(body.status ?? '') === 'error' ||
+    (body.error !== undefined && body.error !== null && Number(body.error) !== 0)
+
+  if (declined) {
+    throw new ApiException(
+      'E_LYDIA_PAYMENT_REFUSED',
+      `Lydia a refusé le paiement : ${String(body.message ?? 'raison inconnue')}`,
+      502
+    )
+  }
+
+  const identifier = body.transaction_identifier
+  const amount = body.amount
+
+  if (typeof identifier !== 'string' || amount === undefined || amount === null) {
+    throw new ApiException(
+      'E_LYDIA_PAYMENT_REFUSED',
+      'Réponse de Lydia inexploitable : identifiant de transaction ou montant absent.',
+      502
+    )
+  }
+
+  return {
+    transactionIdentifier: identifier,
+    amountCents: Math.round(Number(amount) * 100),
+  }
+}

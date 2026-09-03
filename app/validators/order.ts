@@ -19,6 +19,9 @@ export const orderCheckoutValidator = vine.create({
   sponsorshipCategoryId: vine.number().positive().optional(),
   // Contraint par l'enum de `transactions.type`.
   paymentMethod: vine.enum(['cash', 'lydia'] as const).optional(),
+  /** Le contenu brut du QR Lydia — obligatoire quand `paymentMethod` vaut `'lydia'`,
+   *  vérifié dans le contrôleur (VineJS n'exprime pas bien une règle entre deux champs). */
+  paymentData: vine.string().optional(),
   /**
    * ⚠️ L'unique montant que le panier a le droit d'envoyer — voir
    * `DiscountInput`. Le motif est obligatoire parce que `order_discounts.label`
