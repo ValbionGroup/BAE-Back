@@ -133,10 +133,21 @@ export function buildChargeQrCodeBody(
   })
 }
 
+/**
+ * ⚠️ Deux formes coexistent : la doc annonce `error: "0"`, l'homologation
+ * répond `status: "error"` + `code` + `message` — et toujours en HTTP 200.
+ * Le refus est donc reconnu sur l'une **ou** l'autre, et le succès n'est admis
+ * que porteur d'un `transaction_identifier` : lire un succès comme un refus
+ * débiterait le client tout en marquant la vente refusée.
+ */
 export function parseChargeQrCodeResponse(payload: unknown): ChargeQrCodeResult {
   const body = asRecord(payload)
 
-  if (Number(body.error ?? -1) !== 0) {
+  const declined =
+    String(body.status ?? '') === 'error' ||
+    (body.error !== undefined && body.error !== null && Number(body.error) !== 0)
+
+  if (declined) {
     throw new ApiException(
       'E_LYDIA_PAYMENT_REFUSED',
       `Lydia a refusé le paiement : ${String(body.message ?? 'raison inconnue')}`,

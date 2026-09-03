@@ -144,4 +144,31 @@ test.group('Charge Lydia par QR', () => {
   test('une réponse sans identifiant ni montant lève', ({ assert }) => {
     assert.throws(() => parseChargeQrCodeResponse({ error: '0' }))
   })
+
+  /**
+   * Forme réellement observée sur l'homologation : `status`/`code`/`message`,
+   * sans champ `error`, servie en HTTP 200. La doc annonçait `error`.
+   */
+  test('un refus au format observé (status/code) lève avec le message de Lydia', ({ assert }) => {
+    assert.throws(
+      () =>
+        parseChargeQrCodeResponse({ status: 'error', code: '1', message: 'Paramètre manquant' }),
+      /Paramètre manquant/
+    )
+  })
+
+  /**
+   * Le défaut visé : refuser un paiement que Lydia a accepté. Si le succès ne
+   * porte pas de champ `error`, le lire comme un refus débiterait le client
+   * puis marquerait la vente refusée.
+   */
+  test('un succès sans champ error est accepté s’il porte un identifiant', ({ assert }) => {
+    const result = parseChargeQrCodeResponse({
+      status: 'success',
+      transaction_identifier: 'lydia-tx-7',
+      amount: '5.00',
+    })
+
+    assert.deepEqual(result, { transactionIdentifier: 'lydia-tx-7', amountCents: 500 })
+  })
 })

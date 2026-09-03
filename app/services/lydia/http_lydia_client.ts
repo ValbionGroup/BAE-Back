@@ -47,7 +47,8 @@ export default class HttpLydiaClient extends LydiaClient {
 
   async chargeQrCode(input: ChargeQrCodeInput): Promise<ChargeQrCodeResult> {
     return parseChargeQrCodeResponse(
-      await this.post('/api/payment/payment', buildChargeQrCodeBody(input, this.vendorToken))
+      // `.json` n'est pas cosmétique : sans le suffixe, cet endpoint répond en XML.
+      await this.post('/api/payment/payment.json', buildChargeQrCodeBody(input, this.vendorToken))
     )
   }
 
@@ -72,6 +73,18 @@ export default class HttpLydiaClient extends LydiaClient {
       throw new ApiException('E_LYDIA_UNREACHABLE', `Lydia a répondu ${response.status}.`, 502)
     }
 
-    return response.json()
+    // Une réponse non-JSON — page d'erreur, XML d'un endpoint sans suffixe
+    // `.json` — remontait en 500 « Unexpected token '<' ». Le corps est
+    // journalisé : c'est la seule trace de ce que le prestataire a vraiment dit.
+    const raw = await response.text()
+    try {
+      return JSON.parse(raw)
+    } catch {
+      logger.error(
+        { url: `${this.baseUrl}${path}`, body: raw.slice(0, 500) },
+        'réponse Lydia illisible : du JSON était attendu'
+      )
+      throw new ApiException('E_LYDIA_UNREACHABLE', 'Lydia a répondu hors format.', 502)
+    }
   }
 }
