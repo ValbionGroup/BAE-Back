@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
-import { buildDoBody, parseDoResponse, parseStateResponse } from '#services/lydia/lydia_payload'
+import { buildDoBody, parseDoResponse, parseStateResponse, buildChargeQrCodeBody, parseChargeQrCodeResponse } from '#services/lydia/lydia_payload'
+import type { ChargeQrCodeInput } from '#services/lydia/lydia_payload'
 
 const INPUT = {
   recipient: 'camille@test.fr',
@@ -86,5 +87,55 @@ test.group('Charge utile Lydia', () => {
   test('un montant absent de la réponse d’état vaut inconnu, pas zéro', ({ assert }) => {
     assert.isNull(parseStateResponse({ state: 1 }).amountCents)
     assert.equal(parseStateResponse({ state: 1, amount: '3.50' }).amountCents, 350)
+  })
+})
+
+const CHARGE_INPUT: ChargeQrCodeInput = {
+  phone: '0612345678',
+  paymentData: 'QR-BRUT-XYZ',
+  amountCents: 500,
+  orderId: 'order-1',
+}
+
+/**
+ * `POST /api/payment/payment` est le seul endpoint Lydia à mêler `paymentData`
+ * (camelCase, tel que la doc l'exige) au reste des champs en snake_case.
+ */
+test.group("Charge Lydia par QR", () => {
+  test("le montant part en euros à deux décimales", ({ assert }) => {
+    assert.equal(buildChargeQrCodeBody(CHARGE_INPUT, 'vendor-abc').get('amount'), '5.00')
+    assert.equal(
+      buildChargeQrCodeBody({ ...CHARGE_INPUT, amountCents: 1500 }, 'v').get('amount'),
+      '15.00'
+    )
+  })
+
+  test("paymentData voyage en camelCase, le reste en snake_case", ({ assert }) => {
+    const body = buildChargeQrCodeBody(CHARGE_INPUT, 'vendor-abc')
+
+    assert.equal(body.get('paymentData'), 'QR-BRUT-XYZ')
+    assert.equal(body.get('vendor_token'), 'vendor-abc')
+    assert.equal(body.get('phone'), '0612345678')
+    assert.equal(body.get('order_id'), 'order-1')
+    assert.equal(body.get('transmission'), 'qrcode')
+    assert.equal(body.get('currency'), 'EUR')
+  })
+
+  test("une reponse en erreur leve plutot que de rendre un resultat vide", ({ assert }) => {
+    assert.throws(() => parseChargeQrCodeResponse({ error: '3', message: 'QR expiré' }))
+  })
+
+  test("une reponse valide rend l identifiant et le montant confirme", ({ assert }) => {
+    const result = parseChargeQrCodeResponse({
+      error: '0',
+      transaction_identifier: 'lydia-tx-9',
+      amount: '5.00',
+    })
+
+    assert.deepEqual(result, { transactionIdentifier: 'lydia-tx-9', amountCents: 500 })
+  })
+
+  test("une reponse sans identifiant ni montant leve", ({ assert }) => {
+    assert.throws(() => parseChargeQrCodeResponse({ error: '0' }))
   })
 })

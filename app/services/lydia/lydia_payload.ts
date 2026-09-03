@@ -100,3 +100,63 @@ export function parseStateResponse(payload: unknown): RequestStateResult {
     transactionIdentifier: typeof identifier === 'string' ? identifier : null,
   }
 }
+
+export interface ChargeQrCodeInput {
+  phone: string
+  paymentData: string
+  amountCents: number
+  orderId: string
+}
+
+export interface ChargeQrCodeResult {
+  transactionIdentifier: string
+  amountCents: number
+}
+
+/**
+ * `paymentData` est le seul champ de cet endpoint Lydia en camelCase — le
+ * reste de l'API est en snake_case. Ne pas « corriger » : c'est le nom exact
+ * de la doc officielle.
+ */
+export function buildChargeQrCodeBody(
+  input: ChargeQrCodeInput,
+  vendorToken: string
+): URLSearchParams {
+  return new URLSearchParams({
+    vendor_token: vendorToken,
+    phone: input.phone,
+    paymentData: input.paymentData,
+    amount: euros(input.amountCents),
+    currency: 'EUR',
+    order_id: input.orderId,
+    transmission: 'qrcode',
+  })
+}
+
+export function parseChargeQrCodeResponse(payload: unknown): ChargeQrCodeResult {
+  const body = asRecord(payload)
+
+  if (Number(body.error ?? -1) !== 0) {
+    throw new ApiException(
+      'E_LYDIA_PAYMENT_REFUSED',
+      `Lydia a refusé le paiement : ${String(body.message ?? 'raison inconnue')}`,
+      502
+    )
+  }
+
+  const identifier = body.transaction_identifier
+  const amount = body.amount
+
+  if (typeof identifier !== 'string' || amount === undefined || amount === null) {
+    throw new ApiException(
+      'E_LYDIA_PAYMENT_REFUSED',
+      'Réponse de Lydia inexploitable : identifiant de transaction ou montant absent.',
+      502
+    )
+  }
+
+  return {
+    transactionIdentifier: identifier,
+    amountCents: Math.round(Number(amount) * 100),
+  }
+}
