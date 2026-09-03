@@ -5,7 +5,7 @@ import ApiException from '#exceptions/api_exception'
 import JwtService from '#services/jwt_service'
 import { describeBuyer, searchBuyers, validFastPass } from '#services/buyer_service'
 import { pickupFor } from '#services/pre_order_service'
-import { categoryForQr } from '#services/sponsorship_service'
+import { categoryForQr, isExhausted } from '#services/sponsorship_service'
 import { qrVerifyValidator, buyerSearchValidator } from '#validators/qr'
 
 /**
@@ -71,6 +71,13 @@ export default class QrsController {
         throw new ApiException(
           'E_CATEGORY_REVOKED',
           "Ce QR de catégorie n'est plus valide — réimprimez-le.",
+          422
+        )
+      }
+      if (isExhausted(category)) {
+        throw new ApiException(
+          'E_CATEGORY_EXHAUSTED',
+          `Ce QR a atteint ses ${category.maxOrders} commandes — vente au prix public.`,
           422
         )
       }

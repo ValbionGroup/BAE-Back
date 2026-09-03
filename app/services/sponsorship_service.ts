@@ -20,6 +20,9 @@ export interface CategoryPayload {
   label: string
   /** `external` : refacturée au payeur. `internal` : offerte par le BAE. */
   mode: SponsorshipMode
+  /** Commandes que le QR accepte avant de cesser de valoir. `null` = illimité. */
+  maxOrders: number | null
+  usedOrders: number
   prices: CategoryPrice[]
 }
 
@@ -29,13 +32,75 @@ export interface PriceEntry {
   priceCents: number | null
 }
 
-function toPayload(category: SponsorshipCategory, prices: CategoryPrice[]): CategoryPayload {
+function toPayload(
+  category: SponsorshipCategory,
+  prices: CategoryPrice[],
+  usedOrders: number
+): CategoryPayload {
   return {
     id: category.id,
     eventId: category.eventId,
     label: category.label,
     mode: category.mode as SponsorshipMode,
+    maxOrders: category.maxOrders,
+    usedOrders,
     prices: prices.sort((a, b) => a.productId - b.productId),
+  }
+}
+
+/**
+ * Ce qu'une catégorie a réellement consommé. Les commandes **annulées** ne
+ * comptent pas : elles n'ont rien pris, le crédit revient.
+ */
+export async function usedOrdersOf(
+  categoryIds: readonly number[],
+  trx?: TransactionClientContract
+): Promise<Map<number, number>> {
+  const counts = new Map<number, number>(categoryIds.map((id) => [id, 0]))
+  if (categoryIds.length === 0) return counts
+
+  const rows = await (trx ?? db)
+    .from('orders')
+    .whereIn('sponsorship_category_id', [...categoryIds])
+    .whereNot('status', 'cancelled')
+    .groupBy('sponsorship_category_id')
+    .select('sponsorship_category_id')
+    .count('* as total')
+
+  for (const row of rows) {
+    counts.set(Number(row.sponsorship_category_id), Number(row.total))
+  }
+
+  return counts
+}
+
+/** `true` quand le QR a épuisé son quota et ne doit plus rien tarifer. */
+export function isExhausted(payload: Pick<CategoryPayload, 'maxOrders' | 'usedOrders'>): boolean {
+  return payload.maxOrders !== null && payload.usedOrders >= payload.maxOrders
+}
+
+/**
+ * Le contrôle qui fait foi : celui du scan ne fait qu'avertir tôt, la grille
+ * scannée survit dans la caisse et rien n'empêcherait d'encaisser au-delà.
+ *
+ * Sans verrou propre : `priceCart` a déjà pris `forUpdate` sur la soirée, donc
+ * deux comptoirs qui encaissent la même soirée se sérialisent — le compteur ne
+ * peut pas être lu deux fois avant d'être incrémenté.
+ */
+export async function assertHasCredit(
+  category: SponsorshipCategory,
+  trx: TransactionClientContract
+): Promise<void> {
+  if (category.maxOrders === null) return
+
+  const counts = await usedOrdersOf([category.id], trx)
+  const used = counts.get(category.id) ?? 0
+  if (used >= category.maxOrders) {
+    throw new ApiException(
+      'E_CATEGORY_EXHAUSTED',
+      `« ${category.label} » a atteint ses ${category.maxOrders} commandes — vente au prix public.`,
+      422
+    )
   }
 }
 
@@ -66,14 +131,19 @@ export async function categoriesOf(eventId: number): Promise<CategoryPayload[]> 
     .where('eventId', eventId)
     .orderBy('label', 'asc')
 
-  const prices = await pricesByCategory(categories.map((category) => category.id))
-  return categories.map((category) => toPayload(category, prices.get(category.id) ?? []))
+  const ids = categories.map((category) => category.id)
+  const prices = await pricesByCategory(ids)
+  const used = await usedOrdersOf(ids)
+  return categories.map((category) =>
+    toPayload(category, prices.get(category.id) ?? [], used.get(category.id) ?? 0)
+  )
 }
 
 export async function categoryOf(eventId: number, categoryId: number): Promise<CategoryPayload> {
   const category = await findCategory(eventId, categoryId)
   const prices = await pricesByCategory([category.id])
-  return toPayload(category, prices.get(category.id) ?? [])
+  const used = await usedOrdersOf([category.id])
+  return toPayload(category, prices.get(category.id) ?? [], used.get(category.id) ?? 0)
 }
 
 export async function findCategory(
@@ -132,7 +202,8 @@ async function hasOrders(categoryId: number): Promise<boolean> {
 export async function create(
   eventId: number,
   label: string,
-  mode: SponsorshipMode
+  mode: SponsorshipMode,
+  maxOrders: number | null = null
 ): Promise<CategoryPayload> {
   const event = await Event.find(eventId)
   if (!event) {
@@ -153,15 +224,18 @@ export async function create(
     eventId,
     label,
     mode,
+    maxOrders,
     qrNonce: randomBytes(8).toString('base64url'),
   })
 
-  return toPayload(category, [])
+  return toPayload(category, [], 0)
 }
 
 export interface CategoryChanges {
   label?: string
   mode?: SponsorshipMode
+  /** `null` lève le plafond. Le descendre sous le déjà consommé arrête le QR. */
+  maxOrders?: number | null
 }
 
 /**
@@ -192,6 +266,7 @@ export async function update(
   }
 
   if (changes.label !== undefined) category.label = changes.label
+  if (changes.maxOrders !== undefined) category.maxOrders = changes.maxOrders
 
   await category.save()
   return categoryOf(eventId, categoryId)
@@ -273,8 +348,9 @@ export async function categoryForQr(
   if (!category) return null
 
   const prices = await pricesByCategory([category.id])
+  const used = await usedOrdersOf([category.id])
   return {
-    ...toPayload(category, prices.get(category.id) ?? []),
+    ...toPayload(category, prices.get(category.id) ?? [], used.get(category.id) ?? 0),
     payerName: category.event.payerName,
   }
 }

@@ -26,7 +26,9 @@ export default class SponsorshipCategoriesController {
 
   async store({ params, request, serialize }: HttpContext) {
     const payload = await request.validateUsing(sponsorshipCategoryValidator)
-    return serialize(await create(Number(params.id), payload.label, payload.mode))
+    return serialize(
+      await create(Number(params.id), payload.label, payload.mode, payload.maxOrders ?? null)
+    )
   }
 
   async update({ params, request, serialize }: HttpContext) {
