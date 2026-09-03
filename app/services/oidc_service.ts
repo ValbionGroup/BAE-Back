@@ -1,4 +1,5 @@
 import * as client from 'openid-client'
+import app from '@adonisjs/core/services/app'
 import env from '#start/env'
 import { backchannelUrl } from '#services/oidc_backchannel'
 
@@ -91,9 +92,14 @@ export async function configuration(): Promise<client.Configuration> {
   // donc elle échouerait la première, avant d'avoir pu être assouplie. C'est aussi
   // le seul emplacement qui couvre la requête de métadonnées.
   //
-  // Développement uniquement — l'IdP local est en clair. Jamais en production, où
-  // cela annulerait la protection du transport.
-  const insecure = env.get('KEYCLOAK_ALLOW_INSECURE', false) === true
+  // Hors production uniquement — l'IdP local et le stub des tests sont en clair.
+  // Le garde est ici et non dans le `.env` : `.env.example` porte
+  // `KEYCLOAK_ALLOW_INSECURE=true`, et un environnement amorcé par copie ne doit
+  // pas pouvoir désactiver le transport chiffré vers l'IdP en production.
+  //
+  // ⚠️ `!inProduction` et non `inDev` : ce dernier exclut aussi `NODE_ENV=test`,
+  // où le stub d'IdP est en HTTP — trois tests SSO tombaient.
+  const insecure = !app.inProduction && env.get('KEYCLOAK_ALLOW_INSECURE', false) === true
   const fetcher = backchannelFetch()
 
   const config = await client.discovery(

@@ -5,6 +5,7 @@ import { buildInventoryHtml } from '#services/print/print_inventory'
 import { buildLabelsHtml, type LabelData } from '#services/print/print_labels'
 import { printFooterTemplate } from '#services/print/print_layout'
 import { pdfService } from '#services/pdf_service'
+import { stockBatchUpdateValidator, stockBatchValidator } from '#validators/stock'
 
 // Numbering is PER good: `L25-4` is the 4th batch of that product, which is what
 // one reads in front of a shelf — a global number would mean nothing there. No
@@ -70,14 +71,16 @@ export default class StockBatchesController {
     return response.send(buffer)
   }
 
+  /** `quantity` est un `decimal` : le driver `pg` le rend en string, donc le modèle
+   *  le déclare ainsi et l'écriture doit convertir. */
   async store({ request, serialize }: HttpContext) {
-    const { expirationDate, label, quantity, restockId, goodId } = request.all()
+    const payload = await request.validateUsing(stockBatchValidator)
     const stockBatch = await StockBatch.create({
-      expirationDate,
-      label: label || (await nextLabel(goodId)),
-      quantity,
-      restockId,
-      goodId,
+      expirationDate: payload.expirationDate ?? null,
+      label: payload.label || (await nextLabel(payload.goodId)),
+      quantity: String(payload.quantity),
+      restockId: payload.restockId ?? null,
+      goodId: payload.goodId,
     })
     return serialize(stockBatch)
   }
@@ -97,14 +100,11 @@ export default class StockBatchesController {
       .preload('good')
       .preload('restock')
       .firstOrFail()
-    const { expirationDate, label, quantity, restockId, goodId } = request.all()
+    const { quantity, ...rest } = await request.validateUsing(stockBatchUpdateValidator)
     await stockBatch
       .merge({
-        expirationDate,
-        label,
-        quantity,
-        restockId,
-        goodId,
+        ...rest,
+        ...(quantity === undefined ? {} : { quantity: String(quantity) }),
       })
       .save()
     return serialize(stockBatch)

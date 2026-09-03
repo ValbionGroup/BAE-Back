@@ -1,5 +1,6 @@
 import env from '#start/env'
 import app from '@adonisjs/core/services/app'
+import proxyAddr from 'proxy-addr'
 import { defineConfig } from '@adonisjs/core/http'
 
 /**
@@ -22,6 +23,17 @@ export const appUrl = env.get('APP_URL')
  * The configuration settings used by the HTTP server
  */
 export const http = defineConfig({
+  /**
+   * ⚠️ Le défaut d'AdonisJS est `loopback` seul. Le reverse proxy vit dans un
+   * autre conteneur, donc hors boucle locale : `X-Forwarded-For` était ignoré et
+   * `request.ip()` rendait l'adresse du proxy — la **même pour tout le monde**.
+   * `throttle.login`, clé sur cette adresse, devenait alors un compteur unique
+   * que n'importe quel appelant anonyme saturait pour bloquer toute connexion.
+   *
+   * Jamais `() => true` : l'appelant forgerait son propre `X-Forwarded-For`.
+   */
+  trustProxy: proxyAddr.compile(['loopback', 'linklocal', 'uniquelocal']),
+
   /**
    * Generate a unique request id for each incoming request.
    * Useful to correlate logs and debug a request flow.

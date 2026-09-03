@@ -1,12 +1,11 @@
 import vine from '@vinejs/vine'
-import { emailRule, passwordRule } from '#validators/rules'
+import { emailRule } from '#validators/rules'
 
-export const signupValidator = vine.create({
-  email: emailRule().unique({ table: 'users', column: 'email' }),
-  password: passwordRule(),
-  passwordConfirmation: passwordRule().sameAs('password'),
-})
-
+/**
+ * ⚠️ `password` reste un `vine.string()` nu, sans longueur minimale : le
+ * contraindre empêcherait les porteurs d'un ancien mot de passe de se connecter,
+ * donc de le changer.
+ */
 export const loginValidator = vine.create({
   email: emailRule(),
   password: vine.string(),

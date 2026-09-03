@@ -61,6 +61,11 @@ const dbConfig = defineConfig({
         user: env.get('DB_USER'),
         password: env.get('DB_PASSWORD'),
         database: env.get('DB_DATABASE'),
+        /**
+         * ⚠️ `rejectUnauthorized` et non `false` : une connexion chiffrée dont le
+         * certificat n'est pas vérifié ne protège de rien face à un intercepteur.
+         */
+        ssl: env.get('DB_SSL', false) ? { rejectUnauthorized: true } : false,
       },
 
       /**

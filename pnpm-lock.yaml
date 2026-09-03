@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  qs: '>=6.16.0'
+
 patchedDependencies:
   jsonschema@1.5.0: f8856cbc832814a462ddc39779c54c708de52a8ae29e96949fa0fb00aca67702
 
@@ -68,6 +71,9 @@ importers:
       pg:
         specifier: ^8.23.0
         version: 8.23.0
+      proxy-addr:
+        specifier: ^2.0.7
+        version: 2.0.7
       puppeteer:
         specifier: ^24.43.1
         version: 24.43.1(supports-color@10.2.2)(typescript@5.9.3)
@@ -108,6 +114,9 @@ importers:
       '@types/node':
         specifier: ~24.11.2
         version: 24.11.2
+      '@types/proxy-addr':
+        specifier: ^2.0.3
+        version: 2.0.3
       '@types/qrcode':
         specifier: ^1.5.6
         version: 1.5.6
@@ -972,6 +981,9 @@ packages:
 
   '@types/pluralize@0.0.33':
     resolution: {integrity: sha512-JOqsl+ZoCpP4e8TDke9W79FDcSgPAR0l6pixx2JHkhnRjvShyYiAYw2LVsnA7K08Y6DeOnaU6ujmENO4os/cYg==}
+
+  '@types/proxy-addr@2.0.3':
+    resolution: {integrity: sha512-TgAHHO4tNG3HgLTUhB+hM4iwW6JUNeQHCLnF1DjaDA9c69PN+IasoFu2MYDhubFc+ZIw5c5t9DMtjvrD6R3Egg==}
 
   '@types/qrcode@1.5.6':
     resolution: {integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==}
@@ -2644,8 +2656,8 @@ packages:
     engines: {node: '>=10.13.0'}
     hasBin: true
 
-  qs@6.15.3:
-    resolution: {integrity: sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==}
+  qs@6.16.0:
+    resolution: {integrity: sha512-h6fhOIaRrID2CbEY2fqs+7t+UXZo+MLAnU5gRIq85uFtdiUPCdsApMlHhXogKVM4HM2DVbIjGNTTYH2OcmP1vA==}
     engines: {node: '>=0.6'}
 
   queue-microtask@1.2.3:
@@ -4038,6 +4050,10 @@ snapshots:
   '@types/normalize-package-data@2.4.4': {}
 
   '@types/pluralize@0.0.33': {}
+
+  '@types/proxy-addr@2.0.3':
+    dependencies:
+      '@types/node': 24.11.2
 
   '@types/qrcode@1.5.6':
     dependencies:
@@ -5618,7 +5634,7 @@ snapshots:
       pngjs: 5.0.0
       yargs: 15.4.1
 
-  qs@6.15.3:
+  qs@6.16.0:
     dependencies:
       es-define-property: 1.0.1
       side-channel: 1.1.1
@@ -5892,7 +5908,7 @@ snapshots:
       formidable: 3.5.4
       methods: 1.1.2
       mime: 2.6.0
-      qs: 6.15.3
+      qs: 6.16.0
     transitivePeerDependencies:
       - supports-color
 

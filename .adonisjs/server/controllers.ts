@@ -27,7 +27,6 @@ export const controllers = {
   Logs: () => import('#controllers/logs_controller'),
   LydiaCallbacks: () => import('#controllers/lydia_callbacks_controller'),
   Members: () => import('#controllers/members_controller'),
-  NewAccount: () => import('#controllers/new_account_controller'),
   Notifications: () => import('#controllers/notifications_controller'),
   Orders: () => import('#controllers/orders_controller'),
   PasswordReset: () => import('#controllers/password_reset_controller'),

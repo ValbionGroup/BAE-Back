@@ -13,3 +13,17 @@ export const createSubscriptionValidator = vine.create({
     })
     .optional(),
 })
+
+/**
+ * Une formule d'adhésion (`fast_passes`).
+ *
+ * ⚠️ `price` est en **centimes entiers** et `duration` en **années**.
+ * `openPayment` passe `price` tel quel à Lydia : un montant négatif ou
+ * fractionnaire y partait sans le moindre contrôle.
+ */
+export const fastPassValidator = vine.create({
+  label: vine.string().trim().minLength(1).maxLength(255),
+  description: vine.string().trim().maxLength(1000).nullable().optional(),
+  price: vine.number().withoutDecimals().min(0),
+  duration: vine.number().withoutDecimals().positive(),
+})

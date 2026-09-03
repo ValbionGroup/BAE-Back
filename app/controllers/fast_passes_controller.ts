@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import FastPass from '#models/fast_pass'
+import { fastPassValidator } from '#validators/subscription'
 
 /**
  * ⚠️ `price` est en **centimes entiers**, et `duration` en **années** — pas en
@@ -11,11 +12,11 @@ export default class FastPassesController {
   }
 
   async store({ request, serialize }: HttpContext) {
-    const { price, duration, description, label } = request.all()
+    const { price, duration, description, label } = await request.validateUsing(fastPassValidator)
     const fastPass = new FastPass()
     fastPass.price = price
     fastPass.duration = duration
-    fastPass.description = description
+    fastPass.description = description ?? null
     fastPass.label = label
     await fastPass.save()
     return serialize(fastPass)
@@ -27,10 +28,10 @@ export default class FastPassesController {
 
   async update({ params, request, serialize }: HttpContext) {
     const fastPass = await FastPass.query().where('id', params.id).firstOrFail()
-    const { price, duration, description, label } = request.all()
+    const { price, duration, description, label } = await request.validateUsing(fastPassValidator)
     fastPass.price = price
     fastPass.duration = duration
-    fastPass.description = description
+    fastPass.description = description ?? null
     fastPass.label = label
     await fastPass.save()
     return serialize(fastPass)

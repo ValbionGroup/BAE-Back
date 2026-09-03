@@ -55,20 +55,20 @@ test.group('member:create command', (group) => {
   test('sets the password of an account that has none', async ({ assert }) => {
     const existing = await UserFactory.merge({ email: 'sso@bae.test', password: null }).create()
 
-    const command = await ace.create(MemberCreate, ['sso@bae.test', '--password=motdepasse123'])
+    const command = await ace.create(MemberCreate, ['sso@bae.test', '--password=Motdepasse123'])
     await command.exec()
 
     command.assertSucceeded()
     await existing.refresh()
     assert.isNotNull(existing.password)
-    assert.isTrue(await hash.verify(existing.password!, 'motdepasse123'))
+    assert.isTrue(await hash.verify(existing.password!, 'Motdepasse123'))
   })
 
   test('refuses to overwrite a password that is already set', async ({ assert }) => {
     const existing = await UserFactory.merge({ email: 'compte@bae.test' }).create()
     const before = existing.password
 
-    const command = await ace.create(MemberCreate, ['compte@bae.test', '--password=motdepasse123'])
+    const command = await ace.create(MemberCreate, ['compte@bae.test', '--password=Motdepasse123'])
     await command.exec()
 
     command.assertFailed()

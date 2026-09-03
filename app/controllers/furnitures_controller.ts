@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Furniture from '#models/furniture'
+import { furnitureUpdateValidator, furnitureValidator } from '#validators/catalog'
 
 /** ⚠️ `price` est reçu et stocké en **centimes entiers**. */
 export default class FurnituresController {
@@ -8,8 +9,8 @@ export default class FurnituresController {
   }
 
   async store({ request, serialize }: HttpContext) {
-    const { name, quantity, price } = request.all()
-    return serialize(await Furniture.create({ name, quantity, price }))
+    const payload = await request.validateUsing(furnitureValidator)
+    return serialize(await Furniture.create(payload))
   }
 
   async show({ params, serialize }: HttpContext) {
@@ -18,8 +19,8 @@ export default class FurnituresController {
 
   async update({ params, request, serialize }: HttpContext) {
     const furniture = await Furniture.findOrFail(params.id)
-    const { name, quantity, price } = request.all()
-    furniture.merge({ name, quantity, price })
+    const payload = await request.validateUsing(furnitureUpdateValidator)
+    furniture.merge(payload)
     await furniture.save()
     return serialize(furniture)
   }

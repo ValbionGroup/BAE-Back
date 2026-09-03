@@ -5,7 +5,6 @@ import { throttle } from '#start/limiter'
 
 router
   .group(() => {
-    router.post('signup', [controllers.NewAccount, 'store'])
     router.post('login', [controllers.AccessToken, 'store']).use(throttle.login)
     router.post('logout', [controllers.AccessToken, 'destroy']).use(middleware.auth())
     router.delete('logout-all', [controllers.AccessToken, 'destroyAll']).use(middleware.auth())

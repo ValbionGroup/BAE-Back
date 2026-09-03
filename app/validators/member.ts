@@ -1,13 +1,14 @@
 import vine from '@vinejs/vine'
-import { emailRule, passwordRule } from '#validators/rules'
+import { emailRule, strongPasswordRule } from '#validators/rules'
 
-// Les mêmes règles que `signupValidator`, sans la contrainte d'unicité : la
-// commande `member:create` traite elle-même le cas d'un compte déjà là, qu'elle
-// promeut au lieu de le refuser. Le mot de passe est optionnel — un compte né du
-// SSO n'en a pas.
+/**
+ * Sans contrainte d'unicité : `member:create` traite elle-même le cas d'un compte
+ * déjà là, qu'elle promeut au lieu de le refuser. Le mot de passe est optionnel —
+ * un compte né du SSO n'en a pas.
+ */
 export const memberCreateValidator = vine.create({
   email: emailRule(),
-  password: passwordRule().optional(),
+  password: strongPasswordRule().optional(),
 })
 
 // The body is a delta, hence `optional()` throughout: without it a PATCH

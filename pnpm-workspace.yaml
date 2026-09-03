@@ -4,3 +4,13 @@ allowBuilds:
   puppeteer: true
 patchedDependencies:
   jsonschema@1.5.0: patches/jsonschema@1.5.0.patch
+# `qs` remonte par @japa/api-client : dépendance de test, jamais chargée par le
+# serveur, mais l'épingler coûte une ligne.
+#
+# ⚠️ `extract-zip` porte un avis « high » (GHSA-jmr9-qjv8-65gv) SANS correctif
+# publié — 2.0.1 est la dernière version, l'avis annonce un 2.0.2 qui n'existe
+# pas. Aucun override n'est donc possible. Le chemin vulnérable est le
+# téléchargement d'un Chromium par puppeteer, que le `Dockerfile` neutralise
+# avec PUPPETEER_SKIP_DOWNLOAD=true. À reprendre si 2.0.2 paraît.
+overrides:
+  qs: '>=6.16.0'
