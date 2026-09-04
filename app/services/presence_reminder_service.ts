@@ -25,6 +25,21 @@ export const PRESENCE_UPCOMING: ReminderKind = {
   body: (eventName, when) => `Tu es attendu·e pour ${eventName}, ${when}.`,
 }
 
+/**
+ * Le rappel de la veille. Verbe distinct de `presence.upcoming`, et non une
+ * fenêtre plus courte du même : une clé partagée ferait que le passage à J-3
+ * inhibe celui à J-1, sans rien signaler.
+ *
+ * Le corps annonce la ligne que `notification_renderer` ajoute au moment de
+ * l'envoi — le poste de chacun, qu'un fait partagé ne peut pas porter.
+ */
+export const PRESENCE_TOMORROW: ReminderKind = {
+  verb: 'presence.tomorrow',
+  targetState: 'in',
+  subject: "C'est demain",
+  body: (eventName, when) => `${eventName}, ${when}. Voici ton poste.`,
+}
+
 export type ReminderReport = {
   eventId: number
   eventName: string

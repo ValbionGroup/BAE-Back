@@ -16,14 +16,22 @@ export abstract class NotifyPresenceBase extends BaseCommand {
 
   protected abstract kind: ReminderKind
 
-  @flags.number({ description: 'Fenêtre en jours avant la soirée', default: 3 })
+  /**
+   * Redéfini par les sous-classes. Le défaut ne peut pas vivre sur le décorateur :
+   * `@flags.number` est une métadonnée **statique** de la classe, qu'une
+   * sous-classe ne surcharge pas.
+   */
+  protected defaultDays = 3
+
+  @flags.number({ description: 'Fenêtre en jours avant la soirée' })
   declare days: number
 
   @flags.boolean({ description: 'Affiche ce qui serait mis en file sans rien écrire' })
   declare dryRun: boolean
 
   async run() {
-    const reports = await queuePresenceReminders(this.kind, this.days, { dryRun: this.dryRun })
+    const days = this.days ?? this.defaultDays
+    const reports = await queuePresenceReminders(this.kind, days, { dryRun: this.dryRun })
 
     if (reports.length === 0) {
       this.logger.info('Aucune soirée concernée dans la fenêtre.')

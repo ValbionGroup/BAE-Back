@@ -9,6 +9,7 @@ import { MemberFactory } from '#database/factories/members_factory'
 import { EventFactory } from '#database/factories/event_factory'
 import NotifyPresencePending from '../../commands/notify_presence_pending.js'
 import NotifyPresenceUpcoming from '../../commands/notify_presence_upcoming.js'
+import NotifyPresenceTomorrow from '../../commands/notify_presence_tomorrow.js'
 
 /**
  * ⚠️ La base de dev est partagée et peuplée : aucune assertion sur un compte
@@ -188,6 +189,69 @@ test.group('notify:presence-upcoming', (group) => {
       upcoming,
       silent.id,
       'un dedupeKey par verbe : les deux rappels ne doivent pas se confondre'
+    )
+  })
+})
+
+test.group('notify:presence-tomorrow', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+  group.each.setup(() => {
+    ace.ui.switchMode('raw')
+    return () => ace.ui.switchMode('normal')
+  })
+
+  async function comingTo(hoursAhead: number) {
+    const event = await EventFactory.merge({
+      date: DateTime.now().plus({ hours: hoursAhead }),
+      status: 'scheduled',
+    }).create()
+    const member = await MemberFactory.create()
+    await db
+      .table('member_responses')
+      .insert([{ member_id: member.id, event_id: event.id, is_available: true }])
+    return { event, member }
+  }
+
+  test('vise les membres présents sur une soirée de demain', async ({ assert }) => {
+    const { event, member } = await comingTo(20)
+
+    await runCommand(NotifyPresenceTomorrow)
+
+    assert.include(await recipientsFor(event.id, 'presence.tomorrow'), member.id)
+  })
+
+  test('ignore une soirée à trois jours', async ({ assert }) => {
+    const { event } = await comingTo(72)
+
+    await runCommand(NotifyPresenceTomorrow)
+
+    assert.isEmpty(await recipientsFor(event.id, 'presence.tomorrow'))
+  })
+
+  /**
+   * Deux verbes, deux clés. Si le J-3 inhibait le J-1, ce test tomberait — et
+   * personne ne recevrait le rappel de la veille.
+   */
+  test('cohabite avec presence.upcoming sur la même soirée', async ({ assert }) => {
+    const { event, member } = await comingTo(20)
+
+    await runCommand(NotifyPresenceUpcoming)
+    await runCommand(NotifyPresenceTomorrow)
+
+    assert.include(await recipientsFor(event.id, 'presence.upcoming'), member.id)
+    assert.include(await recipientsFor(event.id, 'presence.tomorrow'), member.id)
+  })
+
+  test('ne met pas en file deux fois', async ({ assert }) => {
+    const { event, member } = await comingTo(20)
+
+    await runCommand(NotifyPresenceTomorrow)
+    await runCommand(NotifyPresenceTomorrow)
+
+    const targets = await recipientsFor(event.id, 'presence.tomorrow')
+    assert.lengthOf(
+      targets.filter((id) => id === member.id),
+      1
     )
   })
 })
