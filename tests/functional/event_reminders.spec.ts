@@ -123,9 +123,9 @@ test.group('POST /v1/events/:id/reminders', (group) => {
     const actor = await actorWith('presence:write')
 
     const members = await Member.all()
-    await db.table('member_responses').insert(
-      members.map((m) => ({ member_id: m.id, event_id: event.id, is_available: true }))
-    )
+    await db
+      .table('member_responses')
+      .insert(members.map((m) => ({ member_id: m.id, event_id: event.id, is_available: true })))
 
     const response = await client.post(`/v1/events/${event.id}/reminders`).loginAs(actor)
 

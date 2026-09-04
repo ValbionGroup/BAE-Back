@@ -1,10 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Event from '#models/event'
 import ApiException from '#exceptions/api_exception'
-import {
-  PRESENCE_PENDING,
-  queueReminderForEvent,
-} from '#services/presence_reminder_service'
+import { PRESENCE_PENDING, queueReminderForEvent } from '#services/presence_reminder_service'
 import { recordEvent } from '#services/notification_service'
 import { notifyAssignments } from '#services/assignment_notification_service'
 import Job from '#models/job'

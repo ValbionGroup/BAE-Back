@@ -114,7 +114,13 @@ test.group('assignmentLines', (group) => {
         locked: false,
         points_delta: 0,
       },
-      { member_id: member.id, event_id: event.id, job_id: prepa.id, locked: false, points_delta: 0 },
+      {
+        member_id: member.id,
+        event_id: event.id,
+        job_id: prepa.id,
+        locked: false,
+        points_delta: 0,
+      },
     ])
 
     const lines = await assignmentLines(event.id, [member.id])
@@ -150,7 +156,13 @@ test.group('assignmentLines', (group) => {
     const job = await JobFactory.merge({ name: 'Bar', type: 'during' }).create()
 
     await db.table('member_event_assigned_jobs').insert([
-      { member_id: member.id, event_id: other.id, job_id: job.id, locked: false, points_delta: 0 },
+      {
+        member_id: member.id,
+        event_id: other.id,
+        job_id: job.id,
+        locked: false,
+        points_delta: 0,
+      },
     ])
 
     const lines = await assignmentLines(event.id, [member.id])

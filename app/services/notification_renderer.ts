@@ -75,7 +75,9 @@ export const assignmentLines: Personalizer = async (subjectId, userIds) => {
       userId,
       held.map((job) => {
         const label = PERIOD_LABELS[job.type as JobPeriod]
-        return label === undefined ? `Ton poste : ${job.name}` : `Ton poste : ${job.name} — ${label}`
+        return label === undefined
+          ? `Ton poste : ${job.name}`
+          : `Ton poste : ${job.name} — ${label}`
       })
     )
   }
