@@ -9,12 +9,7 @@ import { type JobPeriod, computePointsDelta } from '#services/matching_service'
 import { buildAssignmentsHtml, type AssignmentPeriod } from '#services/print/print_assignments'
 import { printFooterTemplate } from '#services/print/print_layout'
 import { pdfService } from '#services/pdf_service'
-
-const PERIOD_LABELS: Record<JobPeriod, string> = {
-  before: 'Avant · Préparation',
-  during: 'Pendant · Service',
-  after: 'Après · Nettoyage',
-}
+import { PERIOD_LABELS } from '#services/job_periods'
 
 function toWire(assignment: MemberEventAssignedJob) {
   return {

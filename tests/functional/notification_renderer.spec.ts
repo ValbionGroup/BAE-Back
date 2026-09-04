@@ -1,6 +1,12 @@
 import { test } from '@japa/runner'
-import { renderDeliveries } from '#services/notification_renderer'
+import testUtils from '@adonisjs/core/services/test_utils'
+import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
+import { assignmentLines, renderDeliveries } from '#services/notification_renderer'
 import type { Delivery, Personalizer } from '#services/notification_renderer'
+import { MemberFactory } from '#database/factories/members_factory'
+import { EventFactory } from '#database/factories/event_factory'
+import { JobFactory } from '#database/factories/job_factory'
 
 function delivery(over: Partial<Delivery> = {}): Delivery {
   return {
@@ -85,5 +91,70 @@ test.group('renderDeliveries', () => {
     })
 
     assert.deepEqual(rendered.get(1)?.lines, ['La soirée approche.'])
+  })
+})
+
+test.group('assignmentLines', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('rend les postes du membre en ordre chronologique', async ({ assert }) => {
+    const event = await EventFactory.merge({
+      date: DateTime.now().plus({ days: 1 }),
+      status: 'scheduled',
+    }).create()
+    const member = await MemberFactory.create()
+    const menage = await JobFactory.merge({ name: 'Balai', type: 'after' }).create()
+    const prepa = await JobFactory.merge({ name: 'Épluchage', type: 'before' }).create()
+
+    await db.table('member_event_assigned_jobs').insert([
+      {
+        member_id: member.id,
+        event_id: event.id,
+        job_id: menage.id,
+        locked: false,
+        points_delta: 0,
+      },
+      { member_id: member.id, event_id: event.id, job_id: prepa.id, locked: false, points_delta: 0 },
+    ])
+
+    const lines = await assignmentLines(event.id, [member.id])
+
+    assert.deepEqual(lines.get(member.id), [
+      'Ton poste : Épluchage — Avant · Préparation',
+      'Ton poste : Balai — Après · Nettoyage',
+    ])
+  })
+
+  test('un membre sans poste reçoit la ligne de repli', async ({ assert }) => {
+    const event = await EventFactory.merge({
+      date: DateTime.now().plus({ days: 1 }),
+      status: 'scheduled',
+    }).create()
+    const member = await MemberFactory.create()
+
+    const lines = await assignmentLines(event.id, [member.id])
+
+    assert.deepEqual(lines.get(member.id), ["Aucun poste ne t'est attribué pour l'instant."])
+  })
+
+  /**
+   * La base de dev est partagée et peuplée : un membre affecté ailleurs ne doit
+   * pas contaminer la soirée demandée.
+   */
+  test("ignore les affectations d'une autre soirée", async ({ assert }) => {
+    const [event, other] = await EventFactory.merge({
+      date: DateTime.now().plus({ days: 1 }),
+      status: 'scheduled',
+    }).createMany(2)
+    const member = await MemberFactory.create()
+    const job = await JobFactory.merge({ name: 'Bar', type: 'during' }).create()
+
+    await db.table('member_event_assigned_jobs').insert([
+      { member_id: member.id, event_id: other.id, job_id: job.id, locked: false, points_delta: 0 },
+    ])
+
+    const lines = await assignmentLines(event.id, [member.id])
+
+    assert.deepEqual(lines.get(member.id), ["Aucun poste ne t'est attribué pour l'instant."])
   })
 })

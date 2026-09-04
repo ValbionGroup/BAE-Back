@@ -1,4 +1,9 @@
+import db from '@adonisjs/lucid/services/db'
 import { readNotificationPayload } from '#services/notification_payload'
+import { JOB_PERIODS } from '#services/matching_service'
+import type { JobPeriod } from '#services/matching_service'
+import { PERIOD_LABELS } from '#services/job_periods'
+import { ASSIGNMENTS_PUBLISHED } from '#services/assignment_notification_service'
 
 export type RenderedMessage = { subject: string; lines: string[] }
 
@@ -20,7 +25,73 @@ export type Personalizer = (
   userIds: readonly number[]
 ) => Promise<Map<number, string[]>>
 
-const PERSONALIZERS: Record<string, Personalizer> = {}
+const NO_ASSIGNMENT = "Aucun poste ne t'est attribué pour l'instant."
+
+const PERIOD_RANK = new Map<string, number>(JOB_PERIODS.map((period, index) => [period, index]))
+
+/**
+ * Les postes tenus par chaque destinataire sur cette soirée, en ordre
+ * chronologique.
+ *
+ * ⚠️ Le tri se fait ici et non en SQL : `jobs.type` est une chaîne libre, donc
+ * `ORDER BY type` donnerait l'ordre alphabétique — « after » avant « before ».
+ * Un type hors vocabulaire tombe en fin de liste plutôt que de disparaître.
+ */
+export const assignmentLines: Personalizer = async (subjectId, userIds) => {
+  const rows = await db
+    .from('member_event_assigned_jobs')
+    .join('jobs', 'jobs.id', 'member_event_assigned_jobs.job_id')
+    .where('member_event_assigned_jobs.event_id', subjectId)
+    .whereIn('member_event_assigned_jobs.member_id', [...userIds])
+    .select(
+      'member_event_assigned_jobs.member_id as member_id',
+      'jobs.name as name',
+      'jobs.type as type'
+    )
+
+  const byMember = new Map<number, { name: string; type: string }[]>()
+  for (const row of rows) {
+    const memberId = Number(row.member_id)
+    const held = byMember.get(memberId) ?? []
+    held.push({ name: String(row.name), type: String(row.type) })
+    byMember.set(memberId, held)
+  }
+
+  const lines = new Map<number, string[]>()
+  for (const userId of userIds) {
+    const held = byMember.get(userId)
+    if (held === undefined || held.length === 0) {
+      lines.set(userId, [NO_ASSIGNMENT])
+      continue
+    }
+
+    held.sort(
+      (a, b) =>
+        (PERIOD_RANK.get(a.type) ?? JOB_PERIODS.length) -
+        (PERIOD_RANK.get(b.type) ?? JOB_PERIODS.length)
+    )
+
+    lines.set(
+      userId,
+      held.map((job) => {
+        const label = PERIOD_LABELS[job.type as JobPeriod]
+        return label === undefined ? `Ton poste : ${job.name}` : `Ton poste : ${job.name} — ${label}`
+      })
+    )
+  }
+
+  return lines
+}
+
+/**
+ * ⚠️ Indexé par **chaîne**, jamais par import : importer `PRESENCE_TOMORROW`
+ * depuis `presence_reminder_service` créerait un cycle, ce service important
+ * `notification_service`. Un verbe inscrit mais jamais émis ne coûte rien.
+ */
+const PERSONALIZERS: Record<string, Personalizer> = {
+  [ASSIGNMENTS_PUBLISHED]: assignmentLines,
+  'presence.tomorrow': assignmentLines,
+}
 
 /**
  * Rend le message final de chaque livraison, indexé par `notifications.id`.
