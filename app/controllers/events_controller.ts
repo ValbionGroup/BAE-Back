@@ -1,6 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Event from '#models/event'
 import ApiException from '#exceptions/api_exception'
+import {
+  PRESENCE_PENDING,
+  queueReminderForEvent,
+} from '#services/presence_reminder_service'
 import { recordEvent } from '#services/notification_service'
 import { notifyAssignments } from '#services/assignment_notification_service'
 import Job from '#models/job'
@@ -537,6 +541,46 @@ export default class EventsController {
     }
 
     return serialize(event)
+  }
+
+  /**
+   * Relance à la demande les membres sans réponse d'une soirée.
+   *
+   * ⚠️ La clé porte le **jour**, contrairement au cron dont la clé est « ce
+   * verbe, cette soirée ». Sans cela, un clic après le passage du cron de 10 h
+   * ne créerait rien et l'écran annoncerait quand même un succès.
+   *
+   * `queued` et `alreadySent` comptent des **membres**, jamais des lignes de
+   * notification : `emit()` compte des couples destinataire × canal, et
+   * « 4 membres relancés » deviendrait « 8 » dès qu'un membre a lié Telegram.
+   */
+  async remind({ params, serialize }: HttpContext) {
+    const event = await Event.find(params.id)
+    if (!event) {
+      throw new ApiException('E_EVENT_NOT_FOUND', 'Soirée introuvable.', 404)
+    }
+
+    if (event.status !== 'scheduled') {
+      throw new ApiException(
+        'E_EVENT_NOT_SCHEDULED',
+        'On ne relance pas sur une soirée passée ou en cours.',
+        422
+      )
+    }
+
+    const today = DateTime.now().toISODate()
+    const report = await queueReminderForEvent(
+      PRESENCE_PENDING,
+      { id: event.id, name: event.name, date: event.date.toJSDate() },
+      `${PRESENCE_PENDING.verb}:${event.id}:manual:${today}`
+    )
+
+    const announced = report.created > 0
+
+    return serialize({
+      queued: announced ? report.candidates : 0,
+      alreadySent: announced ? 0 : report.candidates,
+    })
   }
 
   async roster({ params, serialize }: HttpContext) {

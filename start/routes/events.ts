@@ -23,6 +23,9 @@ router
     router
       .get('/events/:id/roster', [controllers.Events, 'roster'])
       .use(middleware.can('event:read'))
+    router
+      .post('/events/:id/reminders', [controllers.Events, 'remind'])
+      .use(middleware.can('presence:write'))
 
     router
       .get('/events/:id/products', [controllers.EventProducts, 'index'])
