@@ -4,8 +4,11 @@ import app from '@adonisjs/core/services/app'
 import ace from '@adonisjs/core/services/ace'
 import testUtils from '@adonisjs/core/services/test_utils'
 import Notification from '#models/notification'
+import db from '@adonisjs/lucid/services/db'
 import { emit } from '#services/notification_service'
 import { MemberFactory } from '#database/factories/members_factory'
+import { EventFactory } from '#database/factories/event_factory'
+import { JobFactory } from '#database/factories/job_factory'
 import TelegramClient from '#services/telegram/telegram_client'
 import FakeTelegramClient from '#services/telegram/fake_telegram_client'
 import TelegramDispatch from '../../commands/telegram_dispatch.js'
@@ -155,5 +158,40 @@ test.group('telegram:dispatch', (group) => {
       .where('channel', 'telegram')
       .firstOrFail()
     assert.isNull(row.sentAt)
+  })
+
+  test('le message Telegram porte le poste du membre', async ({ assert }) => {
+    const member = await linkedMember()
+    const event = await EventFactory.merge({
+      date: DateTime.now().plus({ days: 1 }),
+      status: 'scheduled',
+    }).create()
+    const job = await JobFactory.merge({ name: 'Plancha', type: 'during' }).create()
+
+    await db.table('member_event_assigned_jobs').insert([
+      {
+        member_id: member.id,
+        event_id: event.id,
+        job_id: job.id,
+        locked: false,
+        points_delta: 0,
+      },
+    ])
+
+    await emit({
+      verb: 'presence.tomorrow',
+      subjectType: 'event',
+      subjectId: event.id,
+      payload: { subject: "C'est demain", lines: [`${event.name}. Voici ton poste.`] },
+      recipients: [member.id],
+      channels: ['mail'],
+      dedupeKey: `presence.tomorrow:${event.id}`,
+    })
+
+    await run()
+
+    const mine = telegram.sent.find((m) => m.chatId === CHAT_ID)
+    assert.exists(mine, 'un message est parti au chat lié')
+    assert.include(mine!.text, 'Ton poste : Plancha — Pendant · Service')
   })
 })

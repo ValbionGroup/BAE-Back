@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Event from '#models/event'
 import ApiException from '#exceptions/api_exception'
+import { PRESENCE_PENDING, queueReminderForEvent } from '#services/presence_reminder_service'
 import { recordEvent } from '#services/notification_service'
 import { notifyAssignments } from '#services/assignment_notification_service'
 import Job from '#models/job'
@@ -539,16 +540,79 @@ export default class EventsController {
     return serialize(event)
   }
 
+  /**
+   * Relance à la demande les membres sans réponse d'une soirée.
+   *
+   * ⚠️ La clé porte le **jour**, contrairement au cron dont la clé est « ce
+   * verbe, cette soirée ». Sans cela, un clic après le passage du cron de 10 h
+   * ne créerait rien et l'écran annoncerait quand même un succès.
+   *
+   * `queued` et `alreadySent` comptent des **membres**, jamais des lignes de
+   * notification : `emit()` compte des couples destinataire × canal, et
+   * « 4 membres relancés » deviendrait « 8 » dès qu'un membre a lié Telegram.
+   */
+  async remind({ params, serialize }: HttpContext) {
+    const event = await Event.find(params.id)
+    if (!event) {
+      throw new ApiException('E_EVENT_NOT_FOUND', 'Soirée introuvable.', 404)
+    }
+
+    if (event.status !== 'scheduled') {
+      throw new ApiException(
+        'E_EVENT_NOT_SCHEDULED',
+        'On ne relance pas sur une soirée passée ou en cours.',
+        422
+      )
+    }
+
+    const today = DateTime.now().toISODate()
+    const report = await queueReminderForEvent(
+      PRESENCE_PENDING,
+      { id: event.id, name: event.name, date: event.date.toJSDate() },
+      `${PRESENCE_PENDING.verb}:${event.id}:manual:${today}`
+    )
+
+    const announced = report.created > 0
+
+    return serialize({
+      queued: announced ? report.candidates : 0,
+      alreadySent: announced ? 0 : report.candidates,
+    })
+  }
+
+  /**
+   * `late` dit qu'un rappel `presence.pending` est déjà parti à ce membre pour
+   * cette soirée — le badge « Rappelé·e » de l'écran des présences. Une seule
+   * requête pour tout le roster, jamais une par membre.
+   */
   async roster({ params, serialize }: HttpContext) {
     await Event.findOrFail(params.id)
+
     const members = await Member.query()
       .preload('user')
       .preload('responses', (q) => q.where('events.id', params.id))
+
+    const reminded = await db
+      .from('notifications')
+      .join('activity_events', 'activity_events.id', 'notifications.event_id')
+      .where('activity_events.verb', PRESENCE_PENDING.verb)
+      .where('activity_events.subject_type', 'event')
+      .where('activity_events.subject_id', params.id)
+      .distinct('notifications.user_id as user_id')
+
+    const remindedIds = new Set(reminded.map((row) => Number(row.user_id)))
+
     const roster = members.map((m) => {
       const response = m.responses[0]
       const status = response ? (response.$extras.pivot_is_available ? 1 : 0) : -1
-      return { id: m.id, name: m.user.fullName ?? m.user.email, status }
+      return {
+        id: m.id,
+        name: m.user.fullName ?? m.user.email,
+        status,
+        late: remindedIds.has(m.id),
+      }
     })
+
     return serialize(roster)
   }
 }

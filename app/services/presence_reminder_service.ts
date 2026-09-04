@@ -25,6 +25,21 @@ export const PRESENCE_UPCOMING: ReminderKind = {
   body: (eventName, when) => `Tu es attendu·e pour ${eventName}, ${when}.`,
 }
 
+/**
+ * Le rappel de la veille. Verbe distinct de `presence.upcoming`, et non une
+ * fenêtre plus courte du même : une clé partagée ferait que le passage à J-3
+ * inhibe celui à J-1, sans rien signaler.
+ *
+ * Le corps annonce la ligne que `notification_renderer` ajoute au moment de
+ * l'envoi — le poste de chacun, qu'un fait partagé ne peut pas porter.
+ */
+export const PRESENCE_TOMORROW: ReminderKind = {
+  verb: 'presence.tomorrow',
+  targetState: 'in',
+  subject: "C'est demain",
+  body: (eventName, when) => `${eventName}, ${when}. Voici ton poste.`,
+}
+
 export type ReminderReport = {
   eventId: number
   eventName: string
@@ -32,6 +47,54 @@ export type ReminderReport = {
   candidates: number
   created: number
   skipped: number
+}
+
+export type ReminderEvent = { id: number; name: string; date: Date }
+
+/**
+ * Met en file le rappel d'**une** soirée, désignée par son identité et non par
+ * une fenêtre de dates.
+ *
+ * La clé de déduplication est un paramètre : le balayage porte l'identité métier
+ * du rappel (« ce verbe, cette soirée »), la relance manuelle y ajoute le jour —
+ * sans quoi elle serait muette dès que le cron est passé.
+ */
+export async function queueReminderForEvent(
+  kind: ReminderKind,
+  event: ReminderEvent,
+  dedupeKey: string
+): Promise<ReminderReport> {
+  const states = await presenceStates(event.id)
+  const recipients = [...states.entries()]
+    .filter(([, state]) => state === kind.targetState)
+    .map(([memberId]) => memberId)
+
+  if (recipients.length === 0) {
+    return { eventId: event.id, eventName: event.name, candidates: 0, created: 0, skipped: 0 }
+  }
+
+  const when = DateTime.fromJSDate(event.date).setLocale('fr').toFormat("cccc d LLLL 'à' HH'h'mm")
+
+  const result = await emit({
+    verb: kind.verb,
+    subjectType: 'event',
+    subjectId: event.id,
+    payload: {
+      subject: kind.subject,
+      lines: [kind.body(event.name, when)],
+      eventName: event.name,
+    },
+    recipients,
+    dedupeKey,
+  })
+
+  return {
+    eventId: event.id,
+    eventName: event.name,
+    candidates: recipients.length,
+    created: result.created,
+    skipped: result.skipped,
+  }
 }
 
 /**
@@ -59,53 +122,32 @@ export async function queuePresenceReminders(
 
   const reports: ReminderReport[] = []
 
-  for (const event of events) {
-    const eventId = Number(event.id)
-    const states = await presenceStates(eventId)
-    const recipients = [...states.entries()]
-      .filter(([, state]) => state === kind.targetState)
-      .map(([memberId]) => memberId)
-
-    if (recipients.length === 0) continue
+  for (const row of events) {
+    const event: ReminderEvent = {
+      id: Number(row.id),
+      name: String(row.name),
+      date: new Date(row.date),
+    }
 
     // Le `--dry-run` sort **ici**, après la sélection et avant l'écriture : la
-    // liste annoncée est donc exactement celle qui partirait. Le calculer à part
-    // ferait diverger l'annonce et l'acte au premier changement de règle.
+    // liste annoncée est donc exactement celle qui partirait.
     if (options.dryRun === true) {
+      const states = await presenceStates(event.id)
+      const candidates = [...states.values()].filter((state) => state === kind.targetState).length
+      if (candidates === 0) continue
       reports.push({
-        eventId,
-        eventName: String(event.name),
-        candidates: recipients.length,
+        eventId: event.id,
+        eventName: event.name,
+        candidates,
         created: 0,
         skipped: 0,
       })
       continue
     }
 
-    const when = DateTime.fromJSDate(new Date(event.date))
-      .setLocale('fr')
-      .toFormat("cccc d LLLL 'à' HH'h'mm")
-
-    const result = await emit({
-      verb: kind.verb,
-      subjectType: 'event',
-      subjectId: eventId,
-      payload: {
-        subject: kind.subject,
-        lines: [kind.body(String(event.name), when)],
-        eventName: event.name,
-      },
-      recipients,
-      dedupeKey: `${kind.verb}:${eventId}`,
-    })
-
-    reports.push({
-      eventId,
-      eventName: String(event.name),
-      candidates: recipients.length,
-      created: result.created,
-      skipped: result.skipped,
-    })
+    const report = await queueReminderForEvent(kind, event, `${kind.verb}:${event.id}`)
+    if (report.candidates === 0) continue
+    reports.push(report)
   }
 
   return reports

@@ -6,6 +6,7 @@ import mail from '@adonisjs/mail/services/main'
 import Notification from '#models/notification'
 import { PresenceReminderNotification } from '#mails/presence_reminder_notification'
 import { readNotificationPayload } from '#services/notification_payload'
+import { renderDeliveries } from '#services/notification_renderer'
 
 /**
  * Vidange la file. Séparée des détecteurs à dessein : un SMTP indisponible ne
@@ -29,7 +30,10 @@ export default class NotifyDispatch extends BaseCommand {
       .where('notifications.channel', 'mail')
       .select(
         'notifications.id as id',
+        'notifications.user_id as user_id',
         'users.email as email',
+        'activity_events.verb as verb',
+        'activity_events.subject_id as subject_id',
         'activity_events.payload as payload'
       )
 
@@ -38,10 +42,21 @@ export default class NotifyDispatch extends BaseCommand {
       return
     }
 
+    const rendered = await renderDeliveries(
+      pending.map((row) => ({
+        id: Number(row.id),
+        userId: Number(row.user_id),
+        verb: String(row.verb),
+        subjectId: Number(row.subject_id),
+        payload: row.payload,
+      }))
+    )
+
     let sent = 0
 
     for (const row of pending) {
-      const { subject, lines } = readNotificationPayload(row.payload)
+      const { subject, lines } =
+        rendered.get(Number(row.id)) ?? readNotificationPayload(row.payload)
 
       if (this.dryRun) {
         this.logger.info(`[dry-run] ${row.email} — ${subject}`)

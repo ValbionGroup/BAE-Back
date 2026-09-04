@@ -42,6 +42,7 @@ Adonis n'a pas d'ordonnanceur : la récurrence vient du cron système.
 | -------------------------- | ---------------------------------------------------------------- |
 | `notify:presence-pending`  | Met en file un rappel pour les membres **sans réponse**          |
 | `notify:presence-upcoming` | Met en file un rappel pour les membres ayant répondu **présent** |
+| `notify:presence-tomorrow` | Met en file, la veille, un rappel **portant le poste** de chacun |
 | `notify:dispatch`          | Vide la file du canal `mail` : envoie et horodate                |
 | `telegram:dispatch`        | Vide la file du canal `telegram`                                 |
 
@@ -55,9 +56,19 @@ détection, et chaque moitié se teste sans l'autre.
 # Rappels BAE — l'application ne planifie rien elle-même.
 0 10 * * *   cd /srv/bae-back && node ace notify:presence-pending
 0 18 * * *   cd /srv/bae-back && node ace notify:presence-upcoming
+0 19 * * *   cd /srv/bae-back && node ace notify:presence-tomorrow
 */15 * * * * cd /srv/bae-back && node ace notify:dispatch
 * * * * *    cd /srv/bae-back && node ace telegram:dispatch
 ```
+
+19 h et non 18 h : deux détecteurs démarrés à la même minute se disputeraient les mêmes soirées.
+L'idempotence les départagerait correctement, mais l'un des deux journaliserait un résultat
+trompeur.
+
+⚠️ `notify:presence-tomorrow` porte une fenêtre par défaut de **1 jour**, les deux autres de 3.
+« 24 h » veut donc dire « dans les prochaines 24 heures au passage du cron », pas « exactement 24 h
+avant » : une soirée à 22 h est prévenue la veille à 19 h, soit 27 h avant. Un rappel à l'heure près
+demanderait un cron horaire et une fenêtre glissante.
 
 ## Telegram
 
@@ -124,6 +135,9 @@ protection contre le double envoi est cassée.
 
 ## Piège de test
 
-**`EventFactory` tire `status` au hasard** parmi `scheduled | ongoing | completed`. Tout test qui
-dépend du statut doit le fixer explicitement — sinon il réussit deux fois sur trois, et un test
-d'absence réussit pour la mauvaise raison.
+**`EventFactory` déduit `status` de la date**, et sa date est toujours future : une soirée
+fabriquée est donc `scheduled`. Un test qui dépend d'un autre statut doit fixer **la date et le
+statut**.
+
+(Le tirage aléatoire décrit ici auparavant a été supprimé — cf. `database/factories/event_factory.ts`,
+qui explique les deux bugs de dev qu'il a coûtés.)
