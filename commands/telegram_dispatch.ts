@@ -7,6 +7,7 @@ import Notification from '#models/notification'
 import TelegramClient from '#services/telegram/telegram_client'
 import { unlink } from '#services/telegram/telegram_link_service'
 import { readNotificationPayload } from '#services/notification_payload'
+import { renderDeliveries } from '#services/notification_renderer'
 
 /**
  * Distincte de `notify:dispatch`, qui n'entoure pas `mail.send` d'un try/catch :
@@ -33,6 +34,8 @@ export default class TelegramDispatch extends BaseCommand {
         'notifications.id as id',
         'users.id as user_id',
         'users.telegram_chat_id as chat_id',
+        'activity_events.verb as verb',
+        'activity_events.subject_id as subject_id',
         'activity_events.payload as payload'
       )
 
@@ -41,11 +44,22 @@ export default class TelegramDispatch extends BaseCommand {
       return
     }
 
+    const rendered = await renderDeliveries(
+      pending.map((row) => ({
+        id: Number(row.id),
+        userId: Number(row.user_id),
+        verb: String(row.verb),
+        subjectId: Number(row.subject_id),
+        payload: row.payload,
+      }))
+    )
+
     const telegram = await app.container.make(TelegramClient)
     let sent = 0
 
     for (const row of pending) {
-      const { subject, lines } = readNotificationPayload(row.payload)
+      const { subject, lines } =
+        rendered.get(Number(row.id)) ?? readNotificationPayload(row.payload)
       const text = [subject, ...lines].join('\n')
       const chatId = Number(row.chat_id)
 
