@@ -134,3 +134,32 @@ test.group('POST /v1/events/:id/reminders', (group) => {
     assert.equal(response.body().data.already_sent, 0)
   })
 })
+
+test.group('GET /v1/events/:id/roster — late', (group) => {
+  group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('marque comme relancé un membre déjà rappelé', async ({ client, assert }) => {
+    const event = await scheduledEvent()
+    const silent = await MemberFactory.create()
+
+    const actor = await actorWith('presence:write', 'event:read')
+    await client.post(`/v1/events/${event.id}/reminders`).loginAs(actor)
+
+    const roster = await client.get(`/v1/events/${event.id}/roster`).loginAs(actor)
+    const row = roster.body().data.find((r: { id: number }) => r.id === silent.id)
+
+    assert.isTrue(row.late)
+  })
+
+  test("ne marque pas un membre qui n'a rien reçu", async ({ client, assert }) => {
+    const event = await scheduledEvent()
+    const silent = await MemberFactory.create()
+
+    const roster = await client
+      .get(`/v1/events/${event.id}/roster`)
+      .loginAs(await actorWith('event:read'))
+    const row = roster.body().data.find((r: { id: number }) => r.id === silent.id)
+
+    assert.isFalse(row.late)
+  })
+})

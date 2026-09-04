@@ -583,16 +583,39 @@ export default class EventsController {
     })
   }
 
+  /**
+   * `late` dit qu'un rappel `presence.pending` est déjà parti à ce membre pour
+   * cette soirée — le badge « Rappelé·e » de l'écran des présences. Une seule
+   * requête pour tout le roster, jamais une par membre.
+   */
   async roster({ params, serialize }: HttpContext) {
     await Event.findOrFail(params.id)
+
     const members = await Member.query()
       .preload('user')
       .preload('responses', (q) => q.where('events.id', params.id))
+
+    const reminded = await db
+      .from('notifications')
+      .join('activity_events', 'activity_events.id', 'notifications.event_id')
+      .where('activity_events.verb', PRESENCE_PENDING.verb)
+      .where('activity_events.subject_type', 'event')
+      .where('activity_events.subject_id', params.id)
+      .distinct('notifications.user_id as user_id')
+
+    const remindedIds = new Set(reminded.map((row) => Number(row.user_id)))
+
     const roster = members.map((m) => {
       const response = m.responses[0]
       const status = response ? (response.$extras.pivot_is_available ? 1 : 0) : -1
-      return { id: m.id, name: m.user.fullName ?? m.user.email, status }
+      return {
+        id: m.id,
+        name: m.user.fullName ?? m.user.email,
+        status,
+        late: remindedIds.has(m.id),
+      }
     })
+
     return serialize(roster)
   }
 }
